@@ -1,0 +1,12 @@
+﻿<Application x:Class="Coffee.DigitalPlatform.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Coffee.DigitalPlatform"
+             xmlns:vm="clr-namespace:Coffee.DigitalPlatform.ViewModels;assembly=Coffee.DigitalPlatform.ViewModels"            
+             StartupUri="pack://application:,,,/Coffee.DigitalPlatform.Views;component/MainWindow.xaml">
+    <Application.Resources>
+        <vm:ViewModelLocator x:Key="locator" />
+        <FontFamily x:Key="Iconfont">pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Fonts/#iconfont</FontFamily>
+        <FontFamily x:Key="DigitalDisplay">pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Fonts/#Digital Display</FontFamily>
+    </Application.Resources>
+</Application>
