@@ -22,6 +22,8 @@ namespace Coffee.DigitalPlatform
             services.AddSingleton<LoginViewModel>();
             services.AddSingleton<ILocalDataAccess, LocalDataAccess>();
 
+            services.AddSingleton<ConfigureComponentViewModel>();
+
             services.AddSingleton<MonitorViewModel>();
 
             var serviceProvider = services.BuildServiceProvider();

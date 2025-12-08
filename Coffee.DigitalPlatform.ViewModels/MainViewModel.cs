@@ -155,6 +155,16 @@ namespace Coffee.DigitalPlatform.ViewModels
         }
         #endregion
 
-        
+        /// <summary>
+        /// 提示没有权限操作
+        /// </summary>
+        public void ShowNonPermission()
+        {
+            if (ActionManager.ExecuteAndResult<object>("ShowRight", null))
+            {
+                // 执行重新登录
+                DoLogout();
+            }
+        }
     }
 }

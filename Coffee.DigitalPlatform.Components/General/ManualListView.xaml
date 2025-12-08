@@ -1,0 +1,78 @@
+﻿<UserControl x:Class="Coffee.DigitalPlatform.Components.ManualListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Coffee.DigitalPlatform.Components"
+             xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="b2v"/>
+        <local:InfoButtonVisibilityValueConverter x:Key="ibv"/>
+        <ControlTemplate TargetType="ToggleButton" x:Key="InfoButtonTemplate">
+            <Border Background="#F7F9FA" CornerRadius="100" BorderThickness="1" BorderBrush="#DDD" Name="border">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="15" Color="#16a1ff" ShadowDepth="0" Opacity="0.1"/>
+                </Border.Effect>
+                <TextBlock Text="{TemplateBinding Content}" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="border" Property="Background" Value="#EEE"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+    </UserControl.Resources>
+    <Canvas>
+        <!--手动控制列表-->
+        <ToggleButton Width="18" Height="18" Name="btnControl" Content="···"
+          Canvas.Left="{Binding RelativeSource={RelativeSource AncestorType={x:Type wpf:ComponentBase}},Path=ActualWidth}"
+          Canvas.Bottom="28"
+          Template="{StaticResource InfoButtonTemplate}">
+            <ToggleButton.Visibility>
+                <MultiBinding Converter="{StaticResource ibv}">
+                    <Binding RelativeSource="{RelativeSource AncestorType={x:Type wpf:ComponentBase}}" Path="IsMonitor"/>
+                    <Binding RelativeSource="{RelativeSource AncestorType={x:Type wpf:ComponentBase}}" Path="ManualList.Count"/>
+                </MultiBinding>
+            </ToggleButton.Visibility>
+        </ToggleButton>
+
+        <Border Width="120" CornerRadius="5" BorderThickness="1" BorderBrush="#EEE" 
+            Canvas.Left="{Binding RelativeSource={RelativeSource AncestorType={x:Type wpf:ComponentBase}},Path=ActualWidth}"
+            Canvas.Bottom="0"
+            Visibility="{Binding ElementName=btnControl,Path=IsChecked,Converter={StaticResource b2v}}">
+            <Grid>
+                <Border Background="#AEEE">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="15" Color="#16a1ff" ShadowDepth="0" Opacity="0.2"/>
+                    </Border.Effect>
+                </Border>
+                <ItemsControl ItemsSource="{Binding RelativeSource={RelativeSource AncestorType={x:Type wpf:ComponentBase}},Path=ManualList}" Margin="5">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Height="24" Margin="0,1">
+                                <Button Content="{Binding ControlHeader}" Foreground="#666" FontSize="11.5"
+                            Command="{Binding ManualControlCommand,RelativeSource={RelativeSource AncestorType={x:Type wpf:ComponentBase}}}"
+                            CommandParameter="{Binding}">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="#9FFF" CornerRadius="5" Name="border">
+                                                <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="border" Property="Background" Value="#DFFF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </Border>
+    </Canvas>
+</UserControl>

@@ -69,21 +69,6 @@ namespace Coffee.DigitalPlatform.CommWPF
             binding.Path = new System.Windows.PropertyPath("IsSelected");
             c.SetBinding(ComponentBase.IsSelectedProperty, binding);
 
-
-            // 处理组件尺寸缩放命令逻辑绑定
-            binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("ResizeDownCommand");
-            c.SetBinding(ComponentBase.ResizeDownCommandProperty, binding);
-
-            binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("ResizeMoveCommand");
-            c.SetBinding(ComponentBase.ResizeMoveCommandProperty, binding);
-
-            binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("ResizeUpCommand");
-            c.SetBinding(ComponentBase.ResizeUpCommandProperty, binding);
-
-
             binding = new Binding();
             binding.Path = new System.Windows.PropertyPath("Rotate");
             c.SetBinding(ComponentBase.RotateAngleProperty, binding);
@@ -91,7 +76,6 @@ namespace Coffee.DigitalPlatform.CommWPF
             binding = new Binding();
             binding.Path = new System.Windows.PropertyPath("FlowDirection");
             c.SetBinding(ComponentBase.FlowDirectionProperty, binding);
-
 
             binding = new Binding();
             binding.Path = new System.Windows.PropertyPath("IsWarning");// Model中的属性
@@ -104,11 +88,11 @@ namespace Coffee.DigitalPlatform.CommWPF
             binding.Path = new System.Windows.PropertyPath("IsMonitor");// Model中的属性
             c.SetBinding(ComponentBase.IsMonitorProperty, binding);// 组件中的依赖属性
             binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("VariableList");// Model中的属性
-            c.SetBinding(ComponentBase.VarListProperty, binding);// 组件中的依赖属性
+            binding.Path = new System.Windows.PropertyPath("Variables");// Model中的属性
+            c.SetBinding(ComponentBase.VariableListProperty, binding);// 组件中的依赖属性
             binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("ManualControlList");// Model中的属性
-            c.SetBinding(ComponentBase.ControlListProperty, binding);// 组件中的依赖属性
+            binding.Path = new System.Windows.PropertyPath("ManualList");// Model中的属性
+            c.SetBinding(ComponentBase.ManualListProperty, binding);// 组件中的依赖属性
             binding = new Binding();
             binding.Path = new System.Windows.PropertyPath("ManualControlCommand");// Model中的属性
             c.SetBinding(ComponentBase.ManualControlCommandProperty, binding);// 组件中的依赖属性

@@ -1,8 +1,11 @@
-﻿using Coffee.DigitalPlatform.IDataAccess;
+﻿using Coffee.DigitalPlatform.CommWPF;
+using Coffee.DigitalPlatform.IDataAccess;
 using Coffee.DigitalPlatform.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,7 +23,14 @@ namespace Coffee.DigitalPlatform.ViewModels
             _localDataAccess = localDataAccess;
 
             initDataForMonitor();
+
+            ConfigureComponentCommand = new RelayCommand(showConfigureComponentDialog);
+
+            TestData.Add("aaa");
+            TestData.Add("bbb");
         }
+
+        public ObservableCollection<string> TestData { get; set; } = new ObservableCollection<string>();
 
         public Variable Temperature { get; set; }
         public Variable Humidity { get; set; }
@@ -31,6 +41,8 @@ namespace Coffee.DigitalPlatform.ViewModels
         public List<RankingItem> RankingList { get; set; }
 
         public List<MonitorWarnning> WarnningList { get; set; }
+
+        public List<Device> DeviceList { get; set; }
 
         void initDataForMonitor()
         {
@@ -70,6 +82,38 @@ namespace Coffee.DigitalPlatform.ViewModels
                       DateTime=DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") }
                 };
             #endregion
+        }
+
+        public RelayCommand ConfigureComponentCommand {  get; set; }
+
+        private void showConfigureComponentDialog()
+        {
+            if (_mainViewModel.GlobalUserInfo == null || _mainViewModel.GlobalUserInfo.UserType == Common.UserTypes.Operator)
+            {
+                // 提示没有权限操作
+                _mainViewModel.ShowNonPermission();
+                return;
+            }
+            else
+            {
+                // 可以打开编辑   启动窗口   主动
+                if (ActionManager.ExecuteAndResult<object>("ShowConfigureComponentDialog", null))
+                {
+                    // 添加一个等待页面（预留）
+
+                    // 可能会有耗时控件
+                    //cts.Cancel();
+                    //Task.WaitAll(tasks.ToArray());
+
+                    //cts = new CancellationTokenSource();
+                    //tasks.Clear();
+
+                    //// 刷新   配置文件/数据库
+                    //ComponentsInit();
+                    //// 启动监听
+                    //this.Monitor();
+                }
+            }
         }
     }
 }

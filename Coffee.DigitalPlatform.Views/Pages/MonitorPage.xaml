@@ -72,7 +72,6 @@
             <ColumnDefinition/>
             <ColumnDefinition Width="250"/>
         </Grid.ColumnDefinitions>
-
         <!--第一列-->
         <Grid>
             <Grid.RowDefinitions>
@@ -322,7 +321,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <ContentControl 
-                            Content="{Binding Path=DeviceType,Converter={StaticResource dic}}"
+                            Content="{Binding Path=DeviceType,Converter={StaticResource DeviceCompConverter}}"
                             Width="{Binding Width}" Height="{Binding Height}">
                         </ContentControl>
                     </DataTemplate>
@@ -483,7 +482,7 @@
                     </Grid>
 
                     <Button VerticalAlignment="Center" Style="{StaticResource NormalButtonStyle}" Height="30" Width="150"
-                            Grid.Row="1" Command="{Binding ComponentsConfigCommand}">
+                            Grid.Row="1" Command="{Binding ConfigureComponentCommand}">
                         <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="30"/>

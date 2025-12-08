@@ -1,4 +1,5 @@
-﻿using Coffee.DigitalPlatform.ViewModels;
+﻿using Coffee.DigitalPlatform.CommWPF;
+using Coffee.DigitalPlatform.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +30,23 @@ namespace Coffee.DigitalPlatform.Views
             }
 
             InitializeComponent();
+
+            ActionManager.Register<object>("ShowConfigureComponentDialog", new Func<object, bool>(showConfigureComponentDialog));
+        }
+
+        private bool showConfigureComponentDialog(object dataContext)
+        {
+            return showDialog(new ConfigureComponentDialog()
+            {
+                Owner = this,
+                DataContext = dataContext
+            });
+        }
+
+        private bool showDialog(Window dialog)
+        {
+            bool result = dialog.ShowDialog() == true;
+            return result;
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)

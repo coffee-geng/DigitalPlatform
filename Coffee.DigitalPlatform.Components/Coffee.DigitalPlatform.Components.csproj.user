@@ -2,12 +2,96 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup />
   <ItemGroup>
-    <Compile Update="Meter.xaml.cs">
+    <Compile Update="AdsorptionDryer.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="AirCompressor.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Filter.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="FreezeDryer.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="GasTank.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="General\ComponentAnchor.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="General\ManualListView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="General\Meter.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="General\VariableListView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="HeightRule.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="HorizontalPipeline.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="RAJoints.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="TeeJoints.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="VerticalPipeline.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="WidthRule.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Page Update="Meter.xaml">
+    <Page Update="AdsorptionDryer.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="AirCompressor.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Filter.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="FreezeDryer.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="GasTank.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="General\ComponentAnchor.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="General\ManualListView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="General\Meter.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="General\VariableListView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="HeightRule.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="HorizontalPipeline.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="RAJoints.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="TeeJoints.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="VerticalPipeline.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="WidthRule.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

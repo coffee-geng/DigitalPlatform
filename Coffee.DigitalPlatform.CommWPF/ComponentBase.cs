@@ -6,11 +6,16 @@ using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows;
+using System.Windows.Shell;
 
 namespace Coffee.DigitalPlatform.CommWPF
 {
     public class ComponentBase : UserControl
     {
+        public ComponentBase()
+        {
+        }
+
         public ICommand DeleteCommand
         {
             get { return (ICommand)GetValue(DeleteCommandProperty); }
@@ -22,7 +27,6 @@ namespace Coffee.DigitalPlatform.CommWPF
                 {
                 })));
 
-
         public object DeleteParameter
         {
             get { return (object)GetValue(DeleteParameterProperty); }
@@ -31,8 +35,6 @@ namespace Coffee.DigitalPlatform.CommWPF
         public static readonly DependencyProperty DeleteParameterProperty =
             DependencyProperty.Register("DeleteParameter", typeof(object), typeof(ComponentBase), new PropertyMetadata(null));
 
-
-
         public bool IsSelected
         {
             get { return (bool)GetValue(IsSelectedProperty); }
@@ -40,7 +42,6 @@ namespace Coffee.DigitalPlatform.CommWPF
         }
         public static readonly DependencyProperty IsSelectedProperty =
             DependencyProperty.Register("IsSelected", typeof(bool), typeof(ComponentBase), new PropertyMetadata(false));
-
 
         // 
         //public double ShowWidth
@@ -105,8 +106,6 @@ namespace Coffee.DigitalPlatform.CommWPF
                 var state = VisualStateManager.GoToState(d as ComponentBase, e.NewValue.ToString() == "1" ? "EWFlowState" : "WEFlowState", false);
             }));
 
-
-
         public bool IsWarning
         {
             get { return (bool)GetValue(IsWarningProperty); }
@@ -118,7 +117,6 @@ namespace Coffee.DigitalPlatform.CommWPF
                 if (e.NewValue.ToString() != e.OldValue.ToString())
                     VisualStateManager.GoToState(d as ComponentBase, (bool)e.NewValue ? "WarningState" : "NormalState", false);
             }));
-
 
         public string WarningMessage
         {
@@ -138,25 +136,21 @@ namespace Coffee.DigitalPlatform.CommWPF
         public static readonly DependencyProperty IsMonitorProperty =
             DependencyProperty.Register("IsMonitor", typeof(bool), typeof(ComponentBase), new PropertyMetadata(false));
 
-        public object VarList
+        public object VariableList
         {
-            get { return (object)GetValue(VarListProperty); }
-            set { SetValue(VarListProperty, value); }
+            get { return (object)GetValue(VariableListProperty); }
+            set { SetValue(VariableListProperty, value); }
         }
-        public static readonly DependencyProperty VarListProperty =
-            DependencyProperty.Register("VarList", typeof(object), typeof(ComponentBase), new PropertyMetadata(null));
+        public static readonly DependencyProperty VariableListProperty =
+            DependencyProperty.Register("VariableList", typeof(object), typeof(ComponentBase), new PropertyMetadata(null));
 
-
-
-        public object ControlList
+        public object ManualList
         {
-            get { return (object)GetValue(ControlListProperty); }
-            set { SetValue(ControlListProperty, value); }
+            get { return (object)GetValue(ManualListProperty); }
+            set { SetValue(ManualListProperty, value); }
         }
-        public static readonly DependencyProperty ControlListProperty =
-            DependencyProperty.Register("ControlList", typeof(object), typeof(ComponentBase), new PropertyMetadata(null));
-
-
+        public static readonly DependencyProperty ManualListProperty =
+            DependencyProperty.Register("ManualList", typeof(object), typeof(ComponentBase), new PropertyMetadata(null));
 
         public ICommand ManualControlCommand
         {
@@ -165,7 +159,6 @@ namespace Coffee.DigitalPlatform.CommWPF
         }
         public static readonly DependencyProperty ManualControlCommandProperty =
             DependencyProperty.Register("ManualControlCommand", typeof(ICommand), typeof(ComponentBase), new PropertyMetadata(null));
-
 
         public ICommand AlarmDetailCommand
         {
@@ -176,87 +169,121 @@ namespace Coffee.DigitalPlatform.CommWPF
         public static readonly DependencyProperty AlarmDetailCommandProperty =
             DependencyProperty.Register("AlarmDetailCommand", typeof(ICommand), typeof(ComponentBase), new PropertyMetadata(null));
 
+        #region 处理组件尺寸缩放逻辑
 
-        bool is_move = false;
-        Point start = new Point(0, 0);
-        public void Ellipse_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        //缩放前组件的尺寸
+        double _oldWidth, _oldHeight;
+        //缩放时，用于计算是否要进行对齐判断的组件集合
+        private IEnumerable<IComponentContext> _componentsToCheckAlign;
+        //显示组件长或宽的标尺
+        private IEnumerable<IComponentContext> _rulers;
+
+        protected void doResizeStart()
         {
-            //// 修改ShwoWidth/ShowHeight
-            //is_move = true;
+            _oldWidth = this.Width;
+            _oldHeight = this.Height;
 
-            //// 获取相对Canvas的按下坐标
-            //start = e.GetPosition(GetParent(this));
-            //Mouse.Capture((IInputElement)sender);
-            //e.Handled = true;
-
-            ResizeDownCommand?.Execute(e);
+            IComponentContext vm = this.DataContext as IComponentContext;
+            if (vm != null)
+            {
+                _componentsToCheckAlign = vm.GetComponentsToCheckAlign();
+            }
         }
 
-        public void Ellipse_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        /// <summary>
+        /// 拖拉鼠标执行缩放操作。
+        /// </summary>
+        /// <param name="delta">缩放时，鼠标拖放指定的缩放大小</param>
+        /// <param name="resizeDirection">缩放的方向，有水平，垂直，任意三个方向</param>
+        /// <param name="isAlign">缩放时是否对齐其他的组件</param>
+        /// <param name="isProportional">是否等比例缩放，仅对任意方向缩放有效</param>
+        protected void doResizing(Vector delta, ResizeGripDirection resizeDirection, bool isAlign, bool isProportional)
         {
-            // 修改ShwoWidth/ShowHeight
-            //is_move = false;
-            //e.Handled = true;
-            //Mouse.Capture(null);
+            IComponentContext vm = this.DataContext as IComponentContext;
 
-            ResizeUpCommand?.Execute(e);
+            if (resizeDirection == ResizeGripDirection.Left || resizeDirection == ResizeGripDirection.Right)
+            {
+                if (isAlign)
+                {
+                   
+                }
+                else
+                {
+                    this.Width = _oldWidth + delta.X;
+                }
+            }
+            else if (resizeDirection == ResizeGripDirection.Top || resizeDirection == ResizeGripDirection.Bottom)
+            {
+                if (isAlign)
+                {
+
+                }
+                else
+                {
+                    this.Height = _oldHeight + delta.Y;
+                }
+            }
+            else if (resizeDirection == ResizeGripDirection.TopLeft || resizeDirection == ResizeGripDirection.TopRight || resizeDirection == ResizeGripDirection.BottomLeft || resizeDirection == ResizeGripDirection.BottomRight)
+            {
+                if (isProportional)
+                {
+
+                }
+                else
+                {
+
+                }
+            }
         }
 
-        public void Ellipse_MouseMove(object sender, MouseEventArgs e)
+        protected void doResizeEnd()
         {
-            ResizeMoveCommand?.Execute(e);
 
-            // 修改ShwoWidth/ShowHeight
-            //if (is_move)
-            //{
-            //    // 鼠标光标的新位置
-            //    Point current = e.GetPosition(GetParent(this));
-            //    // 根据光标类型判断是如何变化 
-            //    var c = (sender as Ellipse).Cursor;
-            //    if (c != null)
-            //    {
-            //        if (c == Cursors.SizeWE)// 水平方向
-            //        {
-            //            this.ShowWidth += current.X - start.X;
-            //        }
-            //        else if (c == Cursors.SizeNS)// 垂直方向
-            //        {
-            //            this.ShowHeight += current.Y - start.Y;
-            //        }
-            //        else if (c == Cursors.SizeNWSE)// 右下方向
-            //        {
-            //            if (Keyboard.Modifiers == ModifierKeys.Control)
-            //            {
-            //                // 没有锁定（如果拖动的时候同时按下了Ctrl键 ）
-            //                this.ShowWidth += current.X - start.X;
-            //                this.ShowHeight += current.Y - start.Y;
-            //            }
-            //            else
-            //            {
-            //                // 锁定比例
-            //                var rate = this.ShowWidth / this.ShowHeight;
-            //                this.ShowWidth += current.X - start.X;
-            //                this.ShowHeight = this.ShowWidth / rate;
-            //            }
-            //        }
-            //        start = current;
-            //    }
-            //    e.Handled = true;
-            //}
         }
-        //private Canvas GetParent(DependencyObject d)
-        //{
-        //    var obj = VisualTreeHelper.GetParent(d);
-        //    if (obj != null && obj is Canvas)
-        //        return obj as Canvas;
+        #endregion
 
-        //    return GetParent(obj);
-        //}
+        #region 处理组件移动逻辑
+        bool _isMoving = false;
+        Point startPoint = new Point(0, 0);
 
+        public void OnComponent_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            IComponentContext vm = this.DataContext as IComponentContext;
+            if (vm != null)
+            {
+                _componentsToCheckAlign = vm.GetComponentsToCheckAlign();
+                _rulers = vm.GetRulers();
+            }
+
+            startPoint = e.GetPosition((System.Windows.IInputElement)sender);
+            _isMoving = true;
+
+            Mouse.Capture((IInputElement)sender);
+            e.Handled = true;
+        }
+
+        public void OnComponent_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            _isMoving = false;
+            foreach (var item in _rulers)
+            {
+                if (item is FrameworkElement ele)
+                {
+                    ele.Visibility = Visibility.Collapsed;
+                }
+            }
+            Mouse.Capture(null);
+        }
+
+        public void OnComponent_MouseMove(object sender, MouseEventArgs e)
+        {
+            
+        }
 
         public void Button_Click(object sender, RoutedEventArgs e)
         {
             DeleteCommand?.Execute(DeleteParameter);
         }
+        #endregion
     }
 }

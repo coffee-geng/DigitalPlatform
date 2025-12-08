@@ -8,5 +8,9 @@ namespace Coffee.DigitalPlatform.IDataAccess
         UserEntity Login(string username, string password);
 
         void ResetPassword(string username);
+
+        IList<ComponentEntity> GetComponentsForCreate();
+
+        IList<CommunicationParameterEntity> GetCommunicationParameters();
     }
 }

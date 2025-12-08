@@ -1,5 +1,6 @@
 ﻿using Coffee.DigitalPlatform.Common;
 using Coffee.DigitalPlatform.Entities;
+using Coffee.DigitalPlatform.Entities.Converter;
 using Coffee.DigitalPlatform.IDataAccess;
 using Dapper;
 using Microsoft.Data.Sqlite;
@@ -152,6 +153,26 @@ namespace Coffee.DigitalPlatform.DataAccess
             paramDict.Add("@username", username);
 
             this.SqlExecute(sql, paramDict);
+        }
+        #endregion
+
+        #region 设备信息
+
+        public IList<ComponentEntity> GetComponentsForCreate()
+        {
+            SqlMapper.SetTypeMap(typeof(ComponentEntity), new ColumnAttributeTypeMapper<ComponentEntity>());
+
+            string sql = "select * from thumbs";
+            var results = SqlQuery<ComponentEntity>(sql);
+            if (results != null)
+                return results.ToList();
+            else
+                return Enumerable.Empty<ComponentEntity>().ToList();
+        }
+
+        public IList<CommunicationParameterEntity> GetCommunicationParameters()
+        {
+            throw new NotImplementedException();
         }
         #endregion
     }

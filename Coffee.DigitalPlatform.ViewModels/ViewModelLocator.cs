@@ -23,5 +23,7 @@ namespace Coffee.DigitalPlatform.ViewModels
         public LoginViewModel LoginViewModel => Provider.GetService<LoginViewModel>();
 
         public MonitorViewModel MonitorViewModel => Provider.GetService<MonitorViewModel>();
+
+        public ConfigureComponentViewModel ConfigureComponentViewModel => Provider.GetService<ConfigureComponentViewModel>();
     }
 }
