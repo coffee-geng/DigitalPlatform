@@ -169,6 +169,20 @@ namespace Coffee.DigitalPlatform.CommWPF
         public static readonly DependencyProperty AlarmDetailCommandProperty =
             DependencyProperty.Register("AlarmDetailCommand", typeof(ICommand), typeof(ComponentBase), new PropertyMetadata(null));
 
+
+
+        public Canvas Canvas
+        {
+            get { return (Canvas)GetValue(CanvasProperty); }
+            set { SetValue(CanvasProperty, value); }
+        }
+        public static readonly DependencyProperty CanvasProperty =
+            DependencyProperty.Register("Canvas", typeof(Canvas), typeof(ComponentBase), new PropertyMetadata(null, OnCanvasPropertyChanged));
+        private static void OnCanvasPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+
+        }
+
         #region 处理组件尺寸缩放逻辑
 
         //缩放前组件的尺寸
@@ -176,12 +190,14 @@ namespace Coffee.DigitalPlatform.CommWPF
         //缩放时，用于计算是否要进行对齐判断的组件集合
         private IEnumerable<IComponentContext> _componentsToCheckAlign;
         //显示组件长或宽的标尺
-        private IEnumerable<IComponentContext> _rulers;
+        private IEnumerable<IAuxiliaryLineContext> _rulers;
+        //显示组件对齐的标线
+        private IEnumerable<IAuxiliaryLineContext> _alignLines;
 
         protected void doResizeStart()
         {
-            _oldWidth = this.Width;
-            _oldHeight = this.Height;
+            _oldWidth = this.ActualWidth;
+            _oldHeight = this.ActualHeight;
 
             IComponentContext vm = this.DataContext as IComponentContext;
             if (vm != null)
@@ -209,7 +225,7 @@ namespace Coffee.DigitalPlatform.CommWPF
                 }
                 else
                 {
-                    this.Width = _oldWidth + delta.X;
+                    vm.Width = _oldWidth + delta.X;
                 }
             }
             else if (resizeDirection == ResizeGripDirection.Top || resizeDirection == ResizeGripDirection.Bottom)
@@ -220,7 +236,7 @@ namespace Coffee.DigitalPlatform.CommWPF
                 }
                 else
                 {
-                    this.Height = _oldHeight + delta.Y;
+                    vm.Height = _oldHeight + delta.Y;
                 }
             }
             else if (resizeDirection == ResizeGripDirection.TopLeft || resizeDirection == ResizeGripDirection.TopRight || resizeDirection == ResizeGripDirection.BottomLeft || resizeDirection == ResizeGripDirection.BottomRight)
@@ -245,17 +261,23 @@ namespace Coffee.DigitalPlatform.CommWPF
         #region 处理组件移动逻辑
         bool _isMoving = false;
         Point startPoint = new Point(0, 0);
+        double _oldX = 0;
+        double _oldY = 0;
 
         public void OnComponent_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             IComponentContext vm = this.DataContext as IComponentContext;
-            if (vm != null)
-            {
-                _componentsToCheckAlign = vm.GetComponentsToCheckAlign();
-                _rulers = vm.GetRulers();
-            }
+            if (vm == null)
+                return;
+            if (Canvas == null)
+                return;
 
-            startPoint = e.GetPosition((System.Windows.IInputElement)sender);
+            _componentsToCheckAlign = vm.GetComponentsToCheckAlign();
+            _rulers = vm.GetRulers();
+
+            _oldX = vm.X;
+            _oldY = vm.Y;
+            startPoint = e.GetPosition(Canvas);
             _isMoving = true;
 
             Mouse.Capture((IInputElement)sender);
@@ -264,6 +286,9 @@ namespace Coffee.DigitalPlatform.CommWPF
 
         public void OnComponent_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            startPoint = new Point(0, 0);
+            _oldX = 0;
+            _oldY = 0;
             _isMoving = false;
             foreach (var item in _rulers)
             {
@@ -277,7 +302,63 @@ namespace Coffee.DigitalPlatform.CommWPF
 
         public void OnComponent_MouseMove(object sender, MouseEventArgs e)
         {
-            
+            IComponentContext vm = this.DataContext as IComponentContext;
+            if (vm == null)
+                return;
+            if (Canvas == null)
+                return;
+
+            if (_isMoving)
+            {
+                bool isAlign = Keyboard.Modifiers != ModifierKeys.Alt;
+
+                Point p = e.GetPosition(Canvas);
+                double deltaX = p.X - startPoint.X;
+                double deltaY = p.Y - startPoint.Y;
+
+                if (isAlign && _componentsToCheckAlign != null && _componentsToCheckAlign.Any())
+                {
+                    //计算水平方向的对齐线
+                    double minDeltaX = 20; //相距20像素之内，就需要对齐
+                    //判断是否有其他组件的左端与当前组件左端对齐
+                    IComponentContext alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X - vm.X) < minDeltaX).Min();
+                    if (alignComponent == null)
+                    {
+                        //判断是否有其他组件的右端与当前组件左端对齐
+                        alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X + comp.Width - vm.X) < minDeltaX).Min();
+                        if (alignComponent == null)
+                        {
+                            //判断是否有其他组件的右端与当前组件右端对齐
+                            alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X + comp.Width - (vm.X + vm.Width)) < minDeltaX).Min();
+                            if (alignComponent == null)
+                            {
+                                //判断是否有其他组件的左端与当前组件右端对齐
+                                alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X - (vm.X + vm.Width)) < minDeltaX).Min();
+                            }
+                        }
+                    }
+                    if (alignComponent != null) //有可以对齐的组件
+                    {
+                        var verticalLines = vm.GetLinesToAlign(AuxiliaryLineTypes.VerticalLine);
+                        if (verticalLines != null && verticalLines.Any())
+                        {
+                            var alignXLine = verticalLines.First();
+                            alignXLine.IsVisible = true;
+                            foreach(var line in verticalLines)
+                            {
+                                if (line == alignXLine)
+                                    continue;
+                                line.IsVisible = false;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    vm.X = _oldX + deltaX;
+                    vm.Y = _oldY + deltaY;
+                }
+            }
         }
 
         public void Button_Click(object sender, RoutedEventArgs e)

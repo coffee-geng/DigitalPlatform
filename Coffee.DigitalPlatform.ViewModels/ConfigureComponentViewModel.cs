@@ -24,6 +24,8 @@ namespace Coffee.DigitalPlatform.ViewModels
             SelectDeviceCommand = new RelayCommand<Device>(doSelectDevice);
             CloseErrorMessageBoxCommand = new RelayCommand<object>(doCloseErrorMessageBox);
 
+            CreateComponentByDragCommand = new RelayCommand<DragEventArgs>(doCreateComponentByDrag);
+
             if (!DesignTimeHelper.IsInDesignMode)
             {
                 var componentInstances = localDataAccess.GetComponentsForCreate();
@@ -41,11 +43,8 @@ namespace Coffee.DigitalPlatform.ViewModels
                 });
             }
 
-            TestData.Add("aaa");
-            TestData.Add("bbb");
+            loadComponentsFromDatabase();
         }
-
-        public ObservableCollection<string> TestData { get; set; } = new ObservableCollection<string>();
 
         #region 设备实例
         private IEnumerable<ComponentGroup> _componentGroups;
@@ -55,7 +54,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             set { SetProperty(ref _componentGroups, value); }
         }
 
-        public ObservableCollection<Device> DeviceList { get; set; } = new ObservableCollection<Device>();
+        public ObservableCollection<IUIElementContext> DeviceList { get; set; } = new ObservableCollection<IUIElementContext>();
 
         private Device _currentDevice;
         public Device CurrentDevice
@@ -67,11 +66,6 @@ namespace Coffee.DigitalPlatform.ViewModels
         public RelayCommand<DragEventArgs> CreateComponentByDragCommand { get; set; }
 
         public RelayCommand<Device> SelectDeviceCommand { get; set; }
-
-        private void initComponentGroups()
-        {
-
-        }
 
         private void doCreateComponentByDrag(DragEventArgs e)
         {
@@ -92,7 +86,8 @@ namespace Coffee.DigitalPlatform.ViewModels
                     if (model != null)
                         DeviceList.Remove(model);
                     }),
-                GetDevices = () => DeviceList.ToList()
+                GetDevices = () => DeviceList.Where(d => d is IComponentContext).Cast<IComponentContext>().ToList(),
+                GetAuxiliaryLines = () => DeviceList.Where(d => d is IAuxiliaryLineContext).Cast<IAuxiliaryLineContext>().ToList()
             };
             device.InitContextMenu();
             DeviceList.Add(device);
@@ -111,6 +106,15 @@ namespace Coffee.DigitalPlatform.ViewModels
                 device.IsSelected = true;
             }
             CurrentDevice = device;
+        }
+
+        private void loadComponentsFromDatabase()
+        {
+            DeviceList.Add(new AuxiliaryLine() { AuxiliaryType = AuxiliaryLineTypes.HorizontalLine, Width = 2000, Height = 1, Z = 999, IsVisible = false});
+            DeviceList.Add(new AuxiliaryLine() { AuxiliaryType = AuxiliaryLineTypes.VerticalLine, Width = 1, Height = 2000, Z = 999, IsVisible = false });
+
+            DeviceList.Add(new AuxiliaryLine() { AuxiliaryType = AuxiliaryLineTypes.HorizontalRuler, Width = 0, Height = 15, Z = 999, IsVisible = false });
+            DeviceList.Add(new AuxiliaryLine() { AuxiliaryType = AuxiliaryLineTypes.VerticalRuler, Width = 15, Height = 0, Z = 999, IsVisible = false });
         }
         #endregion
 

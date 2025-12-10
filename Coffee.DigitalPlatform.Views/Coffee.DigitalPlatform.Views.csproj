@@ -16,7 +16,6 @@
     <ProjectReference Include="..\Coffee.DigitalPlatform.Assets\Coffee.DigitalPlatform.Assets.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.CommWPF\Coffee.DigitalPlatform.CommWPF.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.Components\Coffee.DigitalPlatform.Components.csproj" />
-    <ProjectReference Include="..\Coffee.DigitalPlatform.DataAccess\Coffee.DigitalPlatform.DataAccess.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.Models\Coffee.DigitalPlatform.Models.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.ViewModels\Coffee.DigitalPlatform.ViewModels.csproj" />
   </ItemGroup>

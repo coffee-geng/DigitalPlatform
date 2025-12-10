@@ -25,12 +25,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             initDataForMonitor();
 
             ConfigureComponentCommand = new RelayCommand(showConfigureComponentDialog);
-
-            TestData.Add("aaa");
-            TestData.Add("bbb");
         }
-
-        public ObservableCollection<string> TestData { get; set; } = new ObservableCollection<string>();
 
         public Variable Temperature { get; set; }
         public Variable Humidity { get; set; }
@@ -97,7 +92,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             else
             {
                 // 可以打开编辑   启动窗口   主动
-                if (ActionManager.ExecuteAndResult<object>("ShowConfigureComponentDialog", null))
+                if (ActionManager.ExecuteAndResult<object>("ShowConfigureComponentDialog", ViewModelLocator.Instance.ConfigureComponentViewModel))
                 {
                     // 添加一个等待页面（预留）
 

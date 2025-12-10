@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Shell;
 
 namespace Coffee.DigitalPlatform.Components
 {
@@ -24,6 +25,10 @@ namespace Coffee.DigitalPlatform.Components
         public HorizontalPipeline()
         {
             InitializeComponent();
+
+            this.anchor.OnResizeStart += Anchor_OnResizeStart;
+            this.anchor.OnResizing += Anchor_OnResizing;
+            this.anchor.OnResizeEnd += Anchor_OnResizeEnd;
 
             var state = VisualStateManager.GoToState(this, "WEFlowState", false);
         }
@@ -39,5 +44,20 @@ namespace Coffee.DigitalPlatform.Components
         public static readonly DependencyProperty LiquidColorProperty =
             DependencyProperty.Register("LiquidColor", typeof(Brush), typeof(HorizontalPipeline),
                 new PropertyMetadata(new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9916a1ff"))));
+
+        private void Anchor_OnResizeStart()
+        {
+            doResizeStart();
+        }
+
+        private void Anchor_OnResizing(Vector delta, ResizeGripDirection resizeDirection, bool isAlign, bool isProportional)
+        {
+            doResizing(delta, resizeDirection, isAlign, isProportional);
+        }
+
+        private void Anchor_OnResizeEnd()
+        {
+            doResizeEnd();
+        }
     }
 }

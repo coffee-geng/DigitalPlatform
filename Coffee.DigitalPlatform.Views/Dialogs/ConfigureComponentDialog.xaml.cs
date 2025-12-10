@@ -1,5 +1,4 @@
-﻿using Coffee.DigitalPlatform.DataAccess;
-using Coffee.DigitalPlatform.IDataAccess;
+﻿using Coffee.DigitalPlatform.CommWPF;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -25,23 +24,15 @@ namespace Coffee.DigitalPlatform.Views
         public ConfigureComponentDialog()
         {
             InitializeComponent();
-
-            this.DataContext = new ViewModels.ConfigureComponentViewModel(new LocalDataAccess());
-        }
-    }
-
-    public class AA : IValueConverter
-    {
-        public static AA Instance = new AA();
-
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            return value;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        private void ItemsControl_Loaded(object sender, RoutedEventArgs e)
         {
-            throw new NotImplementedException();
+            ItemsControl control = sender as ItemsControl;
+            if (control == null)
+                return;
+            Panel panel = ItemsControlExtensions.GetItemsPanel(control);
+            ItemsControlExtensions.SetLayoutContainer(control, panel);
         }
     }
 }

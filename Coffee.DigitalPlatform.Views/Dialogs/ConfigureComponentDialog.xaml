@@ -9,9 +9,8 @@
         xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
         xmlns:component="clr-namespace:Coffee.DigitalPlatform.Components;assembly=Coffee.DigitalPlatform.Components"
         mc:Ignorable="d"
-        DataContext="{Binding Source={StaticResource locator}, Path=ConfigureComponentViewModel}"
         FontFamily="Microsoft YaHei" FontWeight="ExtraLight" FontSize="11"
-        WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterOwner" x:Name="configComponentDlg"
         Title="设备组态编辑" Height="650" Width="1200">
     <WindowChrome.WindowChrome>
         <WindowChrome GlassFrameThickness="1"/>
@@ -346,11 +345,12 @@
             </Grid.ColumnDefinitions>
 
             <!--组态编辑区域-->
-            <ItemsControl Grid.Column="1" Margin="5,0" 
-                      ItemsSource="{Binding DeviceList}" AllowDrop="True" Background="Transparent">
+            <ItemsControl Grid.Column="1" Margin="5,0"
+                      ItemsSource="{Binding DeviceList}" AllowDrop="True" Background="Transparent"
+                          Loaded="ItemsControl_Loaded">
                 <i:Interaction.Triggers>
                     <i:EventTrigger EventName="Drop">
-                        <i:InvokeCommandAction Command="{Binding ItemDropCommand}" PassEventArgsToCommand="True"/>
+                        <i:InvokeCommandAction Command="{Binding CreateComponentByDragCommand}" PassEventArgsToCommand="True"/>
                     </i:EventTrigger>
                 </i:Interaction.Triggers>
                 <ItemsControl.ItemContainerStyle>
@@ -365,7 +365,6 @@
                     <ItemsPanelTemplate>
                         <Canvas Background="Transparent" ClipToBounds="True">
                             <i:Interaction.Triggers>
-                                <!--点击组件外的任意组态编辑区域，取消选中状态-->
                                 <i:EventTrigger EventName="MouseLeftButtonDown">
                                     <i:InvokeCommandAction Command="{Binding SelectDeviceCommand}" />
                                 </i:EventTrigger>
@@ -377,21 +376,26 @@
                     <DataTemplate>
                         <!--呈现对象需要根据动态添加的子项进行不同组件的创建-->
                         <!--承载组件的子容器，用于参与组件在画布中的编排-->
-                        <ContentControl Content="{Binding Path=DeviceType,Converter={StaticResource componentConverter}}"
-                                 Width="{Binding Width}" Height="{Binding Height}"
-                                    Visibility="{Binding IsVisible,Converter={StaticResource b2v}}"
-                                    RenderTransformOrigin="0.5,0.5" Name="content">
+                        <ContentControl Visibility="{Binding IsVisible,Converter={StaticResource b2v}}"
+                                        Width="{Binding Width}" Height="{Binding Height}"
+                                 RenderTransformOrigin="0.5,0.5" Name="content">
+                            <ContentControl.Content>
+                                <MultiBinding Converter="{StaticResource componentConverter}">
+                                    <Binding Path="DeviceType" />
+                                    <Binding Path="(wpf:ItemsControlExtensions.LayoutContainer)" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}"/>
+                                </MultiBinding>
+                            </ContentControl.Content>
                             <i:Interaction.Triggers>
                                 <i:EventTrigger EventName="MouseLeftButtonDown">
-                                    <i:CallMethodAction MethodName="OnMouseLeftButtonDown" TargetObject="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}"/>
-                                    <i:InvokeCommandAction  Command="{Binding DataContext.SelectDeviceCommand,ElementName=win}"    
-                                CommandParameter="{Binding}"/>
+                                    <i:CallMethodAction MethodName="OnComponent_MouseLeftButtonDown" TargetObject="{Binding Content, ElementName=content}"/>
+                                    <i:InvokeCommandAction  Command="{Binding DataContext.SelectDeviceCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"    
+                                CommandParameter="{Binding DataContext, ElementName=content}"/>
                                 </i:EventTrigger>
                                 <i:EventTrigger EventName="MouseMove">
-                                    <i:CallMethodAction MethodName="OnMouseMove" TargetObject="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}"/>
+                                    <i:CallMethodAction MethodName="OnComponent_MouseMove" TargetObject="{Binding Content, ElementName=content}"/>
                                 </i:EventTrigger>
                                 <i:EventTrigger EventName="MouseLeftButtonUp">
-                                    <i:CallMethodAction MethodName="OnMouseLeftButtonUp" TargetObject="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}"/>
+                                    <i:CallMethodAction MethodName="OnComponent_MouseLeftButtonUp" TargetObject="{Binding Content, ElementName=content}"/>
                                 </i:EventTrigger>
                             </i:Interaction.Triggers>
                             

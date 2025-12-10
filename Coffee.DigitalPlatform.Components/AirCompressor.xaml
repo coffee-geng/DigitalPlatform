@@ -104,7 +104,7 @@
         </Grid>
 
         <!--Anchor-->
-        <local:ComponentAnchor x:Name="anchor" />
+        <local:ComponentAnchor x:Name="anchor" Canvas="{Binding Canvas, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}" />
 
         <Line X1="0" Y1="15" X2="10" Y2="0" Stroke="Red" StrokeThickness="1" Margin="20,-5"
           Visibility="{Binding IsWarning,RelativeSource={RelativeSource AncestorType=UserControl},Converter={StaticResource b2v}}"/>
@@ -129,55 +129,7 @@
             
 
             <!--手动控制列表-->
-            <ToggleButton Width="18" Height="18" Name="btnControl" Margin="-2,5,0,0" Content="···"
-                      Canvas.Left="{Binding RelativeSource={RelativeSource AncestorType=UserControl},Path=ActualWidth}"
-                      Canvas.Bottom="28"
-                      Template="{StaticResource InfoButtonTemplate}">
-                <ToggleButton.Visibility>
-                    <MultiBinding Converter="{StaticResource ibv}">
-                        <Binding RelativeSource="{RelativeSource AncestorType=UserControl}" Path="IsMonitor"/>
-                        <Binding RelativeSource="{RelativeSource AncestorType=UserControl}" Path="ManualList.Count"/>
-                    </MultiBinding>
-                </ToggleButton.Visibility>
-            </ToggleButton>
-
-            <Border Width="120" CornerRadius="5" BorderThickness="1" BorderBrush="#EEE" 
-                Canvas.Left="{Binding RelativeSource={RelativeSource AncestorType=UserControl},Path=ActualWidth}"
-                Canvas.Bottom="0"
-                Margin="20,0,0,27"
-                Visibility="{Binding ElementName=btnControl,Path=IsChecked,Converter={StaticResource b2v}}">
-                <Grid>
-                    <Border Background="#AEEE">
-                        <Border.Effect>
-                            <DropShadowEffect BlurRadius="15" Color="#16a1ff" ShadowDepth="0" Opacity="0.2"/>
-                        </Border.Effect>
-                    </Border>
-                    <ItemsControl ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=UserControl},Path=ManualList}" Margin="5">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Height="24" Margin="0,1">
-                                    <Button Content="{Binding ControlHeader}" Foreground="#666" FontSize="11.5"
-                                        Command="{Binding ManualControlCommand,RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding}">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="#9FFF" CornerRadius="5" Name="border">
-                                                    <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="border" Property="Background" Value="#DFFF"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Grid>
-            </Border>
+            
         </Canvas>
     </Grid>
 </wpf:ComponentBase>

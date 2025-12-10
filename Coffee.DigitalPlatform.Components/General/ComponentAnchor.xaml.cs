@@ -26,14 +26,17 @@ namespace Coffee.DigitalPlatform.Components
             InitializeComponent();
         }
 
-        public Canvas Container
+        public Canvas Canvas
         {
-            get { return (Canvas)GetValue(ContainerProperty); }
-            set { SetValue(ContainerProperty, value); }
+            get { return (Canvas)GetValue(CanvasProperty); }
+            set { SetValue(CanvasProperty, value); }
         }
-        public static readonly DependencyProperty ContainerProperty =
-            DependencyProperty.Register("Container", typeof(Canvas), typeof(ComponentAnchor), new PropertyMetadata(null));
+        public static readonly DependencyProperty CanvasProperty =
+            DependencyProperty.Register("Canvas", typeof(Canvas), typeof(ComponentAnchor), new PropertyMetadata(null, OnCanvasPropertyChanged));
+        private static void OnCanvasPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
 
+        }
 
         Point startP = new Point(0, 0);
 
@@ -41,10 +44,10 @@ namespace Coffee.DigitalPlatform.Components
 
         private void Ellipse_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (Container == null)
+            if (Canvas == null)
                 return;
             _isResize = true;
-            startP = e.GetPosition(Container);
+            startP = e.GetPosition(Canvas);
 
             // 获取相对Canvas的按下坐标
             Mouse.Capture((IInputElement)e.Source);
@@ -58,7 +61,7 @@ namespace Coffee.DigitalPlatform.Components
 
         private void Ellipse_MouseMove(object sender, MouseEventArgs e)
         {
-            if (Container == null)
+            if (Canvas == null)
                 return;
 
             if (_isResize)
@@ -69,7 +72,7 @@ namespace Coffee.DigitalPlatform.Components
                 bool isAlign = true; //默认对齐操作
                 bool isProportional = false; //默认不进行等比例操作
                 // 鼠标光标的新位置
-                Point current = e.GetPosition(Container);
+                Point current = e.GetPosition(Canvas);
                 // 根据光标类型判断是如何变化 
                 var c = (e.Source as Ellipse).Cursor;
                 if (c != null)
@@ -105,6 +108,11 @@ namespace Coffee.DigitalPlatform.Components
                             isProportional = true;
                         }
                     }
+                }
+
+                if (OnResizing != null)
+                {
+                    OnResizing(new Vector(deltaX, deltaY),resizeDirection, isAlign, isProportional);
                 }
                 e.Handled = true;
             }

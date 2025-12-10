@@ -28,7 +28,7 @@ namespace Coffee.DigitalPlatform.Models
         // 设备名称
         public string Name { get; set; }
 
-        private bool? _isVisible = false;
+        private bool? _isVisible = true;
         public bool? IsVisible
         {
             get { return _isVisible; }
@@ -127,22 +127,66 @@ namespace Coffee.DigitalPlatform.Models
         public RelayCommand<Device> DeleteCommand { get; set; }
 
         #region IComponentContext实现
-        public Func<List<Device>> GetDevices { get; set; }
+        public Func<List<IComponentContext>> GetDevices { get; set; }
+
+        public Func<List<IAuxiliaryLineContext>> GetAuxiliaryLines { get; set; }
 
         public IEnumerable<IComponentContext> GetComponentsToCheckAlign()
         {
             if (GetDevices == null)
                 return null;
             var devices = GetDevices();
-            return devices.Where(d => !new string[] { "HorizontalLine", "VerticalLine", "WidthRuler", "HeightRuler" }.Contains(d.DeviceType) && d != this).ToList();
+            return devices.Where(d => d is Device && d != this).Cast<IComponentContext>().ToList();
         }
 
-        public IEnumerable<IComponentContext> GetRulers()
+        public IEnumerable<IAuxiliaryLineContext> GetRulers()
         {
-            if (GetDevices == null)
+            if (GetAuxiliaryLines == null)
                 return null;
-            var devices = GetDevices();
-            return devices.Where(d => new string[] { "HorizontalLine", "VerticalLine" }.Contains(d.DeviceType));
+            var auxiliaryLines = GetAuxiliaryLines();
+            return auxiliaryLines.Where(d => d.AuxiliaryType == AuxiliaryLineTypes.HorizontalRuler || d.AuxiliaryType == AuxiliaryLineTypes.VerticalRuler);
+        }
+
+        public IEnumerable<IAuxiliaryLineContext> GetRulers(AuxiliaryLineTypes auxiliaryType)
+        {
+            var rulers = GetRulers();
+            if (rulers != null)
+            {
+                if (auxiliaryType == AuxiliaryLineTypes.HorizontalRuler)
+                {
+                    return rulers.Where(d => d.AuxiliaryType == AuxiliaryLineTypes.HorizontalRuler);
+                }
+                else if (auxiliaryType == AuxiliaryLineTypes.VerticalRuler)
+                {
+                    return rulers.Where(d => d.AuxiliaryType == AuxiliaryLineTypes.VerticalRuler);
+                }
+            }
+            return rulers;
+        }
+
+        public IEnumerable<IAuxiliaryLineContext> GetLinesToAlign()
+        {
+            if (GetAuxiliaryLines == null)
+                return null;
+            var auxiliaryLines = GetAuxiliaryLines();
+            return auxiliaryLines.Where(d => d.AuxiliaryType == AuxiliaryLineTypes.HorizontalLine || d.AuxiliaryType == AuxiliaryLineTypes.VerticalLine);
+        }
+
+        public IEnumerable<IAuxiliaryLineContext> GetLinesToAlign(AuxiliaryLineTypes auxiliaryType)
+        {
+            var lines = GetLinesToAlign();
+            if (lines != null)
+            {
+                if (auxiliaryType == AuxiliaryLineTypes.HorizontalLine)
+                {
+                    return lines.Where(d => d.AuxiliaryType == AuxiliaryLineTypes.HorizontalLine);
+                }
+                else if (auxiliaryType == AuxiliaryLineTypes.VerticalLine)
+                {
+                    return lines.Where(d => d.AuxiliaryType == AuxiliaryLineTypes.VerticalLine);
+                }
+            }
+            return lines;
         }
         #endregion
 

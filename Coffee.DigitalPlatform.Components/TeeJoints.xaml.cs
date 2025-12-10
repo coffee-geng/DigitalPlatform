@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Shell;
 
 namespace Coffee.DigitalPlatform.Components
 {
@@ -24,6 +25,25 @@ namespace Coffee.DigitalPlatform.Components
         public TeeJoints()
         {
             InitializeComponent();
+
+            this.anchor.OnResizeStart += Anchor_OnResizeStart;
+            this.anchor.OnResizing += Anchor_OnResizing;
+            this.anchor.OnResizeEnd += Anchor_OnResizeEnd;
+        }
+
+        private void Anchor_OnResizeStart()
+        {
+            doResizeStart();
+        }
+
+        private void Anchor_OnResizing(Vector delta, ResizeGripDirection resizeDirection, bool isAlign, bool isProportional)
+        {
+            doResizing(delta, resizeDirection, isAlign, isProportional);
+        }
+
+        private void Anchor_OnResizeEnd()
+        {
+            doResizeEnd();
         }
     }
 }

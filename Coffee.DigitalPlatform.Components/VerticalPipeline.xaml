@@ -64,6 +64,6 @@
         </Border>
 
         <!--Anchor-->
-        <local:ComponentAnchor x:Name="anchor" />
+        <local:ComponentAnchor x:Name="anchor" Canvas="{Binding Canvas, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}" />
     </Grid>
 </wpf:ComponentBase>

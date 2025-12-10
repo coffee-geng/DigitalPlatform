@@ -9,14 +9,29 @@ using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace Coffee.DigitalPlatform.CommWPF
 {
-    public class DeviceComponentConverter : IValueConverter
+    public class DeviceComponentConverter : IMultiValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value.ToString() == "HL")
+            if (values == null || values.Length == 0)
+                return null;
+            if (values[0] == DependencyProperty.UnsetValue || !(values[0] is string))
+                return null;
+            var componentTypeName = values[0];
+            Canvas canvas = null;
+            if (values.Length > 1)
+            {
+                if (values[1] != DependencyProperty.UnsetValue && values[1] is Canvas)
+                {
+                    canvas = (Canvas)values[1];
+                }
+            }
+
+            if (componentTypeName == "HorizontalLine")
             {
                 return new Line
                 {
@@ -31,7 +46,7 @@ namespace Coffee.DigitalPlatform.CommWPF
                     ClipToBounds = true,
                 };
             }
-            else if (value.ToString() == "VL")
+            else if (componentTypeName == "VerticalLine")
             {
                 return new Line
                 {
@@ -47,25 +62,26 @@ namespace Coffee.DigitalPlatform.CommWPF
                 };
             }
 
-
             var assembly = Assembly.Load("Coffee.DigitalPlatform.Components");
-            Type t = assembly.GetType("Coffee.DigitalPlatform.Components." + value.ToString())!;
+            Type t = assembly.GetType("Coffee.DigitalPlatform.Components." + componentTypeName)!;
             var obj = Activator.CreateInstance(t)!;
-            if (new string[] { "WidthRule", "HeightRule" }.Contains(value.ToString()))
+            if (new string[] { "WidthRuler", "HeightRuler" }.Contains(componentTypeName))
                 return obj;
-
 
             // 组件生成
             var c = (ComponentBase)obj;
 
-            Binding binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("DeleteCommand");
-            c.SetBinding(ComponentBase.DeleteCommandProperty, binding);
-            binding = new Binding();
-            //binding.Path = new System.Windows.PropertyPath(".");
-            c.SetBinding(ComponentBase.DeleteParameterProperty, binding);
+            Binding binding1 = new Binding();
+            binding1.Path = new System.Windows.PropertyPath("."); //对组件对象进行布局的画布
+            //在创建组件时，仅当外部画布对象作为绑定源数据传递时，才绑定组件ComponentBase的Canvas属性
+            if (canvas != null)
+            {
+                binding1.Source = canvas;
+                binding1.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
+            }
+            c.SetBinding(ComponentBase.CanvasProperty, binding1);
 
-            binding = new Binding();
+            Binding binding = new Binding();
             binding.Path = new System.Windows.PropertyPath("IsSelected");
             c.SetBinding(ComponentBase.IsSelectedProperty, binding);
 
@@ -78,37 +94,48 @@ namespace Coffee.DigitalPlatform.CommWPF
             c.SetBinding(ComponentBase.FlowDirectionProperty, binding);
 
             binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("IsWarning");// Model中的属性
-            c.SetBinding(ComponentBase.IsWarningProperty, binding);// 组件中的依赖属性
-            binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("WarningMessage.AlarmContent");// Model中的属性
-            c.SetBinding(ComponentBase.WarningMessageProperty, binding);// 组件中的依赖属性
+            binding.Path = new System.Windows.PropertyPath("IsWarning");
+            c.SetBinding(ComponentBase.IsWarningProperty, binding);
 
             binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("IsMonitor");// Model中的属性
-            c.SetBinding(ComponentBase.IsMonitorProperty, binding);// 组件中的依赖属性
-            binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("Variables");// Model中的属性
-            c.SetBinding(ComponentBase.VariableListProperty, binding);// 组件中的依赖属性
-            binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("ManualList");// Model中的属性
-            c.SetBinding(ComponentBase.ManualListProperty, binding);// 组件中的依赖属性
-            binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("ManualControlCommand");// Model中的属性
-            c.SetBinding(ComponentBase.ManualControlCommandProperty, binding);// 组件中的依赖属性
+            binding.Path = new System.Windows.PropertyPath("WarningMessage.AlarmContent");
+            c.SetBinding(ComponentBase.WarningMessageProperty, binding);
 
-            // xaml  C#
-            // "{Binding RelativeSource={RelativeSource Type=Window},Path=DataContext.AlarmDetailCommand}"
             binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("DataContext.AlarmDetailCommand");// Model中的属性
+            binding.Path = new System.Windows.PropertyPath("IsMonitor");
+            c.SetBinding(ComponentBase.IsMonitorProperty, binding);
+
+            binding = new Binding();
+            binding.Path = new System.Windows.PropertyPath("Variables");
+            c.SetBinding(ComponentBase.VariableListProperty, binding);
+
+            binding = new Binding();
+            binding.Path = new System.Windows.PropertyPath("ManualList");
+            c.SetBinding(ComponentBase.ManualListProperty, binding);
+
+            #region Command Binding
+            binding = new Binding();
+            binding.Path = new System.Windows.PropertyPath("DeleteCommand");
+            c.SetBinding(ComponentBase.DeleteCommandProperty, binding);
+
+            binding = new Binding();
+            //binding.Path = new System.Windows.PropertyPath(".");
+            c.SetBinding(ComponentBase.DeleteParameterProperty, binding);
+
+            binding = new Binding();
+            binding.Path = new System.Windows.PropertyPath("DataContext.AlarmDetailCommand");
             binding.RelativeSource = new RelativeSource { AncestorType = typeof(Window) };
-            c.SetBinding(ComponentBase.AlarmDetailCommandProperty, binding);// 组件中的依赖属性
+            c.SetBinding(ComponentBase.AlarmDetailCommandProperty, binding);
 
+            binding = new Binding();
+            binding.Path = new System.Windows.PropertyPath("ManualControlCommand");
+            c.SetBinding(ComponentBase.ManualControlCommandProperty, binding);
+            #endregion
 
             return c;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         {
             return null;
         }
