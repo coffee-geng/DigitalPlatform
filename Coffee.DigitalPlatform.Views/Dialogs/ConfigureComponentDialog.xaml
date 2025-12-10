@@ -345,78 +345,82 @@
             </Grid.ColumnDefinitions>
 
             <!--组态编辑区域-->
-            <ItemsControl Grid.Column="1" Margin="5,0"
-                      ItemsSource="{Binding DeviceList}" AllowDrop="True" Background="Transparent"
-                          Loaded="ItemsControl_Loaded">
-                <i:Interaction.Triggers>
-                    <i:EventTrigger EventName="Drop">
-                        <i:InvokeCommandAction Command="{Binding CreateComponentByDragCommand}" PassEventArgsToCommand="True"/>
-                    </i:EventTrigger>
-                </i:Interaction.Triggers>
-                <ItemsControl.ItemContainerStyle>
-                    <Style TargetType="ContentPresenter">
-                        <Setter Property="Canvas.Left" Value="{Binding X}"/>
-                        <Setter Property="Canvas.Top" Value="{Binding Y}"/>
-                        <Setter Property="Panel.ZIndex" Value="{Binding Z}"/>
-                    </Style>
-                </ItemsControl.ItemContainerStyle>
-                <!--布局方式调整-->
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <Canvas Background="Transparent" ClipToBounds="True">
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseLeftButtonDown">
-                                    <i:InvokeCommandAction Command="{Binding SelectDeviceCommand}" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                        </Canvas>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <!--呈现对象需要根据动态添加的子项进行不同组件的创建-->
-                        <!--承载组件的子容器，用于参与组件在画布中的编排-->
-                        <ContentControl Visibility="{Binding IsVisible,Converter={StaticResource b2v}}"
-                                        Width="{Binding Width}" Height="{Binding Height}"
-                                 RenderTransformOrigin="0.5,0.5" Name="content">
-                            <ContentControl.Content>
-                                <MultiBinding Converter="{StaticResource componentConverter}">
-                                    <Binding Path="DeviceType" />
-                                    <Binding Path="(wpf:ItemsControlExtensions.LayoutContainer)" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}"/>
-                                </MultiBinding>
-                            </ContentControl.Content>
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseLeftButtonDown">
-                                    <i:CallMethodAction MethodName="OnComponent_MouseLeftButtonDown" TargetObject="{Binding Content, ElementName=content}"/>
-                                    <i:InvokeCommandAction  Command="{Binding DataContext.SelectDeviceCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"    
-                                CommandParameter="{Binding DataContext, ElementName=content}"/>
-                                </i:EventTrigger>
-                                <i:EventTrigger EventName="MouseMove">
-                                    <i:CallMethodAction MethodName="OnComponent_MouseMove" TargetObject="{Binding Content, ElementName=content}"/>
-                                </i:EventTrigger>
-                                <i:EventTrigger EventName="MouseLeftButtonUp">
-                                    <i:CallMethodAction MethodName="OnComponent_MouseLeftButtonUp" TargetObject="{Binding Content, ElementName=content}"/>
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                            
-                            <ContentControl.ContextMenu>
-                                <ContextMenu ItemsSource="{Binding ContextMenus}" AlternationCount="100">
-                                    <ContextMenu.Resources>
-                                        <Style TargetType="Separator">
-                                            <Style.Triggers>
-                                                <Trigger Property="ItemsControl.AlternationIndex" Value="0">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ContextMenu.Resources>
-                                </ContextMenu>
-                            </ContentControl.ContextMenu>
-                        </ContentControl>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <Grid Grid.Column="1"  Margin="5,0">
+                <ItemsControl x:Name="componentLayer"
+                    ItemsSource="{Binding DeviceList}" AllowDrop="True"
+              Loaded="ItemsControl_Loaded">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="Drop">
+                            <i:InvokeCommandAction Command="{Binding CreateComponentByDragCommand}" PassEventArgsToCommand="True"/>
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                            <Setter Property="Panel.ZIndex" Value="{Binding Z}"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <!--布局方式调整-->
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas Background="Transparent" ClipToBounds="True">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="MouseLeftButtonDown">
+                                        <i:InvokeCommandAction Command="{Binding SelectDeviceCommand}" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                            </Canvas>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <!--呈现对象需要根据动态添加的子项进行不同组件的创建-->
+                            <!--承载组件的子容器，用于参与组件在画布中的编排-->
+                            <ContentControl Visibility="{Binding IsVisible,Converter={StaticResource b2v}}"
+                            Width="{Binding Width}" Height="{Binding Height}"
+                     RenderTransformOrigin="0.5,0.5" Name="content">
+                                <ContentControl.Content>
+                                    <MultiBinding Converter="{StaticResource componentConverter}">
+                                        <Binding Path="DeviceType" />
+                                        <Binding Path="(wpf:ItemsControlExtensions.LayoutContainer)" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}"/>
+                                    </MultiBinding>
+                                </ContentControl.Content>
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="MouseLeftButtonDown">
+                                        <i:CallMethodAction MethodName="OnComponent_MouseLeftButtonDown" TargetObject="{Binding Content, ElementName=content}"/>
+                                        <i:InvokeCommandAction  Command="{Binding DataContext.SelectDeviceCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"    
+                    CommandParameter="{Binding DataContext, ElementName=content}"/>
+                                    </i:EventTrigger>
+                                    <i:EventTrigger EventName="MouseMove">
+                                        <i:CallMethodAction MethodName="OnComponent_MouseMove" TargetObject="{Binding Content, ElementName=content}"/>
+                                    </i:EventTrigger>
+                                    <i:EventTrigger EventName="MouseLeftButtonUp">
+                                        <i:CallMethodAction MethodName="OnComponent_MouseLeftButtonUp" TargetObject="{Binding Content, ElementName=content}"/>
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
 
+                                <ContentControl.ContextMenu>
+                                    <ContextMenu ItemsSource="{Binding ContextMenus}" AlternationCount="100">
+                                        <ContextMenu.Resources>
+                                            <Style TargetType="Separator">
+                                                <Style.Triggers>
+                                                    <Trigger Property="ItemsControl.AlternationIndex" Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ContextMenu.Resources>
+                                    </ContextMenu>
+                                </ContentControl.ContextMenu>
+                            </ContentControl>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Canvas x:Name="auxiliaryLayer" Width="{Binding ActualWidth, ElementName=componentLayer}" Height="{Binding ActualHeight, ElementName=componentLayer}"
+                        IsHitTestVisible="False" ClipToBounds="True"/>
+            </Grid>
+            
             <!--组件列表-->
             <ScrollViewer HorizontalAlignment="Left" Margin="10,15,0,10" 
                       VerticalScrollBarVisibility="Hidden"

@@ -7,7 +7,7 @@ using System.Windows.Media;
 
 namespace Coffee.DigitalPlatform.CommWPF
 {
-    public interface IComponentContext : IUIElementContext
+    public interface IComponentContext
     {
         /// <summary>
         /// 缩放时，用于计算是否要进行对齐判断的组件集合
@@ -30,10 +30,9 @@ namespace Coffee.DigitalPlatform.CommWPF
         IEnumerable<IAuxiliaryLineContext> GetLinesToAlign(AuxiliaryLineTypes auxiliaryType);
 
         string DeviceType { get; set; }
-    }
 
-    public interface IUIElementContext
-    {
+        bool? IsVisible { get; set; }
+
         double X { get; set; }
 
         double Y { get; set; }
@@ -51,5 +50,23 @@ namespace Coffee.DigitalPlatform.CommWPF
         VerticalLine,
         HorizontalRuler,
         VerticalRuler
+    }
+
+    public enum HorizontalAlignmentModes
+    {
+        None,
+        LeftToLeft, //当前组件左侧对齐到某组件左侧
+        LeftToRight, //当前组件左侧对齐到某组件右侧
+        RightToRight, //当前组件右侧对齐到某组件右侧
+        RightToLeft //当前组件右侧对齐到某组件左侧
+    }
+
+    public enum VerticalAlignmentModes
+    {
+        None,
+        TopToTop, //当前组件上端对齐到某组件上端
+        TopToBottom, //当前组件上端对齐到某组件下端
+        BottomToBottom, //当前组件下端对齐到某组件下端
+        BottomToTop //当前组件下端对齐到某组件上端
     }
 }

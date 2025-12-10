@@ -29,7 +29,7 @@
     <Compile Update="General\VariableListView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="HeightRule.xaml.cs">
+    <Compile Update="VerticalRuler.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="HorizontalPipeline.xaml.cs">
@@ -44,7 +44,7 @@
     <Compile Update="VerticalPipeline.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="WidthRule.xaml.cs">
+    <Compile Update="HorizontalRuler.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -76,7 +76,7 @@
     <Page Update="General\VariableListView.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Update="HeightRule.xaml">
+    <Page Update="VerticalRuler.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="HorizontalPipeline.xaml">
@@ -91,7 +91,7 @@
     <Page Update="VerticalPipeline.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Update="WidthRule.xaml">
+    <Page Update="HorizontalRuler.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

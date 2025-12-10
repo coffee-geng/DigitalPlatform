@@ -1,5 +1,4 @@
-﻿using Coffee.DigitalPlatform.CommWPF;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,11 +16,11 @@ using System.Windows.Shapes;
 namespace Coffee.DigitalPlatform.Components
 {
     /// <summary>
-    /// HeightRule.xaml 的交互逻辑
+    /// WidthRule.xaml 的交互逻辑
     /// </summary>
-    public partial class HeightRule : UserControl
+    public partial class HorizontalRuler : UserControl
     {
-        public HeightRule()
+        public HorizontalRuler()
         {
             InitializeComponent();
         }

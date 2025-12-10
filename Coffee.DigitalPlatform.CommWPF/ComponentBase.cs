@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows;
 using System.Windows.Shell;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace Coffee.DigitalPlatform.CommWPF
 {
@@ -286,17 +287,83 @@ namespace Coffee.DigitalPlatform.CommWPF
 
         public void OnComponent_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            IComponentContext vm = this.DataContext as IComponentContext;
+            if (vm != null && Canvas != null)
+            {
+                if (_isMoving)
+                {
+                    bool isAlign = Keyboard.Modifiers != ModifierKeys.Alt;
+                    Point p = e.GetPosition(Canvas);
+                    double deltaX = p.X - startPoint.X;
+                    double deltaY = p.Y - startPoint.Y;
+
+                    if (isAlign && _componentsToCheckAlign != null && _componentsToCheckAlign.Any())
+                    {
+                        //计算水平方向的对齐线VerticalLine
+                        double alignX = 0;
+                        HorizontalAlignmentModes? alignXMode;
+                        var alignXComponent = findComponentToHorizontalAlign(vm, out alignX, out alignXMode);
+                        if (alignXComponent != null && alignXMode.HasValue)
+                        {
+                            switch (alignXMode.Value)
+                            {
+                                case HorizontalAlignmentModes.LeftToLeft:
+                                    vm.X = alignXComponent.X;
+                                    break;
+                                case HorizontalAlignmentModes.LeftToRight:
+                                    vm.X = alignXComponent.X + alignXComponent.Width;
+                                    break;
+                                case HorizontalAlignmentModes.RightToRight:
+                                    vm.X = alignXComponent.X + alignXComponent.Width - vm.Width;
+                                    break;
+                                case HorizontalAlignmentModes.RightToLeft:
+                                    vm.X = alignXComponent.X - vm.Width;
+                                    break;
+                            }
+                            vm.X = alignX;
+                        }
+
+                        //计算垂直方向的对齐线HorizontalLine
+                        double alignY = 0;
+                        VerticalAlignmentModes? alignYMode;
+                        var alignYComponent = findComponentToVerticalAlign(vm, out alignY, out alignYMode);
+                        if (alignYComponent != null && alignYMode.HasValue)
+                        {
+                            switch (alignYMode.Value)
+                            {
+                                case VerticalAlignmentModes.TopToTop:
+                                    vm.Y = alignYComponent.Y;
+                                    break;
+                                case VerticalAlignmentModes.TopToBottom:
+                                    vm.Y = alignYComponent.Y + alignYComponent.Height;
+                                    break;
+                                case VerticalAlignmentModes.BottomToBottom:
+                                    vm.Y = alignYComponent.Y + alignYComponent.Height - vm.Height;
+                                    break;
+                                case VerticalAlignmentModes.BottomToTop:
+                                    vm.Y = alignYComponent.Y - vm.Height;
+                                    break;
+                            }
+                            vm.Y = alignY;
+                        }
+                    }
+                    WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                            new AuxiliaryInfo(AuxiliaryLineTypes.VerticalLine)
+                            {
+                                IsVisible = false
+                            }));
+                    WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                            new AuxiliaryInfo(AuxiliaryLineTypes.HorizontalLine)
+                            {
+                                IsVisible = false
+                            }));
+                }
+            }
+
             startPoint = new Point(0, 0);
             _oldX = 0;
             _oldY = 0;
             _isMoving = false;
-            foreach (var item in _rulers)
-            {
-                if (item is FrameworkElement ele)
-                {
-                    ele.Visibility = Visibility.Collapsed;
-                }
-            }
             Mouse.Capture(null);
         }
 
@@ -318,47 +385,161 @@ namespace Coffee.DigitalPlatform.CommWPF
 
                 if (isAlign && _componentsToCheckAlign != null && _componentsToCheckAlign.Any())
                 {
-                    //计算水平方向的对齐线
-                    double minDeltaX = 20; //相距20像素之内，就需要对齐
-                    //判断是否有其他组件的左端与当前组件左端对齐
-                    IComponentContext alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X - vm.X) < minDeltaX).Min();
+                    //计算水平方向的对齐线VerticalLine
+                    double alignX = 0;
+                    HorizontalAlignmentModes? alignXMode;
+                    var alignXComponent = findComponentToHorizontalAlign(vm, out alignX, out alignXMode);
+                    if (alignXComponent != null) //有可以对齐的组件
+                    {
+                        WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                            new AuxiliaryInfo(AuxiliaryLineTypes.VerticalLine)
+                            {
+                                X = alignX,
+                                IsVisible = true
+                            }));
+                    }
+                    else
+                    {
+                        WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                            new AuxiliaryInfo(AuxiliaryLineTypes.VerticalLine)
+                            {
+                                IsVisible = false
+                            }));
+                    }
+
+                    //计算垂直方向的对齐线HorizontalLine
+                    double alignY = 0;
+                    VerticalAlignmentModes? alignYMode;
+                    var alignYComponent = findComponentToVerticalAlign(vm, out alignY, out alignYMode);
+                    if (alignYComponent != null) //有可以对齐的组件
+                    {
+                        WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                            new AuxiliaryInfo(AuxiliaryLineTypes.HorizontalLine)
+                            {
+                                Y = alignY,
+                                IsVisible = true
+                            }));
+                    }
+                    else
+                    {
+                        WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                            new AuxiliaryInfo(AuxiliaryLineTypes.HorizontalLine)
+                            {
+                                IsVisible = false
+                            }));
+                    }
+                }
+                vm.X = _oldX + deltaX;
+                vm.Y = _oldY + deltaY;
+            }
+        }
+
+        private IComponentContext findComponentToHorizontalAlign(IComponentContext curComponent, out double alignX, out HorizontalAlignmentModes? alignXMode)
+        {
+            double minDeltaX = 20; //相距20像素之内，就需要对齐
+            alignXMode = null;
+            if (curComponent == null)
+            {
+                alignX = 0;
+                return null;
+            }
+
+            //判断是否有其他组件的左端与当前组件左端对齐
+            IComponentContext alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X - curComponent.X) < minDeltaX).MinBy(c => Math.Abs(c.X - curComponent.X));
+            if (alignComponent == null)
+            {
+                //判断是否有其他组件的右端与当前组件左端对齐
+                alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X + comp.Width - curComponent.X) < minDeltaX).MinBy(c => Math.Abs(c.X + c.Width - curComponent.X));
+                if (alignComponent == null)
+                {
+                    //判断是否有其他组件的右端与当前组件右端对齐
+                    alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X + comp.Width - (curComponent.X + curComponent.Width)) < minDeltaX).MinBy(c => Math.Abs(c.X + c.Width - (curComponent.X + curComponent.Width)));
                     if (alignComponent == null)
                     {
-                        //判断是否有其他组件的右端与当前组件左端对齐
-                        alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X + comp.Width - vm.X) < minDeltaX).Min();
-                        if (alignComponent == null)
+                        //判断是否有其他组件的左端与当前组件右端对齐
+                        alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X - (curComponent.X + curComponent.Width)) < minDeltaX).MinBy(c => Math.Abs(c.X - (curComponent.X + curComponent.Width)));
+                        if (alignComponent != null)
                         {
-                            //判断是否有其他组件的右端与当前组件右端对齐
-                            alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X + comp.Width - (vm.X + vm.Width)) < minDeltaX).Min();
-                            if (alignComponent == null)
-                            {
-                                //判断是否有其他组件的左端与当前组件右端对齐
-                                alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X - (vm.X + vm.Width)) < minDeltaX).Min();
-                            }
+                            alignX = alignComponent.X;
+                        }
+                        else
+                        {
+                            alignX = 0;
+                            alignXMode = HorizontalAlignmentModes.RightToLeft;
                         }
                     }
-                    if (alignComponent != null) //有可以对齐的组件
+                    else
                     {
-                        var verticalLines = vm.GetLinesToAlign(AuxiliaryLineTypes.VerticalLine);
-                        if (verticalLines != null && verticalLines.Any())
-                        {
-                            var alignXLine = verticalLines.First();
-                            alignXLine.IsVisible = true;
-                            foreach(var line in verticalLines)
-                            {
-                                if (line == alignXLine)
-                                    continue;
-                                line.IsVisible = false;
-                            }
-                        }
+                        alignX = alignComponent.X + alignComponent.Width;
+                        alignXMode = HorizontalAlignmentModes.RightToRight;
                     }
                 }
                 else
                 {
-                    vm.X = _oldX + deltaX;
-                    vm.Y = _oldY + deltaY;
+                    alignX = alignComponent.X + alignComponent.Width;
+                    alignXMode = HorizontalAlignmentModes.LeftToRight;
                 }
             }
+            else
+            {
+                alignX = alignComponent.X;
+                alignXMode = HorizontalAlignmentModes.LeftToLeft;
+            }
+            return alignComponent;
+        }
+
+        private IComponentContext findComponentToVerticalAlign(IComponentContext curComponent, out double alignY, out VerticalAlignmentModes? alignYMode)
+        {
+            double minDeltaY = 20; //相距20像素之内，就需要对齐
+            alignYMode = null;
+            if (curComponent == null)
+            {
+                alignY = 0;
+                return null;
+            }
+
+            //判断是否有其他组件的上端与当前组件上端对齐
+            IComponentContext alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.Y - curComponent.Y) < minDeltaY).MinBy(c => Math.Abs(c.Y - curComponent.Y));
+            if (alignComponent == null)
+            {
+                //判断是否有其他组件的下端与当前组件上端对齐
+                alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.Y + comp.Height - curComponent.Y) < minDeltaY).MinBy(c => Math.Abs(c.Y + c.Height - curComponent.Y));
+                if (alignComponent == null)
+                {
+                    //判断是否有其他组件的下端与当前组件下端对齐
+                    alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.Y + comp.Height - (curComponent.Y + curComponent.Height)) < minDeltaY).MinBy(c => Math.Abs(c.Y + c.Height - (curComponent.Y + curComponent.Height)));
+                    if (alignComponent == null)
+                    {
+                        //判断是否有其他组件的上端与当前组件下端对齐
+                        alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.Y - (curComponent.Y + curComponent.Height)) < minDeltaY).MinBy(c => Math.Abs(c.Y - (curComponent.Y + curComponent.Height)));
+                        if (alignComponent != null)
+                        {
+                            alignY = alignComponent.Y;
+                        }
+                        else
+                        {
+                            alignY = 0;
+                            alignYMode = VerticalAlignmentModes.BottomToTop;
+                        }
+                    }
+                    else
+                    {
+                        alignY = alignComponent.Y + alignComponent.Height;
+                        alignYMode = VerticalAlignmentModes.BottomToBottom;
+                    }
+                }
+                else
+                {
+                    alignY = alignComponent.Y + alignComponent.Height;
+                    alignYMode = VerticalAlignmentModes.TopToBottom;
+                }
+            }
+            else
+            {
+                alignY = alignComponent.Y;
+                alignYMode = VerticalAlignmentModes.TopToTop;
+            }
+            return alignComponent;
         }
 
         public void Button_Click(object sender, RoutedEventArgs e)

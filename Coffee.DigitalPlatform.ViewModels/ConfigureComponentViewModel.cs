@@ -54,7 +54,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             set { SetProperty(ref _componentGroups, value); }
         }
 
-        public ObservableCollection<IUIElementContext> DeviceList { get; set; } = new ObservableCollection<IUIElementContext>();
+        public ObservableCollection<Device> DeviceList { get; set; } = new ObservableCollection<Device>();
 
         private Device _currentDevice;
         public Device CurrentDevice
@@ -110,11 +110,7 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         private void loadComponentsFromDatabase()
         {
-            DeviceList.Add(new AuxiliaryLine() { AuxiliaryType = AuxiliaryLineTypes.HorizontalLine, Width = 2000, Height = 1, Z = 999, IsVisible = false});
-            DeviceList.Add(new AuxiliaryLine() { AuxiliaryType = AuxiliaryLineTypes.VerticalLine, Width = 1, Height = 2000, Z = 999, IsVisible = false });
-
-            DeviceList.Add(new AuxiliaryLine() { AuxiliaryType = AuxiliaryLineTypes.HorizontalRuler, Width = 0, Height = 15, Z = 999, IsVisible = false });
-            DeviceList.Add(new AuxiliaryLine() { AuxiliaryType = AuxiliaryLineTypes.VerticalRuler, Width = 15, Height = 0, Z = 999, IsVisible = false });
+            
         }
         #endregion
 

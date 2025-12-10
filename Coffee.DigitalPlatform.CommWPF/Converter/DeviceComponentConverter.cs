@@ -31,37 +31,6 @@ namespace Coffee.DigitalPlatform.CommWPF
                 }
             }
 
-            if (componentTypeName == "HorizontalLine")
-            {
-                return new Line
-                {
-                    X1 = 0,
-                    Y1 = 0,
-                    X2 = 2000,
-                    Y2 = 0,
-                    //Height = 0.5,
-                    Stroke = Brushes.Red,
-                    StrokeThickness = 1,
-                    StrokeDashArray = new DoubleCollection { 3.0, 3.0 },
-                    ClipToBounds = true,
-                };
-            }
-            else if (componentTypeName == "VerticalLine")
-            {
-                return new Line
-                {
-                    X1 = 0,
-                    Y1 = 0,
-                    X2 = 0,
-                    Y2 = 2000,
-                    //Width = 0.5,
-                    Stroke = Brushes.Red,
-                    StrokeThickness = 1,
-                    StrokeDashArray = new DoubleCollection { 3.0, 3.0 },
-                    ClipToBounds = true,
-                };
-            }
-
             var assembly = Assembly.Load("Coffee.DigitalPlatform.Components");
             Type t = assembly.GetType("Coffee.DigitalPlatform.Components." + componentTypeName)!;
             var obj = Activator.CreateInstance(t)!;

@@ -48,92 +48,95 @@
             <GradientStop Color="#DDD" Offset="1"/>
         </RadialGradientBrush>
     </wpf:ComponentBase.Resources>
-    <Grid>
-        <Grid Margin="5">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition/>
-                <ColumnDefinition Width="0.5*"/>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-                <ColumnDefinition Width="0.5*"/>
-                <ColumnDefinition/>
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="0.2*"/>
-                <RowDefinition Height="0.2*"/>
-                <RowDefinition Height="0.1*"/>
-                <RowDefinition Height="0.3*"/>
-                <RowDefinition Height="0.6*"/>
-                <RowDefinition Height="0.6*"/>
-                <RowDefinition/>
-                <RowDefinition Height="0.3*"/>
-                <RowDefinition Height="0.1*"/>
-                <RowDefinition Height="0.2*"/>
-                <RowDefinition Height="0.1*"/>
-                <RowDefinition Height="0.15*"/>
-            </Grid.RowDefinitions>
-            <StackPanel Grid.Row="8" Grid.RowSpan="3" Grid.ColumnSpan="5" Orientation="Horizontal">
-                <Border Background="#BBB" Width="3" Height="12" CornerRadius="1"/>
-                <Border Width="50" Height="9" BorderThickness="0,1">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Color="#16a1ff" Offset="0"/>
-                            <GradientStop Color="#5EBFFF" Offset="0.5"/>
-                            <GradientStop Color="#16a1ff" Offset="1"/>
-                        </LinearGradientBrush>
-                    </Border.Background>
+    <Border BorderBrush="Green" BorderThickness="1">
+        <Grid>
+            <Grid Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="0.5*"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="0.5*"/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="0.2*"/>
+                    <RowDefinition Height="0.2*"/>
+                    <RowDefinition Height="0.1*"/>
+                    <RowDefinition Height="0.3*"/>
+                    <RowDefinition Height="0.6*"/>
+                    <RowDefinition Height="0.6*"/>
+                    <RowDefinition/>
+                    <RowDefinition Height="0.3*"/>
+                    <RowDefinition Height="0.1*"/>
+                    <RowDefinition Height="0.2*"/>
+                    <RowDefinition Height="0.1*"/>
+                    <RowDefinition Height="0.15*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="8" Grid.RowSpan="3" Grid.ColumnSpan="5" Orientation="Horizontal">
+                    <Border Background="#BBB" Width="3" Height="12" CornerRadius="1"/>
+                    <Border Width="50" Height="9" BorderThickness="0,1">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#16a1ff" Offset="0"/>
+                                <GradientStop Color="#5EBFFF" Offset="0.5"/>
+                                <GradientStop Color="#16a1ff" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </StackPanel>
+                <StackPanel Grid.Column="5" Grid.ColumnSpan="3">
+                    <Border Background="#BBB" Width="12" Height="3" CornerRadius="1"/>
+                    <Border Height="20" Width="8">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#16a1ff" Offset="0"/>
+                                <GradientStop Color="#5EBFFF" Offset="0.5"/>
+                                <GradientStop Color="#16a1ff" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </StackPanel>
+
+                <Border Background="{StaticResource v_3_colors}" Grid.Column="4" Grid.Row="1" Grid.ColumnSpan="5"/>
+                <Border Background="{StaticResource h_3_colors}" Grid.Column="3" Grid.Row="2" Grid.RowSpan="2"/>
+                <Border Background="{StaticResource h_3_colors}" Grid.Column="9" Grid.Row="2" Grid.RowSpan="2"/>
+                <Path Data="M0,10,10,10,10,0A10,10,0,0,0,0,10" Fill="{StaticResource l_t_colors}" Stretch="Fill" Grid.Column="3" Grid.Row="1" Margin="0,0,-1,-1"/>
+                <Path Data="M0,0,0,10,10,10A10,10,0,0,0,0,0" Fill="{StaticResource r_t_colors}" Stretch="Fill" Grid.Column="9" Grid.Row="1" Margin="-1,0,0,-1"/>
+
+                <Border Background="#CCC" Grid.Row="7" Grid.Column="1" Grid.RowSpan="4"/>
+                <Border Background="#CCC" Grid.Row="7" Grid.Column="11" Grid.RowSpan="4"/>
+                <Border Background="#CCC" Grid.Row="11" Grid.ColumnSpan="13" CornerRadius="3"/>
+
+                <Border Background="{StaticResource b_colors}" Grid.Column="1" Grid.ColumnSpan="5" Grid.Row="3" CornerRadius="20,20,0,0"/>
+                <Border Background="{StaticResource b_colors}" Grid.Column="7" Grid.ColumnSpan="5" Grid.Row="3" CornerRadius="20,20,0,0"/>
+                <Border Background="{StaticResource h_3_colors}" Grid.Column="1" Grid.ColumnSpan="5" Grid.Row="4" Grid.RowSpan="3" Margin="0,-1"/>
+                <Border Background="{StaticResource h_3_colors}" Grid.Column="7" Grid.ColumnSpan="5" Grid.Row="4" Grid.RowSpan="3" Margin="0,-1"/>
+                <Border Background="{StaticResource t_colors}" Grid.Column="1" Grid.ColumnSpan="5" Grid.Row="7" CornerRadius="0,0,20,20"/>
+                <Border Background="{StaticResource t_colors}" Grid.Column="7" Grid.ColumnSpan="5" Grid.Row="7" CornerRadius="0,0,20,20"/>
+
+
+                <Path Data="M10,10,10,0,0,0A10,10,0,0,0,10,10" Fill="{StaticResource l_b_colors}" Stretch="Fill" Grid.Column="3" Grid.Row="9" Margin="0,-1,-1,0"/>
+                <Path Data="M10,0,0,0,0,10A10,10,0,0,0,10,0" Fill="{StaticResource r_b_colors}" Stretch="Fill" Grid.Column="9" Grid.Row="9"/>
+                <Border Background="{StaticResource h_3_colors}" Grid.Column="3" Grid.Row="8"/>
+                <Border Background="{StaticResource h_3_colors}" Grid.Column="9" Grid.Row="8"/>
+                <Border Background="{StaticResource v_3_colors }" Grid.Column="4" Grid.ColumnSpan="5" Grid.Row="9"/>
+
+
+                <Border Background="#2EC7FA" Grid.Column="4" Grid.Row="5" Grid.ColumnSpan="5" CornerRadius="5">
                 </Border>
-            </StackPanel>
-            <StackPanel Grid.Column="5" Grid.ColumnSpan="3">
-                <Border Background="#BBB" Width="12" Height="3" CornerRadius="1"/>
-                <Border Height="20" Width="8">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#16a1ff" Offset="0"/>
-                            <GradientStop Color="#5EBFFF" Offset="0.5"/>
-                            <GradientStop Color="#16a1ff" Offset="1"/>
-                        </LinearGradientBrush>
-                    </Border.Background>
-                </Border>
-            </StackPanel>
+            </Grid>
 
-            <Border Background="{StaticResource v_3_colors}" Grid.Column="4" Grid.Row="1" Grid.ColumnSpan="5"/>
-            <Border Background="{StaticResource h_3_colors}" Grid.Column="3" Grid.Row="2" Grid.RowSpan="2"/>
-            <Border Background="{StaticResource h_3_colors}" Grid.Column="9" Grid.Row="2" Grid.RowSpan="2"/>
-            <Path Data="M0,10,10,10,10,0A10,10,0,0,0,0,10" Fill="{StaticResource l_t_colors}" Stretch="Fill" Grid.Column="3" Grid.Row="1" Margin="0,0,-1,-1"/>
-            <Path Data="M0,0,0,10,10,10A10,10,0,0,0,0,0" Fill="{StaticResource r_t_colors}" Stretch="Fill" Grid.Column="9" Grid.Row="1" Margin="-1,0,0,-1"/>
-
-            <Border Background="#CCC" Grid.Row="7" Grid.Column="1" Grid.RowSpan="4"/>
-            <Border Background="#CCC" Grid.Row="7" Grid.Column="11" Grid.RowSpan="4"/>
-            <Border Background="#CCC" Grid.Row="11" Grid.ColumnSpan="13" CornerRadius="3"/>
-
-            <Border Background="{StaticResource b_colors}" Grid.Column="1" Grid.ColumnSpan="5" Grid.Row="3" CornerRadius="20,20,0,0"/>
-            <Border Background="{StaticResource b_colors}" Grid.Column="7" Grid.ColumnSpan="5" Grid.Row="3" CornerRadius="20,20,0,0"/>
-            <Border Background="{StaticResource h_3_colors}" Grid.Column="1" Grid.ColumnSpan="5" Grid.Row="4" Grid.RowSpan="3" Margin="0,-1"/>
-            <Border Background="{StaticResource h_3_colors}" Grid.Column="7" Grid.ColumnSpan="5" Grid.Row="4" Grid.RowSpan="3" Margin="0,-1"/>
-            <Border Background="{StaticResource t_colors}" Grid.Column="1" Grid.ColumnSpan="5" Grid.Row="7" CornerRadius="0,0,20,20"/>
-            <Border Background="{StaticResource t_colors}" Grid.Column="7" Grid.ColumnSpan="5" Grid.Row="7" CornerRadius="0,0,20,20"/>
-
-
-            <Path Data="M10,10,10,0,0,0A10,10,0,0,0,10,10" Fill="{StaticResource l_b_colors}" Stretch="Fill" Grid.Column="3" Grid.Row="9" Margin="0,-1,-1,0"/>
-            <Path Data="M10,0,0,0,0,10A10,10,0,0,0,10,0" Fill="{StaticResource r_b_colors}" Stretch="Fill" Grid.Column="9" Grid.Row="9"/>
-            <Border Background="{StaticResource h_3_colors}" Grid.Column="3" Grid.Row="8"/>
-            <Border Background="{StaticResource h_3_colors}" Grid.Column="9" Grid.Row="8"/>
-            <Border Background="{StaticResource v_3_colors }" Grid.Column="4" Grid.ColumnSpan="5" Grid.Row="9"/>
-
-
-            <Border Background="#2EC7FA" Grid.Column="4" Grid.Row="5" Grid.ColumnSpan="5" CornerRadius="5">
-            </Border>
+            <!--Anchor-->
+            <local:ComponentAnchor x:Name="anchor" Canvas="{Binding Canvas, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}" />
         </Grid>
-
-        <!--Anchor-->
-        <local:ComponentAnchor x:Name="anchor" Canvas="{Binding Canvas, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}" />
-    </Grid>
+    </Border>
+    
 </wpf:ComponentBase>
