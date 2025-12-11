@@ -56,9 +56,9 @@ namespace Coffee.DigitalPlatform.Components
             doResizing(delta, resizeDirection, isAlign, isProportional);
         }
 
-        private void Anchor_OnResizeEnd()
+        private void Anchor_OnResizeEnd(Vector delta, ResizeGripDirection resizeDirection, bool isAlign, bool isProportional)
         {
-            doResizeEnd();
+            doResizeEnd(delta, resizeDirection, isAlign, isProportional);
         }
     }
 }

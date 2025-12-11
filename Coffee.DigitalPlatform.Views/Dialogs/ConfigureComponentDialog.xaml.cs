@@ -56,10 +56,14 @@ namespace Coffee.DigitalPlatform.Views
                         if (auxiliaryInfo.AuxiliaryType == AuxiliaryLineTypes.VerticalLine)
                         {
                             lineContext.X = auxiliaryInfo.X;
+                            lineContext.Y = auxiliaryInfo.Y;
+                            lineContext.Height = auxiliaryInfo.Height;
                         }
                         else
                         {
                             lineContext.Y = auxiliaryInfo.Y;
+                            lineContext.X = auxiliaryInfo.X;
+                            lineContext.Width = auxiliaryInfo.Width;
                         }
                         lineContext.IsVisible = true;
                     }
@@ -128,23 +132,40 @@ namespace Coffee.DigitalPlatform.Views
             binding.Converter = _boolToVisibilityConverter;
             auxLine.SetBinding(Line.VisibilityProperty, binding);
 
+            var multiBinding = new MultiBinding()
+            {
+                Converter = SumConverter.Instance
+            };
+
             if (auxiliaryInfo.AuxiliaryType == AuxiliaryLineTypes.VerticalLine)
             {
-                auxLine.Y1 = 0;
-                auxLine.Y2 = 2000;
+                auxLine.Y1 = auxiliaryInfo.Y;
+                auxLine.Y2 = auxiliaryInfo.Y + auxiliaryInfo.Height;
                 binding = new Binding("X");
                 auxLine.SetBinding(Line.X1Property, binding);
                 binding = new Binding("X");
                 auxLine.SetBinding(Line.X2Property, binding);
+
+                binding = new Binding("Y");
+                auxLine.SetBinding(Line.Y1Property, binding);
+                multiBinding.Bindings.Add(new Binding("Y"));
+                multiBinding.Bindings.Add(new Binding("Height"));
+                auxLine.SetBinding(Line.Y2Property, multiBinding);
             }
             else if (auxiliaryInfo.AuxiliaryType == AuxiliaryLineTypes.HorizontalLine)
             {
-                auxLine.X1 = 0;
-                auxLine.X2 = 2000;
+                auxLine.X1 = auxiliaryInfo.X;
+                auxLine.X2 = auxiliaryInfo.X + auxiliaryInfo.Width;
                 binding = new Binding("Y");
                 auxLine.SetBinding(Line.Y1Property, binding);
                 binding = new Binding("Y");
                 auxLine.SetBinding(Line.Y2Property, binding);
+
+                binding = new Binding("X");
+                auxLine.SetBinding(Line.X1Property, binding);
+                multiBinding.Bindings.Add(new Binding("X"));
+                multiBinding.Bindings.Add(new Binding("Width"));
+                auxLine.SetBinding(Line.X2Property, multiBinding);
             }
             return auxLine;
         }

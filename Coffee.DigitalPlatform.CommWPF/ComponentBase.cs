@@ -218,27 +218,66 @@ namespace Coffee.DigitalPlatform.CommWPF
         {
             IComponentContext vm = this.DataContext as IComponentContext;
 
+            bool isShowAuxiliary = false;
             if (resizeDirection == ResizeGripDirection.Left || resizeDirection == ResizeGripDirection.Right)
             {
-                if (isAlign)
+                double alignX = 0;
+                if (isAlign && _componentsToCheckAlign != null && _componentsToCheckAlign.Any())
                 {
-                   
+                    var componentToMatchRight = findComponentToMatchRight(vm, delta.X, out double matchWidth, out alignX);
+                    if (componentToMatchRight != null)
+                    {
+                        isShowAuxiliary = true;
+                    }
+                }
+                if (isShowAuxiliary)
+                {
+                    WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                            new AuxiliaryInfo(AuxiliaryLineTypes.VerticalLine)
+                            {
+                                X = alignX,
+                                IsVisible = true
+                            }));
                 }
                 else
                 {
-                    vm.Width = _oldWidth + delta.X;
+                    WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                            new AuxiliaryInfo(AuxiliaryLineTypes.VerticalLine)
+                            {
+                                IsVisible = false
+                            }));
                 }
+                vm.Width = _oldWidth + delta.X;
             }
             else if (resizeDirection == ResizeGripDirection.Top || resizeDirection == ResizeGripDirection.Bottom)
             {
-                if (isAlign)
+                double alignY = 0;
+                if (isAlign && _componentsToCheckAlign != null && _componentsToCheckAlign.Any())
                 {
-
+                    var componentToMatchBottom = findComponentToMatchBottom(vm, delta.Y, out double matchHeight, out alignY);
+                    if (componentToMatchBottom != null)
+                    {
+                        isShowAuxiliary = true;
+                    }
+                }
+                if (isShowAuxiliary)
+                {
+                    WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                            new AuxiliaryInfo(AuxiliaryLineTypes.HorizontalLine)
+                            {
+                                Y = alignY,
+                                IsVisible = true
+                            }));
                 }
                 else
                 {
-                    vm.Height = _oldHeight + delta.Y;
+                    WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                            new AuxiliaryInfo(AuxiliaryLineTypes.HorizontalLine)
+                            {
+                                IsVisible = false
+                            }));
                 }
+                vm.Height = _oldHeight + delta.Y;
             }
             else if (resizeDirection == ResizeGripDirection.TopLeft || resizeDirection == ResizeGripDirection.TopRight || resizeDirection == ResizeGripDirection.BottomLeft || resizeDirection == ResizeGripDirection.BottomRight)
             {
@@ -253,9 +292,79 @@ namespace Coffee.DigitalPlatform.CommWPF
             }
         }
 
-        protected void doResizeEnd()
+        protected void doResizeEnd(Vector delta, ResizeGripDirection resizeDirection, bool isAlign, bool isProportional)
         {
+            IComponentContext vm = this.DataContext as IComponentContext;
+            if (vm != null && Canvas != null)
+            {
+                if (isAlign && _componentsToCheckAlign != null && _componentsToCheckAlign.Any())
+                {
+                    if (resizeDirection == ResizeGripDirection.Left || resizeDirection == ResizeGripDirection.Right)
+                    {
+                        var alignXComponent = findComponentToMatchRight(vm, delta.X, out double matchWidth, out double alignX);
+                        if (alignXComponent != null)
+                        {
+                            vm.Width = alignXComponent.X + alignXComponent.Width - vm.X;
+                        }
+                    }
+                    else if (resizeDirection == ResizeGripDirection.Top || resizeDirection == ResizeGripDirection.Bottom)
+                    {
+                        var alignYComponent = findComponentToMatchBottom(vm, delta.Y, out double matchHeight, out double alignY);
+                        if (alignYComponent != null)
+                        {
+                            vm.Height = alignYComponent.Y + alignYComponent.Height - vm.Y;
+                        }
+                    }
+                }
+                WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                    new AuxiliaryInfo(AuxiliaryLineTypes.VerticalLine)
+                    {
+                        IsVisible = false
+                    }));
+                WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
+                        new AuxiliaryInfo(AuxiliaryLineTypes.HorizontalLine)
+                        {
+                            IsVisible = false
+                        }));
+            }
+        }
 
+        private IComponentContext findComponentToMatchRight(IComponentContext curComponent, double deltaX, out double matchWidth, out double alignX)
+        {
+            double minDeltaX = 20; //相距20像素之内，就需要对齐
+
+            //判断是否有其他组件的右端与当前组件右端对齐
+            IComponentContext alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.X + comp.Width - (curComponent.X + _oldWidth + deltaX)) < minDeltaX).MinBy(c => Math.Abs(c.X + c.Width - (curComponent.X + _oldWidth + deltaX)));
+            if (alignComponent != null)
+            {
+                matchWidth = _oldWidth + deltaX;
+                alignX = alignComponent.X + alignComponent.Width;
+            }
+            else
+            {
+                matchWidth = 0;
+                alignX = 0;
+            }
+            return alignComponent;
+        }
+
+        private IComponentContext findComponentToMatchBottom(IComponentContext curComponent, double deltaY, out double matchHeight, out double alignY)
+        {
+            double minDeltaY = 20; //相距20像素之内，就需要对齐
+
+            //判断是否有其他组件的下端与当前组件下端对齐
+            IComponentContext alignComponent = _componentsToCheckAlign.Where(comp => Math.Abs(comp.Y + comp.Height - (curComponent.Y + _oldHeight + deltaY)) < minDeltaY).MinBy(c => Math.Abs(c.Y + c.Height - (curComponent.Y + _oldHeight + deltaY)));
+            if (alignComponent != null)
+            {
+                matchHeight = _oldHeight + deltaY;
+                alignY = alignComponent.Y + alignComponent.Height;
+            }
+            else
+            {
+                matchHeight = 0;
+                alignY = 0;
+            }
+            return alignComponent;
         }
         #endregion
 
@@ -302,7 +411,7 @@ namespace Coffee.DigitalPlatform.CommWPF
                         //计算水平方向的对齐线VerticalLine
                         double alignX = 0;
                         HorizontalAlignmentModes? alignXMode;
-                        var alignXComponent = findComponentToHorizontalAlign(vm, out alignX, out alignXMode);
+                        var alignXComponent = findComponentToHorizontalAlign(vm, out alignX, out alignXMode, out double y1, out double y2);
                         if (alignXComponent != null && alignXMode.HasValue)
                         {
                             switch (alignXMode.Value)
@@ -320,13 +429,12 @@ namespace Coffee.DigitalPlatform.CommWPF
                                     vm.X = alignXComponent.X - vm.Width;
                                     break;
                             }
-                            vm.X = alignX;
                         }
 
                         //计算垂直方向的对齐线HorizontalLine
                         double alignY = 0;
                         VerticalAlignmentModes? alignYMode;
-                        var alignYComponent = findComponentToVerticalAlign(vm, out alignY, out alignYMode);
+                        var alignYComponent = findComponentToVerticalAlign(vm, out alignY, out alignYMode, out double x1, out double x2);
                         if (alignYComponent != null && alignYMode.HasValue)
                         {
                             switch (alignYMode.Value)
@@ -344,7 +452,6 @@ namespace Coffee.DigitalPlatform.CommWPF
                                     vm.Y = alignYComponent.Y - vm.Height;
                                     break;
                             }
-                            vm.Y = alignY;
                         }
                     }
                     WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
@@ -388,14 +495,16 @@ namespace Coffee.DigitalPlatform.CommWPF
                     //计算水平方向的对齐线VerticalLine
                     double alignX = 0;
                     HorizontalAlignmentModes? alignXMode;
-                    var alignXComponent = findComponentToHorizontalAlign(vm, out alignX, out alignXMode);
+                    var alignXComponent = findComponentToHorizontalAlign(vm, out alignX, out alignXMode, out double y1, out double y2);
                     if (alignXComponent != null) //有可以对齐的组件
                     {
                         WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
                             new AuxiliaryInfo(AuxiliaryLineTypes.VerticalLine)
                             {
                                 X = alignX,
-                                IsVisible = true
+                                IsVisible = true,
+                                Y = y1,
+                                Height = y2 - y1
                             }));
                     }
                     else
@@ -410,14 +519,16 @@ namespace Coffee.DigitalPlatform.CommWPF
                     //计算垂直方向的对齐线HorizontalLine
                     double alignY = 0;
                     VerticalAlignmentModes? alignYMode;
-                    var alignYComponent = findComponentToVerticalAlign(vm, out alignY, out alignYMode);
+                    var alignYComponent = findComponentToVerticalAlign(vm, out alignY, out alignYMode, out double x1, out double x2);
                     if (alignYComponent != null) //有可以对齐的组件
                     {
                         WeakReferenceMessenger.Default.Send<RepaintAuxiliaryMessage>(new RepaintAuxiliaryMessage(
                             new AuxiliaryInfo(AuxiliaryLineTypes.HorizontalLine)
                             {
                                 Y = alignY,
-                                IsVisible = true
+                                IsVisible = true,
+                                X = x1,
+                                Width = x2 - x1
                             }));
                     }
                     else
@@ -434,13 +545,15 @@ namespace Coffee.DigitalPlatform.CommWPF
             }
         }
 
-        private IComponentContext findComponentToHorizontalAlign(IComponentContext curComponent, out double alignX, out HorizontalAlignmentModes? alignXMode)
+        private IComponentContext findComponentToHorizontalAlign(IComponentContext curComponent, out double alignX, out HorizontalAlignmentModes? alignXMode, out double y1, out double y2)
         {
             double minDeltaX = 20; //相距20像素之内，就需要对齐
             alignXMode = null;
             if (curComponent == null)
             {
                 alignX = 0;
+                y1 = 0;
+                y2 = 0;
                 return null;
             }
 
@@ -461,11 +574,11 @@ namespace Coffee.DigitalPlatform.CommWPF
                         if (alignComponent != null)
                         {
                             alignX = alignComponent.X;
+                            alignXMode = HorizontalAlignmentModes.RightToLeft;
                         }
                         else
                         {
                             alignX = 0;
-                            alignXMode = HorizontalAlignmentModes.RightToLeft;
                         }
                     }
                     else
@@ -485,16 +598,37 @@ namespace Coffee.DigitalPlatform.CommWPF
                 alignX = alignComponent.X;
                 alignXMode = HorizontalAlignmentModes.LeftToLeft;
             }
+
+            if (alignComponent != null)
+            {
+                if (alignComponent.Y > curComponent.Y) //对齐目标组件在当前组件下方
+                {
+                    y1 = curComponent.Y;
+                    y2 = alignComponent.Y + alignComponent.Height;
+                }
+                else //对齐目标组件在当前组件上方
+                {
+                    y1 = alignComponent.Y;
+                    y2 = curComponent.Y + curComponent.Height;
+                }
+            }
+            else
+            {
+                y1 = 0;
+                y2 = 0;
+            }
             return alignComponent;
         }
 
-        private IComponentContext findComponentToVerticalAlign(IComponentContext curComponent, out double alignY, out VerticalAlignmentModes? alignYMode)
+        private IComponentContext findComponentToVerticalAlign(IComponentContext curComponent, out double alignY, out VerticalAlignmentModes? alignYMode, out double x1, out double x2)
         {
             double minDeltaY = 20; //相距20像素之内，就需要对齐
             alignYMode = null;
             if (curComponent == null)
             {
                 alignY = 0;
+                x1 = 0;
+                x2 = 0;
                 return null;
             }
 
@@ -515,11 +649,11 @@ namespace Coffee.DigitalPlatform.CommWPF
                         if (alignComponent != null)
                         {
                             alignY = alignComponent.Y;
+                            alignYMode = VerticalAlignmentModes.BottomToTop;
                         }
                         else
                         {
                             alignY = 0;
-                            alignYMode = VerticalAlignmentModes.BottomToTop;
                         }
                     }
                     else
@@ -538,6 +672,25 @@ namespace Coffee.DigitalPlatform.CommWPF
             {
                 alignY = alignComponent.Y;
                 alignYMode = VerticalAlignmentModes.TopToTop;
+            }
+
+            if (alignComponent != null)
+            {
+                if (alignComponent.X > curComponent.X) //对齐目标组件在当前组件右侧
+                {
+                    x1 = curComponent.X;
+                    x2 = alignComponent.X + alignComponent.Width;
+                }
+                else //对齐目标组件在当前组件上方
+                {
+                    x1 = alignComponent.X;
+                    x2 = curComponent.X + curComponent.Width;
+                }
+            }
+            else
+            {
+                x1 = 0;
+                x2 = 0;
             }
             return alignComponent;
         }

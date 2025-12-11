@@ -120,14 +120,61 @@ namespace Coffee.DigitalPlatform.Components
 
         private void Ellipse_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            if (_isResize)
+            {
+                ResizeGripDirection resizeDirection = ResizeGripDirection.None;
+                double deltaX = 0;
+                double deltaY = 0;
+                bool isAlign = true; //默认对齐操作
+                bool isProportional = false; //默认不进行等比例操作
+                // 鼠标光标的新位置
+                Point current = e.GetPosition(Canvas);
+                // 根据光标类型判断是如何变化 
+                var c = (e.Source as Ellipse).Cursor;
+                if (c != null)
+                {
+                    if (c == Cursors.SizeWE)// 水平方向
+                    {
+                        deltaX = current.X - startP.X;
+                        resizeDirection = ResizeGripDirection.Right;
+                        if (Keyboard.Modifiers == ModifierKeys.Alt)  // 移动过程中检查Alt按下，不做对齐
+                        {
+                            isAlign = false;
+                        }
+                    }
+                    else if (c == Cursors.SizeNS)// 垂直方向
+                    {
+                        deltaY = current.Y - startP.Y;
+                        resizeDirection = ResizeGripDirection.Bottom;
+                        if (Keyboard.Modifiers == ModifierKeys.Alt)
+                        {
+                            isAlign = false;
+                        }
+                    }
+                    else if (c == Cursors.SizeNWSE)// 右下方向
+                    {
+                        deltaX = current.X - startP.X;
+                        deltaY = current.Y - startP.Y;
+                        if (Keyboard.Modifiers == ModifierKeys.Alt)
+                        {
+                            isAlign = false;
+                        }
+                        if (Keyboard.Modifiers == ModifierKeys.Shift)
+                        {
+                            isProportional = true;
+                        }
+                    }
+                }
+
+                if (OnResizeEnd != null)
+                {
+                    OnResizeEnd(new Vector(deltaX, deltaY), resizeDirection, isAlign, isProportional);
+                }
+            }
+
             _isResize = false;
             e.Handled = true;
             Mouse.Capture(null);
-
-            if (OnResizeEnd != null)
-            {
-                OnResizeEnd();
-            }
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -151,7 +198,7 @@ namespace Coffee.DigitalPlatform.Components
         /// </summary>
         public event Action<Vector, ResizeGripDirection, bool, bool> OnResizing;
 
-        public event Action OnResizeEnd;
+        public event Action<Vector, ResizeGripDirection, bool, bool> OnResizeEnd;
         #endregion
 
         public event Action OnDelete;
