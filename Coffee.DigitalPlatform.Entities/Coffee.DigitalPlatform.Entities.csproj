@@ -10,4 +10,8 @@
     <PackageReference Include="Dapper" Version="2.1.66" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Coffee.DigitalPlatform.Common\Coffee.DigitalPlatform.Common.csproj" />
+  </ItemGroup>
+
 </Project>

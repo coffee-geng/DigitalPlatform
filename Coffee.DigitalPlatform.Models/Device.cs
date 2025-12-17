@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows;
+using Coffee.DigitalPlatform.Common;
 
 namespace Coffee.DigitalPlatform.Models
 {
@@ -20,6 +21,11 @@ namespace Coffee.DigitalPlatform.Models
         public Device(ILocalDataAccess localDataAccess)
         {
             _localDataAccess = localDataAccess;
+
+            AddCommunicationParameter = new RelayCommand<CommunicationParameter>(doAddCommunicationParameter);
+            RemoveCommunicationParameter = new RelayCommand<CommunicationParameter>(doRemoveCommunicationParameter);
+            RecommandCommunicationParameter = new RelayCommand(doRecommandCommunicationParameter);
+            SelectCommunicationParameterValueCommand = new RelayCommand<SelectCommunicationParameterValueCommandParameter>(doSelectCommunicationParameterValue);
         }
 
         // 设备编号
@@ -120,8 +126,6 @@ namespace Coffee.DigitalPlatform.Models
         // 根据这个名称动态创建一个组件实例
         public string DeviceType { get; set; }
 
-        public ObservableCollection<CommunicationParameter> CommunicationParameters { get; private set; } = new ObservableCollection<CommunicationParameter>();
-
         public ObservableCollection<Variable> Variables { get; private set; } = new ObservableCollection<Variable>();
 
         public RelayCommand<Device> DeleteCommand { get; set; }
@@ -215,11 +219,12 @@ namespace Coffee.DigitalPlatform.Models
             ContextMenus.Add(new MenuItem
             {
                 Header = "改变流向",
-                Command = new RelayCommand(() => {
-                if (FlowDirection == FlowDirections.Clockwise)
-                    this.FlowDirection = FlowDirections.Anticlockwise;
-                else
-                    this.FlowDirection = FlowDirections.Clockwise;
+                Command = new RelayCommand(() =>
+                {
+                    if (FlowDirection == FlowDirections.Clockwise)
+                        this.FlowDirection = FlowDirections.Anticlockwise;
+                    else
+                        this.FlowDirection = FlowDirections.Clockwise;
                 }),
                 Visibility = new string[] { "HorizontalPipeline", "VerticalPipeline" }.Contains(this.DeviceType) ? Visibility.Visible : Visibility.Collapsed
             });
@@ -256,6 +261,158 @@ namespace Coffee.DigitalPlatform.Models
 
         }
         #endregion
+
+        #region 通信参数操作
+        public ObservableCollection<CommunicationParameterDefinition> CommunicationParameterDefinitions { get; private set; } = new ObservableCollection<CommunicationParameterDefinition>();
+
+        public ObservableCollection<CommunicationParameter> CommunicationParameters { get; private set; } = new ObservableCollection<CommunicationParameter>();
+
+        public RelayCommand<CommunicationParameter> AddCommunicationParameter { get; set; }
+
+        public RelayCommand<CommunicationParameter> RemoveCommunicationParameter { get; set; }
+
+        //根据当前设备的类型及状态，推荐一个通信参数给用户
+        //如果当前设备没有任何通信参数，则首先推荐通信协议参数
+        //仅推荐符号当前通信协议的参数，用户已经添加的将不再重复推荐
+        public RelayCommand RecommandCommunicationParameter { get; set; }
+
+        public RelayCommand<SelectCommunicationParameterValueCommandParameter> SelectCommunicationParameterValueCommand { get; set; }
+
+        private void doAddCommunicationParameter(CommunicationParameter commParam)
+        {
+            if (commParam == null)
+                throw new Exception("通信参数不能为空！");
+            CommunicationParameters.Add(commParam);
+        }
+
+        private void doRemoveCommunicationParameter(CommunicationParameter commParam)
+        {
+            if (commParam == null)
+                throw new Exception("通信参数不能为空！");
+            CommunicationParameters.Remove(commParam);
+        }
+
+        private void doRecommandCommunicationParameter()
+        {
+            //当设备没有添加任何通信参数时，必须先添加通信协议参数
+            //之后才可添加其他符合当前设备的其他通信参数
+            if (!CommunicationParameterDefinitions.Any())
+            {
+                //添加通信协议参数到下拉框
+                var protocolEntity = _localDataAccess.GetProtocolParamDefinition();
+                if (protocolEntity != null)
+                {
+                    var optionEntities = _localDataAccess.GetCommunicationParameterOptions(protocolEntity);
+                    var protocolParamDef = new CommunicationParameterDefinition()
+                    {
+                        ParameterName = protocolEntity.ParameterName,
+                        Label = protocolEntity.Label,
+                        ValueInputType = (ValueInputTypes)protocolEntity.ValueInputType,
+                        DefaultOptionIndex = protocolEntity.DefaultOptionIndex,
+                        DefaultValueOption = protocolEntity.DefaultValueOption,
+                        ValueOptions = optionEntities != null && optionEntities.Any() ?
+                                       optionEntities.Select(o => new CommunicationParameterOption
+                                       {
+                                           PropName = o.PropName,
+                                           PropOptionValue = o.PropOptionValue,
+                                           PropOptionLabel = o.PropOptionLabel
+                                       }).ToList() : null
+                    };
+                    CommunicationParameterDefinitions.Add(protocolParamDef);
+                    //添加通信协议参数到设备的通信参数列表
+                    var protocolParam = new CommunicationParameter
+                    {
+                        PropName = protocolEntity.ParameterName,
+                        PropValue = optionEntities != null && optionEntities.Any() ?
+                                     optionEntities[protocolEntity.DefaultOptionIndex].PropOptionValue : string.Empty
+                    };
+                    CommunicationParameters.Add(protocolParam);
+                }
+            }
+            else
+            {
+                var protocolName = CommunicationParameters.Where(param => param.PropName == "Protocol").Select(param => param.PropValue).FirstOrDefault();
+                if (protocolName == null)
+                    return;
+                var commParamDefs = _localDataAccess.GetCommunicationParamDefinitions(protocolName);
+                foreach (var paramDefEntity in commParamDefs)
+                {
+                    //不重复添加用户已经添加的通信参数到下拉框
+                    if (CommunicationParameterDefinitions.Any(paramDef => paramDef.ParameterName == paramDefEntity.ParameterName))
+                    {
+                        continue;
+                    }
+                    CommunicationParameterDefinitions.Add(new CommunicationParameterDefinition
+                    {
+                        ParameterName = paramDefEntity.ParameterName,
+                        Label = paramDefEntity.Label,
+                        ValueInputType = (ValueInputTypes)paramDefEntity.ValueInputType,
+                        DefaultValueOption = paramDefEntity.DefaultValueOption,
+                        DefaultOptionIndex = paramDefEntity.DefaultOptionIndex,
+                        ValueOptions = _localDataAccess.GetCommunicationParameterOptions(paramDefEntity)?.Select(o => new CommunicationParameterOption
+                        {
+                            PropName = o.PropName,
+                            PropOptionValue = o.PropOptionValue,
+                            PropOptionLabel = o.PropOptionLabel
+                        }).ToList()
+                    });
+                }
+
+                //从通信参数下拉框中找第一个未添加到设备的参数选项，并将其添加到设备的通信参数列表中
+                var firstMatch = CommunicationParameterDefinitions.Where(paramDef => !CommunicationParameters.Any(para => string.Equals(para.PropName, paramDef.ParameterName))).FirstOrDefault();
+                if (firstMatch != null)
+                {
+                    var commParam = new CommunicationParameter
+                    {
+                        PropName = firstMatch.ParameterName,
+                        PropValue = firstMatch.DefaultValueOption
+                    };
+                    CommunicationParameters.Add(commParam);
+
+                    //如果设备的通信参数列表中已经添加了某个通信参数，则其不应该出现在下拉框的选项中
+                    //所以需要遍历当前设备的通信参数列表，将其从下拉框列表中移除
+                    //List<CommunicationParameterDefinition> tempParamDefs = CommunicationParameterDefinitions.ToList();
+                    //foreach (var paramDef in CommunicationParameterDefinitions)
+                    //{
+                    //    if (CommunicationParameters.Any(para => string.Equals(para.PropName, paramDef.ParameterName)))
+                    //    {
+                    //        if (string.Equals(commParam.PropName, paramDef.ParameterName)) //在某一行的通信参数项中，当前添加项肯定是在当前下拉框的选项列表中的
+                    //        {
+                    //            continue;
+                    //        }
+                    //        tempParamDefs.Add(paramDef);
+                    //    }
+                    //}
+                    //foreach (var paramDef in tempParamDefs)
+                    //{
+                    //    CommunicationParameterDefinitions.Remove(paramDef);
+                    //}
+                }
+            }
+        }
+
+        private void doSelectCommunicationParameterValue(SelectCommunicationParameterValueCommandParameter cmdParam)
+        {
+            if (cmdParam == null || cmdParam.ParameterDef == null)
+                return;
+            if (CommunicationParameters == null || !CommunicationParameters.Any() || cmdParam.IndexOfCommunicationParameters < 0 || cmdParam.IndexOfCommunicationParameters >= CommunicationParameters.Count)
+                return;
+            //从CommunicationParameters中找到与通信参数定义下拉框对应的通信参数名
+            if (cmdParam.ParameterDef.ParameterName != CommunicationParameters[cmdParam.IndexOfCommunicationParameters].PropName)
+                return;
+            CommunicationParameters[cmdParam.IndexOfCommunicationParameters].PropValue = cmdParam.ParameterValue.PropOptionValue;
+        }
+        #endregion
+    }
+
+    public class SelectCommunicationParameterValueCommandParameter
+    {
+        public CommunicationParameterOption ParameterValue { get; set; }
+
+        public CommunicationParameterDefinition ParameterDef { get; set; }
+
+        //当前参数定义对象与设备通信参数列表CommunicationParameters中第几个参数关联
+        public int IndexOfCommunicationParameters { get; set; }
     }
 
     public enum FlowDirections

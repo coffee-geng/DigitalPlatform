@@ -170,9 +170,86 @@ namespace Coffee.DigitalPlatform.DataAccess
                 return Enumerable.Empty<ComponentEntity>().ToList();
         }
 
-        public IList<CommunicationParameterEntity> GetCommunicationParameters()
+        //得到通信协议参数定义
+        public CommunicationParameterDefinitionEntity GetProtocolParamDefinition()
         {
-            throw new NotImplementedException();
+            SqlMapper.SetTypeMap(typeof(CommunicationParameterDefinitionEntity), new ColumnAttributeTypeMapper<CommunicationParameterDefinitionEntity>());
+            string sql = "select * from properties where p_name='Protocol'";
+            var results = SqlQuery<CommunicationParameterDefinitionEntity>(sql);
+            if (results != null && results.Any())
+            {
+                var entity = results.First();
+                Dictionary<string, object> paramDict = new Dictionary<string, object>();
+                paramDict.Add("@PropName", entity.ParameterName);
+                var protocolNames = SqlQuery<string>("select protocol from properties_protocols where prop_name=@PropName", paramDict);
+                entity.ProtocolNames = protocolNames != null ? protocolNames.ToList() : new List<string>();
+                return entity;
+            }
+            else
+                return null;
+        }
+
+        //得到某种协议的通信参数定义集合
+        public IList<CommunicationParameterDefinitionEntity> GetCommunicationParamDefinitions(string protocol)
+        {
+            SqlMapper.SetTypeMap(typeof(CommunicationParameterDefinitionEntity), new ColumnAttributeTypeMapper<CommunicationParameterDefinitionEntity>());
+            string sql = "SELECT p.* FROM properties p LEFT JOIN properties_protocols pp ON p.p_name = pp.prop_name WHERE pp.protocol=@Protocol";
+            Dictionary<string, object> paramDict = new Dictionary<string, object>();
+            paramDict.Add("@Protocol", protocol);
+            var results = SqlQuery<dynamic>(sql, paramDict);
+            if (results != null && results.Any())
+                return results.Select(p => new CommunicationParameterDefinitionEntity
+                {
+                    ParameterName = p.p_name,
+                    Label = p.p_header,
+                    ValueInputType = (int)Enum.Parse(typeof(ValueInputTypes), p.p_type.ToString()),
+                    DefaultValueOption = p.p_default,
+                    IsDefaultParameter = (p.is_default != null || Convert.IsDBNull(p.is_default)) ? (bool)Convert.ChangeType(p.is_default, typeof(bool)) : false,
+
+                }).ToList();
+            else
+                return null;
+        }
+
+        //得到所有通信参数定义集合
+        public IList<CommunicationParameterDefinitionEntity> GetCommunicationParamDefinitions()
+        {
+            SqlMapper.SetTypeMap(typeof(CommunicationParameterDefinitionEntity), new ColumnAttributeTypeMapper<CommunicationParameterDefinitionEntity>());
+            string sql = "SELECT * FROM properties'";
+            var results = SqlQuery<CommunicationParameterDefinitionEntity>(sql);
+            if (results != null && results.Any())
+                return results.ToList();
+            else
+                return null;
+        }
+
+        //得到某个设备正在使用的通信参数集合
+        public IList<CommunicationParameterEntity> GetCommunicationParametersByDevice(string deviceNum)
+        {
+            SqlMapper.SetTypeMap(typeof(CommunicationParameterEntity), new ColumnAttributeTypeMapper<CommunicationParameterEntity>());
+            string sql = "SELECT * FROM device_properties WHERE device_num='@DeviceNum'";
+            Dictionary<string, object> paramDict = new Dictionary<string, object>();
+            paramDict.Add("@DeviceNum", deviceNum);
+            var results = SqlQuery<CommunicationParameterEntity>(sql, paramDict);
+            if (results != null && results.Any())
+                return results.ToList();
+            else
+                return null;
+        }
+
+        public IList<CommunicationParameterOptionEntity> GetCommunicationParameterOptions(CommunicationParameterDefinitionEntity commParam)
+        {
+            if (commParam == null)
+                throw new ArgumentNullException(nameof(commParam));
+            SqlMapper.SetTypeMap(typeof(CommunicationParameterOptionEntity), new ColumnAttributeTypeMapper<CommunicationParameterOptionEntity>());
+            string sql = "SELECT prop_name, prop_option_value, prop_option_label FROM properties_options WHERE prop_name=@PropName";
+            Dictionary<string, object> paramDict = new Dictionary<string, object>();
+            paramDict.Add("@PropName", commParam.ParameterName);
+            var results = SqlQuery<CommunicationParameterOptionEntity>(sql, paramDict);
+            if (results != null && results.Any())
+                return results.ToList();
+            else
+                return null;
         }
         #endregion
     }

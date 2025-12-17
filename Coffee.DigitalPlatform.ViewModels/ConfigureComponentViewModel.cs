@@ -1,4 +1,5 @@
-﻿using Coffee.DigitalPlatform.CommWPF;
+﻿using Coffee.DigitalPlatform.Common;
+using Coffee.DigitalPlatform.CommWPF;
 using Coffee.DigitalPlatform.IDataAccess;
 using Coffee.DigitalPlatform.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -106,6 +107,31 @@ namespace Coffee.DigitalPlatform.ViewModels
                 device.IsSelected = true;
             }
             CurrentDevice = device;
+
+            // 设备选中后，通知属性面板切换
+            // 如果当前设备没有添加任何通信参数，则只提供通信协议参数供用户选择
+            // 必须确定通信协议后，才可添加其他相关通信参数
+            if (device != null)
+            { 
+            var commParamsByDevice = _localDataAccess.GetCommunicationParametersByDevice(device.DeviceNum);
+                if (commParamsByDevice == null || !commParamsByDevice.Any())
+                {
+                    var protocolParamDef = _localDataAccess.GetProtocolParamDefinition();
+                    if (protocolParamDef != null)
+                    {
+                        CommunicationParameterDefinitions = new List<CommunicationParameterDefinition>()
+                    {
+                        new CommunicationParameterDefinition
+                        {
+                            Label = protocolParamDef.Label,
+                            ParameterName = protocolParamDef.ParameterName,
+                            ValueInputType = (ValueInputTypes)protocolParamDef.ValueInputType,
+                            DefaultOptionIndex = protocolParamDef.DefaultOptionIndex,
+                        }
+                    };
+                    }
+                }
+            }
         }
 
         private void loadComponentsFromDatabase()
@@ -115,7 +141,17 @@ namespace Coffee.DigitalPlatform.ViewModels
         #endregion
 
         #region 通信参数
-        public List<CommunicationParameter> CommunicationParameters { get; set; }
+        private List<CommunicationParameterDefinition> _communicationParameterDefinitions;
+        public List<CommunicationParameterDefinition> CommunicationParameterDefinitions
+        {
+            get { return _communicationParameterDefinitions; }
+            set { SetProperty(ref _communicationParameterDefinitions, value); }
+        }
+
+        private void initCommunicationParameters()
+        {
+            _localDataAccess.GetProtocolParamDefinition();
+        }
 
         #endregion
 

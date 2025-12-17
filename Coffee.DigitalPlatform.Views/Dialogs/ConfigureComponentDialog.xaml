@@ -511,12 +511,12 @@
                         <Border BorderBrush="#EEE" BorderThickness="0,0,0,1" Margin="10,5,10,8" Grid.Row="2"/>
                         <TextBlock Text="通信参数" Margin="15,10" FontWeight="Bold" Foreground="#888" VerticalAlignment="Center"/>
                         <Button Width="24" Height="24" Style="{StaticResource WindowControlButtonStyle}" Margin="5,0" 
-                            HorizontalAlignment="Right" ToolTip="添加参数" Command="{Binding CurrentDevice.AddPropertyCommand}">
+                            HorizontalAlignment="Right" ToolTip="添加参数" Command="{Binding CurrentDevice.RecommandCommunicationParameter}">
                             <Path Data="M0 5 10 5M5 0 5 10" Stroke="#555"/>
                         </Button>
 
-                        <ScrollViewer Grid.Row="1" MaxHeight="200" VerticalScrollBarVisibility="Hidden" Margin="10,0,0,5">
-                            <ItemsControl ItemsSource="{Binding CurrentDevice.CommunicationParameters}" Margin="0,0,10,0">
+                        <ScrollViewer Grid.Row="1" MaxHeight="200" VerticalScrollBarVisibility="Hidden" Margin="10,0,0,5" >
+                            <ItemsControl ItemsSource="{Binding CurrentDevice.CommunicationParameters}" Margin="0,0,10,0" AlternationCount="1000">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Height="26" Margin="0,1">
@@ -526,30 +526,49 @@
                                                 <ColumnDefinition Width="20"/>
                                             </Grid.ColumnDefinitions>
                                             <!--准备一个集合  所有的通信属性-->
-                                            <ComboBox ItemsSource="{Binding DataContext.CommunicationParameters,ElementName=win}" 
+                                            <ComboBox ItemsSource="{Binding DataContext.CurrentDevice.CommunicationParameterDefinitions, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}" 
                                                   DisplayMemberPath="Label"
                                                   SelectedValuePath="ParameterName"
-                                                  SelectedValue="{Binding ParameterName}"
                                                   Name="cb_p_name" Margin="0,0,2,0"
                                                   Style="{StaticResource PropComboBoxStyle}">
+                                                <ComboBox.SelectedIndex>
+                                                    <MultiBinding Converter="{x:Static local:ActiveCommunicationParameterIndexConverter.Instance}" Mode="OneWay">
+                                                        <Binding Path="." />
+                                                        <Binding Path="DataContext.CurrentDevice.CommunicationParameterDefinitions" RelativeSource="{RelativeSource Mode=FindAncestor,AncestorType={x:Type ItemsControl}}" />
+                                                    </MultiBinding>
+                                                </ComboBox.SelectedIndex>
                                             </ComboBox>
 
                                             <ComboBox Grid.Column="1" Name="cb" Visibility="Collapsed"
                                                   ItemsSource="{Binding ElementName=cb_p_name,Path=SelectedItem.ValueOptions}"
                                                   SelectedIndex="{Binding ElementName=cb_p_name,Path=SelectedItem.DefaultOptionIndex }"
-                                                  SelectedItem="{Binding PropValue}"
+                                                  DisplayMemberPath="PropOptionLabel"
+                                                  SelectedValuePath="PropOptionValue"
                                                   Style="{StaticResource PropComboBoxStyle}">
+                                                <i:Interaction.Triggers>
+                                                    <i:EventTrigger EventName="SelectionChanged">
+                                                        <i:InvokeCommandAction Command="{Binding ElementName=configComponentDlg,Path=DataContext.CurrentDevice.SelectCommunicationParameterValueCommand}">
+                                                            <i:InvokeCommandAction.CommandParameter>
+                                                                <MultiBinding Converter="{x:Static local:SelectCommunicationParameterValueCommandParameterConverter.Instance}">
+                                                                    <Binding Path="SelectedItem" ElementName="cb" />
+                                                                    <Binding Path="SelectedItem" ElementName="cb_p_name"/>
+                                                                    <Binding Path="(ItemsControl.AlternationIndex)" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorLevel=2,AncestorType={x:Type ItemsControl}}" />
+                                                                </MultiBinding>
+                                                            </i:InvokeCommandAction.CommandParameter>
+                                                        </i:InvokeCommandAction>
+                                                    </i:EventTrigger>
+                                                </i:Interaction.Triggers>
                                             </ComboBox>
                                             <TextBox Grid.Column="1" Name="tb" Text="{Binding PropValue}"/>
 
                                             <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
                                             <Hyperlink FontFamily="{StaticResource Iconfont}" TextDecorations="None"
-                                                       Command="{Binding ElementName=win,Path=DataContext.CurrentDevice.DeletePropCommand}"
+                                                       Command="{Binding ElementName=win,Path=DataContext.CurrentDevice.RemoveCommunicationParameter}"
                                                        CommandParameter="{Binding}">&#xe653;</Hyperlink>
                                             </TextBlock>
                                         </Grid>
                                         <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding SelectedItem.PropType,ElementName=cb_p_name}" Value="1">
+                                            <DataTrigger Binding="{Binding SelectedItem.ValueInputType,ElementName=cb_p_name}" Value="2">
                                                 <Setter TargetName="cb" Property="Visibility" Value="Visible"/>
                                                 <Setter TargetName="tb" Property="Visibility" Value="Collapsed"/>
                                             </DataTrigger>

@@ -1,6 +1,7 @@
 ﻿using Coffee.DigitalPlatform.Common;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,13 @@ using System.Threading.Tasks;
 namespace Coffee.DigitalPlatform.Models
 {
     public class CommunicationParameter
+    {
+        public string PropName { get; set; }
+
+        public string PropValue { get; set; }
+    }
+
+    public class CommunicationParameterDefinition
     {
         // 用来显示  "串口名称" 
         public string Label { get; set; }
@@ -18,9 +26,21 @@ namespace Coffee.DigitalPlatform.Models
         public ValueInputTypes ValueInputType { get; set; }
 
         //如果输入方式是Selector，则ValueOptions为待选选项
-        public List<string> ValueOptions { get; set; }
+        public List<CommunicationParameterOption> ValueOptions { get; set; }
+
+        //通信参数的默认值
+        public string DefaultValueOption { get; set; }
 
         //如果输入方式是Selector，则DefaultOptionIndex为待选选项默认选中的索引
         public int DefaultOptionIndex { get; set; }
+    }
+
+    public class CommunicationParameterOption
+    {
+        public string PropName {  get; set; }
+
+        public string PropOptionValue { get; set; }
+
+        public string PropOptionLabel { get; set; }
     }
 }
