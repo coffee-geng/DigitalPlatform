@@ -39,6 +39,53 @@ namespace Coffee.DigitalPlatform.Views
         }
     }
 
+    public class CommunicationParameterSelectorSourceConverter : IMultiValueConverter
+    {
+        public static CommunicationParameterSelectorSourceConverter Instance { get; } = new CommunicationParameterSelectorSourceConverter();
+
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values == null || values.Length < 3)
+                return null;
+            if (values[0] == null || values[0] == DependencyProperty.UnsetValue || !(values[0] is ObservableCollection<CommunicationParameterDefinition> paramDefinitions))
+                return null;
+            if (values[1] == null || values[1] == DependencyProperty.UnsetValue || !(values[1] is ObservableCollection<CommunicationParameter> parameters))
+                return null;
+            if (values[2] == null || values[2] == DependencyProperty.UnsetValue || !(values[2] is CommunicationParameter curParam))
+                return null;
+
+            List<CommunicationParameterDefinition> tempParamDefs = new List<CommunicationParameterDefinition>();
+            if (string.Equals(curParam.PropName, "Protocol"))
+            {
+                var protocolParam = paramDefinitions.FirstOrDefault(paramDef => string.Equals(paramDef.ParameterName, "Protocol"));
+                if (protocolParam != null)
+                {
+                    tempParamDefs.Add(protocolParam);
+                }
+            }
+            else
+            {
+                foreach (var paramDef in paramDefinitions)
+                {
+                    if (parameters.Any(para => string.Equals(para.PropName, paramDef.ParameterName)))
+                    {
+                        if (!string.Equals(curParam.PropName, paramDef.ParameterName)) //在某一行的通信参数项中，当前添加项肯定是在当前下拉框的选项列表中的
+                        {
+                            continue;
+                        }
+                    }
+                    tempParamDefs.Add(paramDef);
+                }
+            }
+            return tempParamDefs;
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     public class ActiveCommunicationParameterIndexConverter : IMultiValueConverter
     {
         public static ActiveCommunicationParameterIndexConverter Instance { get; } = new ActiveCommunicationParameterIndexConverter();
@@ -49,7 +96,7 @@ namespace Coffee.DigitalPlatform.Views
                 return null;
             if (values[0] == null || values[0] == DependencyProperty.UnsetValue || !(values[0] is CommunicationParameter param))
                 return null;
-            if (values[1] == null || values[1] == DependencyProperty.UnsetValue || !(values[1] is ObservableCollection<CommunicationParameterDefinition> paramDefinitions))
+            if (values[1] == null || values[1] == DependencyProperty.UnsetValue || !(values[1] is IList<CommunicationParameterDefinition> paramDefinitions))
                 return null;
             var activeParam = paramDefinitions.Where(paramDef => paramDef.ParameterName == param.PropName).FirstOrDefault();
             return activeParam != null ? paramDefinitions.IndexOf(activeParam) : -1;

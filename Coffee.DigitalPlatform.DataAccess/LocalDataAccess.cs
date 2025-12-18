@@ -5,11 +5,14 @@ using Coffee.DigitalPlatform.IDataAccess;
 using Dapper;
 using Microsoft.Data.Sqlite;
 using SQLitePCL;
+using System.Collections;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Dynamic;
+using System.Linq;
 using System.Net.Http.Headers;
 using System.Reflection;
+using static Dapper.SqlMapper;
 
 namespace Coffee.DigitalPlatform.DataAccess
 {
@@ -183,6 +186,22 @@ namespace Coffee.DigitalPlatform.DataAccess
                 paramDict.Add("@PropName", entity.ParameterName);
                 var protocolNames = SqlQuery<string>("select protocol from properties_protocols where prop_name=@PropName", paramDict);
                 entity.ProtocolNames = protocolNames != null ? protocolNames.ToList() : new List<string>();
+
+                //如果参数类型是Selector，根据参数默认值，得到默认值所在集合的索引值
+                var protocolOptions = GetCommunicationParameterOptions(entity);
+                if (protocolOptions != null && protocolOptions.Any())
+                {
+                    int defaultIndex = 0;
+                    for (int i = 0; i < protocolOptions.Count; i++)
+                    {
+                        if (string.Equals(protocolOptions[i].PropOptionValue, entity.DefaultValueOption, StringComparison.OrdinalIgnoreCase))
+                        {
+                            defaultIndex = i;
+                            break;
+                        }
+                    }
+                    entity.DefaultOptionIndex = defaultIndex;
+                }
                 return entity;
             }
             else
@@ -198,17 +217,47 @@ namespace Coffee.DigitalPlatform.DataAccess
             paramDict.Add("@Protocol", protocol);
             var results = SqlQuery<dynamic>(sql, paramDict);
             if (results != null && results.Any())
+            {
+                var protocolNames = SqlQuery<dynamic>("select prop_name, GROUP_CONCAT(protocol) AS protocol_names from properties_protocols GROUP BY prop_name", null);
+                Dictionary<string, IList<string>> protocolDict = new Dictionary<string, IList<string>>();
+                foreach(var p in protocolNames)
+                {
+                    if (protocolDict.ContainsKey((string)p.prop_name))
+                    {
+                        var lst1 = protocolDict[((string)p.prop_name)];
+                        var lst2 = p["protocol_names"].Split(',').ToList();
+                        foreach (var item in lst2)
+                        {
+                            if (!lst1.Contains(item))
+                            {
+                                lst1.Add(item);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var array = new List<string>(p.protocol_names.Split(','));
+                        protocolDict.Add((string)p.prop_name, array);
+                    }
+                }
+
+                var optionDict = GetAllCommunicationParameterOptions();
                 return results.Select(p => new CommunicationParameterDefinitionEntity
                 {
                     ParameterName = p.p_name,
                     Label = p.p_header,
                     ValueInputType = (int)Enum.Parse(typeof(ValueInputTypes), p.p_type.ToString()),
                     DefaultValueOption = p.p_default,
+                    DefaultOptionIndex = (optionDict.ContainsKey(p.p_name) ?
+                                         optionDict[p.p_name].FindIndex((Predicate<CommunicationParameterOptionEntity>)(o => string.Equals(o.PropOptionValue, p.p_default, StringComparison.OrdinalIgnoreCase))) : -1),
                     IsDefaultParameter = (p.is_default != null || Convert.IsDBNull(p.is_default)) ? (bool)Convert.ChangeType(p.is_default, typeof(bool)) : false,
-
+                    ProtocolNames = protocolDict.ContainsKey(p.p_name) ? protocolDict[p.p_name] : new List<string>()
                 }).ToList();
+            }
             else
+            {
                 return null;
+            }
         }
 
         //得到所有通信参数定义集合
@@ -250,6 +299,18 @@ namespace Coffee.DigitalPlatform.DataAccess
                 return results.ToList();
             else
                 return null;
+        }
+
+        public Dictionary<string, IList<CommunicationParameterOptionEntity>> GetAllCommunicationParameterOptions()
+        {
+            SqlMapper.SetTypeMap(typeof(CommunicationParameterOptionEntity), new ColumnAttributeTypeMapper<CommunicationParameterOptionEntity>());
+            string sql = "SELECT prop_name, prop_option_value, prop_option_label FROM properties_options";
+            var results = SqlQuery<CommunicationParameterOptionEntity>(sql);
+            if (results != null && results.Any())
+                return results.GroupBy(o => o.PropName)
+                              .ToDictionary(g => g.Key, g => (IList<CommunicationParameterOptionEntity>)g.ToList());
+            else
+                return new Dictionary<string, IList<CommunicationParameterOptionEntity>>();
         }
         #endregion
     }

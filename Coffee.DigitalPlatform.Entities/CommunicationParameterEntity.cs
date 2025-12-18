@@ -37,40 +37,12 @@ namespace Coffee.DigitalPlatform.Entities
         [Column(name: "p_type")]
         public int ValueInputType { get; set; }
 
-        private string _defaultValueOption = null;
-
         // 通信参数的默认值
         [Column(name: "p_default")]
-        public string DefaultValueOption
-        {
-            get
-            {
-                return _defaultValueOption;
-            }
-            set
-            {
-                string oldValue = _defaultValueOption;
-                _defaultValueOption = value;
-                if (string.Equals(oldValue, value) == false)
-                {
-                    //触发属性变更通知
-                    if (ValueInputType == (int)ValueInputTypes.Selector)
-                    {
-                        if (int.TryParse(DefaultValueOption, out int defaultValue))
-                        {
-                            DefaultOptionIndex = defaultValue;
-                        }
-                    }
-                    else
-                    {
-                        DefaultOptionIndex = 0;
-                    }
-                }
-            }
-        }
+        public string DefaultValueOption { get; set; }
 
         //如果输入方式是Selector，则DefaultOptionIndex为待选选项默认选中的索引
-        public int DefaultOptionIndex { get; private set; }
+        public int DefaultOptionIndex { get; set; }
 
         //是否为默认参数
         [Column(name: "is_default")]

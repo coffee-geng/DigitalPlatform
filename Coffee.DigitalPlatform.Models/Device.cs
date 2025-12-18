@@ -22,8 +22,11 @@ namespace Coffee.DigitalPlatform.Models
         {
             _localDataAccess = localDataAccess;
 
+
+            CommunicationParameters.CollectionChanged += CommunicationParameters_CollectionChanged;
+
             AddCommunicationParameter = new RelayCommand<CommunicationParameter>(doAddCommunicationParameter);
-            RemoveCommunicationParameter = new RelayCommand<CommunicationParameter>(doRemoveCommunicationParameter);
+            RemoveCommunicationParameter = new RelayCommand<CommunicationParameter>(doRemoveCommunicationParameter, canRemoveCommunicationParameter);
             RecommandCommunicationParameter = new RelayCommand(doRecommandCommunicationParameter);
             SelectCommunicationParameterValueCommand = new RelayCommand<SelectCommunicationParameterValueCommandParameter>(doSelectCommunicationParameterValue);
         }
@@ -267,6 +270,16 @@ namespace Coffee.DigitalPlatform.Models
 
         public ObservableCollection<CommunicationParameter> CommunicationParameters { get; private set; } = new ObservableCollection<CommunicationParameter>();
 
+        private bool _communicationParameterCollectionRefreshing;
+        // 每当CommunicationParameters集合发生变化时，该属性取反一次
+        // 该属性作为多路绑定的一个输入源，用于在CommunicationParameters集合发生变化时，通知界面刷新通信参数下拉框中的选项集合
+        // 这样就弥补了CommunicationParameters集合变化后，不能及时通知绑定的下拉框数据源刷新选项的问题
+        public bool CommunicationParameterCollectionRefreshing
+        {
+            get { return _communicationParameterCollectionRefreshing; }
+            set { SetProperty(ref _communicationParameterCollectionRefreshing, value); }
+        }
+
         public RelayCommand<CommunicationParameter> AddCommunicationParameter { get; set; }
 
         public RelayCommand<CommunicationParameter> RemoveCommunicationParameter { get; set; }
@@ -278,11 +291,27 @@ namespace Coffee.DigitalPlatform.Models
 
         public RelayCommand<SelectCommunicationParameterValueCommandParameter> SelectCommunicationParameterValueCommand { get; set; }
 
+        private void CommunicationParameters_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            CommunicationParameterCollectionRefreshing = !CommunicationParameterCollectionRefreshing;
+        }
+
         private void doAddCommunicationParameter(CommunicationParameter commParam)
         {
             if (commParam == null)
                 throw new Exception("通信参数不能为空！");
             CommunicationParameters.Add(commParam);
+        }
+
+        private bool canRemoveCommunicationParameter(CommunicationParameter commParam)
+        {
+            if (commParam == null)
+                return false;
+            if (!CommunicationParameters.Contains(commParam))
+                return false;
+            if (commParam.PropName == "Protocol")
+                return false; //通信协议参数不允许删除
+            return true;
         }
 
         private void doRemoveCommunicationParameter(CommunicationParameter commParam)
@@ -335,6 +364,8 @@ namespace Coffee.DigitalPlatform.Models
                 if (protocolName == null)
                     return;
                 var commParamDefs = _localDataAccess.GetCommunicationParamDefinitions(protocolName);
+                if (commParamDefs == null || !commParamDefs.Any())
+                    return;
                 foreach (var paramDefEntity in commParamDefs)
                 {
                     //不重复添加用户已经添加的通信参数到下拉框
@@ -368,25 +399,6 @@ namespace Coffee.DigitalPlatform.Models
                         PropValue = firstMatch.DefaultValueOption
                     };
                     CommunicationParameters.Add(commParam);
-
-                    //如果设备的通信参数列表中已经添加了某个通信参数，则其不应该出现在下拉框的选项中
-                    //所以需要遍历当前设备的通信参数列表，将其从下拉框列表中移除
-                    //List<CommunicationParameterDefinition> tempParamDefs = CommunicationParameterDefinitions.ToList();
-                    //foreach (var paramDef in CommunicationParameterDefinitions)
-                    //{
-                    //    if (CommunicationParameters.Any(para => string.Equals(para.PropName, paramDef.ParameterName)))
-                    //    {
-                    //        if (string.Equals(commParam.PropName, paramDef.ParameterName)) //在某一行的通信参数项中，当前添加项肯定是在当前下拉框的选项列表中的
-                    //        {
-                    //            continue;
-                    //        }
-                    //        tempParamDefs.Add(paramDef);
-                    //    }
-                    //}
-                    //foreach (var paramDef in tempParamDefs)
-                    //{
-                    //    CommunicationParameterDefinitions.Remove(paramDef);
-                    //}
                 }
             }
         }
@@ -401,6 +413,25 @@ namespace Coffee.DigitalPlatform.Models
             if (cmdParam.ParameterDef.ParameterName != CommunicationParameters[cmdParam.IndexOfCommunicationParameters].PropName)
                 return;
             CommunicationParameters[cmdParam.IndexOfCommunicationParameters].PropValue = cmdParam.ParameterValue.PropOptionValue;
+
+            //如果切换成另一个通信协议，则需要清除当前设备已经添加的其他通信参数并重新推荐符合当前通信协议的通信参数给用户选择
+            if (string.Equals(cmdParam.ParameterDef.ParameterName, "Protocol"))
+            {
+                var protocolParam = CommunicationParameters.FirstOrDefault(param => param.PropName == "Protocol");
+                CommunicationParameters.Clear();
+                if (protocolParam != null)
+                {
+                    CommunicationParameters.Add(protocolParam);
+                }
+
+                //切换通信协议后，重新设置通信参数下拉框中的选项，只保留通信协议参数
+                var protocolParamDef = CommunicationParameterDefinitions.FirstOrDefault(paramDef => paramDef.ParameterName == "Protocol");
+                CommunicationParameterDefinitions.Clear();
+                if (protocolParamDef != null)
+                {
+                    CommunicationParameterDefinitions.Add(protocolParamDef);
+                }
+            }
         }
         #endregion
     }

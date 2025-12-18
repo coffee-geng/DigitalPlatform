@@ -526,15 +526,23 @@
                                                 <ColumnDefinition Width="20"/>
                                             </Grid.ColumnDefinitions>
                                             <!--准备一个集合  所有的通信属性-->
-                                            <ComboBox ItemsSource="{Binding DataContext.CurrentDevice.CommunicationParameterDefinitions, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}" 
+                                            <ComboBox 
                                                   DisplayMemberPath="Label"
                                                   SelectedValuePath="ParameterName"
                                                   Name="cb_p_name" Margin="0,0,2,0"
                                                   Style="{StaticResource PropComboBoxStyle}">
+                                                <ComboBox.ItemsSource>
+                                                    <MultiBinding Converter="{x:Static local:CommunicationParameterSelectorSourceConverter.Instance}" Mode="OneWay">
+                                                        <Binding Path="DataContext.CurrentDevice.CommunicationParameterDefinitions" RelativeSource="{RelativeSource Mode=FindAncestor,AncestorType={x:Type ItemsControl}}" />
+                                                        <Binding Path="DataContext.CurrentDevice.CommunicationParameters" RelativeSource="{RelativeSource Mode=FindAncestor,AncestorType={x:Type ItemsControl}}" />
+                                                        <Binding Path="." />
+                                                        <Binding Path="DataContext.CurrentDevice.CommunicationParameterCollectionRefreshing" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}" />
+                                                    </MultiBinding>
+                                                </ComboBox.ItemsSource>
                                                 <ComboBox.SelectedIndex>
                                                     <MultiBinding Converter="{x:Static local:ActiveCommunicationParameterIndexConverter.Instance}" Mode="OneWay">
                                                         <Binding Path="." />
-                                                        <Binding Path="DataContext.CurrentDevice.CommunicationParameterDefinitions" RelativeSource="{RelativeSource Mode=FindAncestor,AncestorType={x:Type ItemsControl}}" />
+                                                        <Binding Path="ItemsSource" ElementName="cb_p_name" />
                                                     </MultiBinding>
                                                 </ComboBox.SelectedIndex>
                                             </ComboBox>
@@ -563,7 +571,7 @@
 
                                             <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
                                             <Hyperlink FontFamily="{StaticResource Iconfont}" TextDecorations="None"
-                                                       Command="{Binding ElementName=win,Path=DataContext.CurrentDevice.RemoveCommunicationParameter}"
+                                                       Command="{Binding Path=DataContext.CurrentDevice.RemoveCommunicationParameter, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
                                                        CommandParameter="{Binding}">&#xe653;</Hyperlink>
                                             </TextBlock>
                                         </Grid>
