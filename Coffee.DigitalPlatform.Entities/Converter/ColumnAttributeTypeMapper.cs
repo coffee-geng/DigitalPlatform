@@ -1,7 +1,9 @@
-﻿using Dapper;
+﻿using Coffee.DigitalPlatform.Common;
+using Dapper;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -102,6 +104,28 @@ namespace Coffee.DigitalPlatform.Entities.Converter
             return _mappers
                 .Select(mapper => mapper.FindExplicitConstructor())
                 .FirstOrDefault(result => result != null);
+        }
+    }
+
+    /// <summary>
+    /// 字符串与Type类型转换处理器
+    /// </summary>
+    public class StringToTypeHandler : SqlMapper.TypeHandler<Type>
+    {
+        public override Type Parse(object value)
+        {
+            if (value == null || value == DBNull.Value)
+                throw new ArgumentNullException($"对象的类型名不能为空！");
+
+            if (!(value is string strValue))
+                throw new ArgumentNullException($"对象的类型名格式不正确！");
+
+            return TypeUtils.GetTypeFromAssemblyQualifiedName(strValue);
+        }
+
+        public override void SetValue(IDbDataParameter parameter, Type value)
+        {
+            parameter.Value = value.AssemblyQualifiedName;
         }
     }
 }

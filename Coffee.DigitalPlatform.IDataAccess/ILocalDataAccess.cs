@@ -14,6 +14,12 @@ namespace Coffee.DigitalPlatform.IDataAccess
         #region 设备信息
         IList<ComponentEntity> GetComponentsForCreate();
 
+        void SaveDevices(IList<DeviceEntity> devices);
+
+        IList<DeviceEntity> ReadDevices();
+        #endregion
+
+        #region 通信参数
         CommunicationParameterDefinitionEntity GetProtocolParamDefinition();
 
         IList<CommunicationParameterDefinitionEntity> GetCommunicationParamDefinitions(string protocol);

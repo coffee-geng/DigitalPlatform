@@ -10,14 +10,14 @@ namespace Coffee.DigitalPlatform.Entities
 {
     public class CommunicationParameterEntity
     {
-        [Column(name: "icon")]
-        public string PropId { get; set; }
-
         [Column(name: "prop_name")]
         public string PropName { get; set; }
 
         [Column(name: "prop_value")]
         public string PropValue { get; set; }
+
+        [Column(name: "prop_type")]
+        public string PropValueType { get; set; }
     }
 
     public class CommunicationParameterDefinitionEntity
@@ -34,8 +34,11 @@ namespace Coffee.DigitalPlatform.Entities
         public string ParameterName { get; set; }
 
         // 通信参数值的输入方式   0表示键盘输入   1表示下拉选择
-        [Column(name: "p_type")]
+        [Column(name: "p_input_type")]
         public int ValueInputType { get; set; }
+
+        [Column(name: "p_data_type")]
+        public Type ValueDataType { get; set; }
 
         // 通信参数的默认值
         [Column(name: "p_default")]

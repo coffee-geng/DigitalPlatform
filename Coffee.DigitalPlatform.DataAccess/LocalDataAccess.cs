@@ -8,6 +8,7 @@ using SQLitePCL;
 using System.Collections;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using System.Net.Http.Headers;
@@ -96,7 +97,7 @@ namespace Coffee.DigitalPlatform.DataAccess
                         int rows = 0;
                         foreach (SqlCommand cmd in sqlCommands)
                         {
-                            if (cmd == null) continue;
+                            if (cmd == null)
                             {
                                 throw new Exception("Sql语句不完整！");
                             }
@@ -173,10 +174,179 @@ namespace Coffee.DigitalPlatform.DataAccess
                 return Enumerable.Empty<ComponentEntity>().ToList();
         }
 
+        public void SaveDevices(IList<DeviceEntity> devices)
+        {
+            if (devices == null)
+                throw new ArgumentNullException($"没有设备需要保存");
+
+            var sourceDevices = ReadDevices();
+            var deviceUpdateStateDict = checkDevicesForUpdating(sourceDevices, devices);
+
+            SqlMapper.SetTypeMap(typeof(DeviceEntity), new ColumnAttributeTypeMapper<DeviceEntity>());
+            SqlMapper.SetTypeMap(typeof(CommunicationParameterEntity), new ColumnAttributeTypeMapper<CommunicationParameterEntity>());
+            foreach (var pair in deviceUpdateStateDict)
+            {
+                var device = pair.Key;
+                if (string.IsNullOrEmpty(device.DeviceNum))
+                    throw new ArgumentNullException($"设备编号不能为空");
+                if (pair.Value == ItemUpdateStates.Unchanged)
+                    continue;
+                else if (pair.Value == ItemUpdateStates.Deleted)
+                {
+                    IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+                    //删除设备信息
+                    string sql = @"DELETE FROM device_properties WHERE device_num=@DeviceNum";
+                    sqlCommands.Add(new SqlCommand(sql, new Dictionary<string, object>
+                    {
+                        {"@DeviceNum", device.DeviceNum }
+                    }));
+                    sql = @"DELETE FROM devices WHERE d_num=@DeviceNum";
+                    sqlCommands.Add(new SqlCommand(sql, new Dictionary<string, object>
+                    {
+                        {"@DeviceNum", device.DeviceNum }
+                    }));
+                    SqlExecute(sqlCommands);
+                }
+                else
+                {
+                    IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+                    //插入或更新设备信息
+                    string sql = @"INSERT INTO devices (d_num, x, y, z, w, h, d_type_name, header, flow_direction, rotate) 
+                                    VALUES (@DeviceNum, @X, @Y, @Z, @Width, @Height, @DeviceTypeName, @Label, @FlowDirection, @Rotate) 
+                                    ON CONFLICT(d_num) DO UPDATE 
+                                    SET x=@X, y=@Y, z=@Z, w=@Width, h=@Height, d_type_name=@DeviceTypeName, header=@Label, flow_direction=@FlowDirection, rotate=@Rotate";
+                    sqlCommands.Add(new SqlCommand(sql, new Dictionary<string, object>()
+                    {
+                        {"@DeviceNum", device.DeviceNum },
+                        {"@X", device.X },
+                        {"@Y", device.Y },
+                        {"@Z", device.Z },
+                        {"@Width", device.Width },
+                        {"@Height", device.Height },
+                        {"@DeviceTypeName", device.DeviceTypeName },
+                        {"@Label", device.Label },
+                        {"@FlowDirection", device.FlowDirection },
+                        {"@Rotate", device.Rotate }
+                    }, new Dictionary<string, Type>()
+                    {
+                        {"@DeviceNum", typeof(string) },
+                        {"@X", typeof(string) },
+                        {"@Y", typeof(string) },
+                        {"@Z", typeof(string) },
+                        {"@Width", typeof(string) },
+                        {"@Height", typeof(string) },
+                        {"@DeviceTypeName", typeof(string) },
+                        {"@Label", typeof(string) },
+                        {"@FlowDirection", typeof(string) },
+                        {"@Rotate", typeof(string) }
+                    }));
+
+                    if (pair.Value == ItemUpdateStates.Modified)
+                    {
+                        //如果是更新设备信息，则先删除设备现有的通信参数
+                        sql = @"DELETE FROM device_properties WHERE device_num=@DeviceNum";
+                        sqlCommands.Add(new SqlCommand(sql, new Dictionary<string, object>
+                        {
+                            {"@DeviceNum", device.DeviceNum }
+                        }));
+                    }
+                    if (device.CommunicationParameters != null && device.CommunicationParameters.Any())
+                    {
+                        foreach (var commParam in device.CommunicationParameters)
+                        {
+                            //插入或更新设备的通信参数
+                            sql = @"INSERT INTO device_properties (device_num, prop_name, prop_value, prop_type) 
+                                VALUES (@DeviceNum, @PropName, @PropValue, @PropValueType) 
+                                ON CONFLICT(device_num, prop_name) DO UPDATE 
+                                SET prop_value=@PropValue, prop_type=@PropValueType";
+                            sqlCommands.Add(new SqlCommand(sql, new Dictionary<string, object>()
+                            {
+                                {"@DeviceNum", device.DeviceNum },
+                                {"@PropName",  commParam.PropName},
+                                {"@PropValue", commParam.PropValue },
+                                {"@PropValueType", commParam.PropValueType }
+                            }, new Dictionary<string, Type>()
+                            {
+                                {"@DeviceNum", typeof(string) },
+                                {"@PropName", typeof(string) },
+                                {"@PropValue", typeof(string) },
+                                {"@PropValueType", typeof(string) }
+                            }));
+                        }
+                    }
+
+                    //执行批量SQL语句
+                    SqlExecute(sqlCommands);
+                }
+            }
+        }
+
+        // 比较数据库和界面中的设备数据，找出需要更新的设备及属性
+        private Dictionary<DeviceEntity, ItemUpdateStates> checkDevicesForUpdating(IList<DeviceEntity> sourceDevices, IList<DeviceEntity> targetDevices)
+        {
+            if (sourceDevices == null || !sourceDevices.Any())
+                return targetDevices != null ? targetDevices.ToDictionary(d => d, d => ItemUpdateStates.Added) : new Dictionary<DeviceEntity, ItemUpdateStates>();
+            if (targetDevices == null || !targetDevices.Any())
+            {
+                if (sourceDevices != null && sourceDevices.Any())
+                    return sourceDevices.ToDictionary(d => d, d => ItemUpdateStates.Deleted);
+                else
+                    return new Dictionary<DeviceEntity, ItemUpdateStates>();
+            }
+
+            Dictionary<DeviceEntity, ItemUpdateStates> itemUpdateStateDict = new Dictionary<DeviceEntity, ItemUpdateStates>();
+            var devicesForRemove = sourceDevices.Except(targetDevices, new DeviceByNumComparer()).ToList();
+            devicesForRemove.ForEach(d => itemUpdateStateDict.Add(d, ItemUpdateStates.Deleted));
+            var devicesForAdd = targetDevices.Except(sourceDevices, new DeviceByNumComparer()).ToList();
+            devicesForAdd.ForEach(d => itemUpdateStateDict.Add(d, ItemUpdateStates.Added));
+
+            var otherDevices = sourceDevices.Intersect(targetDevices, new DeviceByNumComparer()).ToList(); //包括属性变更或未变更的设备
+            
+            foreach (var sourceDevice in otherDevices)
+            {
+                var targetDevice = targetDevices.FirstOrDefault(d => string.Equals(d.DeviceNum, sourceDevice.DeviceNum, StringComparison.OrdinalIgnoreCase));
+                if (targetDevice == null)
+                    continue;
+                if (!targetDevice.Equals(sourceDevice))
+                {
+                    itemUpdateStateDict.Add(targetDevice, ItemUpdateStates.Modified);
+                }
+                else
+                {
+                    itemUpdateStateDict.Add(targetDevice, ItemUpdateStates.Unchanged);
+                }
+            }
+            return itemUpdateStateDict;
+        }
+
+        public IList<DeviceEntity> ReadDevices()
+        {
+            SqlMapper.SetTypeMap(typeof(DeviceEntity), new ColumnAttributeTypeMapper<DeviceEntity>());
+            string sql = "select * from devices";
+            var devices = SqlQuery<DeviceEntity>(sql);
+            if (devices != null && devices.Any())
+            {
+                foreach(var device in devices)
+                {
+                    //获取设备的通信参数
+                    var commParams = GetCommunicationParametersByDevice(device.DeviceNum);
+                    device.CommunicationParameters = commParams != null ? commParams.ToList() : new List<CommunicationParameterEntity>();
+                }
+                return devices.ToList();
+            }
+            else
+                return Enumerable.Empty<DeviceEntity>().ToList();
+        }
+
+        #endregion
+
+        #region 通信参数
         //得到通信协议参数定义
         public CommunicationParameterDefinitionEntity GetProtocolParamDefinition()
         {
             SqlMapper.SetTypeMap(typeof(CommunicationParameterDefinitionEntity), new ColumnAttributeTypeMapper<CommunicationParameterDefinitionEntity>());
+            SqlMapper.AddTypeHandler(typeof(Type), new StringToTypeHandler());
+
             string sql = "select * from properties where p_name='Protocol'";
             var results = SqlQuery<CommunicationParameterDefinitionEntity>(sql);
             if (results != null && results.Any())
@@ -212,6 +382,8 @@ namespace Coffee.DigitalPlatform.DataAccess
         public IList<CommunicationParameterDefinitionEntity> GetCommunicationParamDefinitions(string protocol)
         {
             SqlMapper.SetTypeMap(typeof(CommunicationParameterDefinitionEntity), new ColumnAttributeTypeMapper<CommunicationParameterDefinitionEntity>());
+            SqlMapper.AddTypeHandler(typeof(Type), new StringToTypeHandler());
+
             string sql = "SELECT p.* FROM properties p LEFT JOIN properties_protocols pp ON p.p_name = pp.prop_name WHERE pp.protocol=@Protocol";
             Dictionary<string, object> paramDict = new Dictionary<string, object>();
             paramDict.Add("@Protocol", protocol);
@@ -220,7 +392,7 @@ namespace Coffee.DigitalPlatform.DataAccess
             {
                 var protocolNames = SqlQuery<dynamic>("select prop_name, GROUP_CONCAT(protocol) AS protocol_names from properties_protocols GROUP BY prop_name", null);
                 Dictionary<string, IList<string>> protocolDict = new Dictionary<string, IList<string>>();
-                foreach(var p in protocolNames)
+                foreach (var p in protocolNames)
                 {
                     if (protocolDict.ContainsKey((string)p.prop_name))
                     {
@@ -246,7 +418,8 @@ namespace Coffee.DigitalPlatform.DataAccess
                 {
                     ParameterName = p.p_name,
                     Label = p.p_header,
-                    ValueInputType = (int)Enum.Parse(typeof(ValueInputTypes), p.p_type.ToString()),
+                    ValueInputType = (int)Enum.Parse(typeof(ValueInputTypes), p.p_input_type.ToString()),
+                    ValueDataType = TypeUtils.GetTypeFromAssemblyQualifiedName(p.p_data_type),
                     DefaultValueOption = p.p_default,
                     DefaultOptionIndex = (optionDict.ContainsKey(p.p_name) ?
                                          optionDict[p.p_name].FindIndex((Predicate<CommunicationParameterOptionEntity>)(o => string.Equals(o.PropOptionValue, p.p_default, StringComparison.OrdinalIgnoreCase))) : -1),
@@ -264,6 +437,8 @@ namespace Coffee.DigitalPlatform.DataAccess
         public IList<CommunicationParameterDefinitionEntity> GetCommunicationParamDefinitions()
         {
             SqlMapper.SetTypeMap(typeof(CommunicationParameterDefinitionEntity), new ColumnAttributeTypeMapper<CommunicationParameterDefinitionEntity>());
+            SqlMapper.AddTypeHandler(typeof(Type), new StringToTypeHandler());
+
             string sql = "SELECT * FROM properties'";
             var results = SqlQuery<CommunicationParameterDefinitionEntity>(sql);
             if (results != null && results.Any())
@@ -276,7 +451,7 @@ namespace Coffee.DigitalPlatform.DataAccess
         public IList<CommunicationParameterEntity> GetCommunicationParametersByDevice(string deviceNum)
         {
             SqlMapper.SetTypeMap(typeof(CommunicationParameterEntity), new ColumnAttributeTypeMapper<CommunicationParameterEntity>());
-            string sql = "SELECT * FROM device_properties WHERE device_num='@DeviceNum'";
+            string sql = "SELECT * FROM device_properties WHERE device_num=@DeviceNum";
             Dictionary<string, object> paramDict = new Dictionary<string, object>();
             paramDict.Add("@DeviceNum", deviceNum);
             var results = SqlQuery<CommunicationParameterEntity>(sql, paramDict);
@@ -313,5 +488,31 @@ namespace Coffee.DigitalPlatform.DataAccess
                 return new Dictionary<string, IList<CommunicationParameterOptionEntity>>();
         }
         #endregion
+    }
+
+    internal class DeviceByNumComparer : IEqualityComparer<DeviceEntity>
+    {
+        public bool Equals(DeviceEntity x, DeviceEntity y)
+        {
+            if (x == null && y == null)
+                return true;
+            if (x == null || y == null)
+                return false;
+            return string.Equals(x.DeviceNum, y.DeviceNum, StringComparison.OrdinalIgnoreCase);
+        }
+        public int GetHashCode(DeviceEntity obj)
+        {
+            if (obj == null || string.IsNullOrEmpty(obj.DeviceNum))
+                return 0;
+            return obj.DeviceNum.GetHashCode();
+        }
+    }
+
+    public enum ItemUpdateStates
+    {
+        Unchanged = 0,
+        Added = 1,
+        Modified = 2,
+        Deleted = 3
     }
 }

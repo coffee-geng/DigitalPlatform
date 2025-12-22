@@ -337,6 +337,7 @@ namespace Coffee.DigitalPlatform.Models
                         ParameterName = protocolEntity.ParameterName,
                         Label = protocolEntity.Label,
                         ValueInputType = (ValueInputTypes)protocolEntity.ValueInputType,
+                        ValueDataType = protocolEntity.ValueDataType,
                         DefaultOptionIndex = protocolEntity.DefaultOptionIndex,
                         DefaultValueOption = protocolEntity.DefaultValueOption,
                         ValueOptions = optionEntities != null && optionEntities.Any() ?
@@ -353,7 +354,8 @@ namespace Coffee.DigitalPlatform.Models
                     {
                         PropName = protocolEntity.ParameterName,
                         PropValue = optionEntities != null && optionEntities.Any() ?
-                                     optionEntities[protocolEntity.DefaultOptionIndex].PropOptionValue : string.Empty
+                                     optionEntities[protocolEntity.DefaultOptionIndex].PropOptionValue : string.Empty,
+                        PropValueType = protocolEntity.ValueDataType
                     };
                     CommunicationParameters.Add(protocolParam);
                 }
@@ -378,6 +380,7 @@ namespace Coffee.DigitalPlatform.Models
                         ParameterName = paramDefEntity.ParameterName,
                         Label = paramDefEntity.Label,
                         ValueInputType = (ValueInputTypes)paramDefEntity.ValueInputType,
+                        ValueDataType = paramDefEntity.ValueDataType,
                         DefaultValueOption = paramDefEntity.DefaultValueOption,
                         DefaultOptionIndex = paramDefEntity.DefaultOptionIndex,
                         ValueOptions = _localDataAccess.GetCommunicationParameterOptions(paramDefEntity)?.Select(o => new CommunicationParameterOption
@@ -396,7 +399,8 @@ namespace Coffee.DigitalPlatform.Models
                     var commParam = new CommunicationParameter
                     {
                         PropName = firstMatch.ParameterName,
-                        PropValue = firstMatch.DefaultValueOption
+                        PropValue = firstMatch.DefaultValueOption,
+                        PropValueType = firstMatch.ValueDataType
                     };
                     CommunicationParameters.Add(commParam);
                 }

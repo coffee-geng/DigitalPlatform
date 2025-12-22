@@ -3,32 +3,52 @@
   "WorkspaceRootPath": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{3AE7CF38-4852-4F1F-AF91-103F4C384740}|Coffee.DigitalPlatform.Models\\Coffee.DigitalPlatform.Models.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.models\\device.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3AE7CF38-4852-4F1F-AF91-103F4C384740}|Coffee.DigitalPlatform.Models\\Coffee.DigitalPlatform.Models.csproj|solutionrelative:coffee.digitalplatform.models\\device.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{46F1A035-83F4-45D0-86FC-31A81F8AF3B7}|Coffee.DigitalPlatform.DataAccess\\Coffee.DigitalPlatform.DataAccess.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.dataaccess\\localdataaccess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{46F1A035-83F4-45D0-86FC-31A81F8AF3B7}|Coffee.DigitalPlatform.DataAccess\\Coffee.DigitalPlatform.DataAccess.csproj|solutionrelative:coffee.digitalplatform.dataaccess\\localdataaccess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{2BF3FA07-79F0-4573-ADED-7933E5900C18}|Coffee.DigitalPlatform.IDataAccess\\Coffee.DigitalPlatform.IDataAccess.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.idataaccess\\ilocaldataaccess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{2BF3FA07-79F0-4573-ADED-7933E5900C18}|Coffee.DigitalPlatform.IDataAccess\\Coffee.DigitalPlatform.IDataAccess.csproj|solutionrelative:coffee.digitalplatform.idataaccess\\ilocaldataaccess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{3AE7CF38-4852-4F1F-AF91-103F4C384740}|Coffee.DigitalPlatform.Models\\Coffee.DigitalPlatform.Models.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.models\\device.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3AE7CF38-4852-4F1F-AF91-103F4C384740}|Coffee.DigitalPlatform.Models\\Coffee.DigitalPlatform.Models.csproj|solutionrelative:coffee.digitalplatform.models\\device.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{3CB4C163-62A5-4E9D-9C9D-3CA9DD315DD5}|Coffee.DigitalPlatform.Views\\Coffee.DigitalPlatform.Views.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.views\\dialogs\\configurecomponentmetadata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3CB4C163-62A5-4E9D-9C9D-3CA9DD315DD5}|Coffee.DigitalPlatform.Views\\Coffee.DigitalPlatform.Views.csproj|solutionrelative:coffee.digitalplatform.views\\dialogs\\configurecomponentmetadata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{04EA1D67-3A49-46FC-94BA-07FBFADE86C8}|Coffee.DigitalPlatform.ViewModels\\Coffee.DigitalPlatform.ViewModels.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.viewmodels\\configurecomponentviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{04EA1D67-3A49-46FC-94BA-07FBFADE86C8}|Coffee.DigitalPlatform.ViewModels\\Coffee.DigitalPlatform.ViewModels.csproj|solutionrelative:coffee.digitalplatform.viewmodels\\configurecomponentviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{3CB4C163-62A5-4E9D-9C9D-3CA9DD315DD5}|Coffee.DigitalPlatform.Views\\Coffee.DigitalPlatform.Views.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.views\\dialogs\\configurecomponentdialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}",
       "RelativeMoniker": "D:0:0:{3CB4C163-62A5-4E9D-9C9D-3CA9DD315DD5}|Coffee.DigitalPlatform.Views\\Coffee.DigitalPlatform.Views.csproj|solutionrelative:coffee.digitalplatform.views\\dialogs\\configurecomponentdialog.xaml||{F11ACC28-31D1-4C80-A34B-F4E09D3D753C}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{33EAFDBD-6393-42B3-BDFC-885DB518335A}|Coffee.DigitalPlatform.Entities\\Coffee.DigitalPlatform.Entities.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.entities\\alarmentity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{33EAFDBD-6393-42B3-BDFC-885DB518335A}|Coffee.DigitalPlatform.Entities\\Coffee.DigitalPlatform.Entities.csproj|solutionrelative:coffee.digitalplatform.entities\\alarmentity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{3CB4C163-62A5-4E9D-9C9D-3CA9DD315DD5}|Coffee.DigitalPlatform.Views\\Coffee.DigitalPlatform.Views.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.views\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3CB4C163-62A5-4E9D-9C9D-3CA9DD315DD5}|Coffee.DigitalPlatform.Views\\Coffee.DigitalPlatform.Views.csproj|solutionrelative:coffee.digitalplatform.views\\mainwindow.xaml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{04EA1D67-3A49-46FC-94BA-07FBFADE86C8}|Coffee.DigitalPlatform.ViewModels\\Coffee.DigitalPlatform.ViewModels.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.viewmodels\\configurecomponentviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{04EA1D67-3A49-46FC-94BA-07FBFADE86C8}|Coffee.DigitalPlatform.ViewModels\\Coffee.DigitalPlatform.ViewModels.csproj|solutionrelative:coffee.digitalplatform.viewmodels\\configurecomponentviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{30277DEE-8802-4E24-BD11-8FF7AE81B62E}|Coffee.DigitalPlatform.Common\\Coffee.DigitalPlatform.Common.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.common\\typeutils.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{30277DEE-8802-4E24-BD11-8FF7AE81B62E}|Coffee.DigitalPlatform.Common\\Coffee.DigitalPlatform.Common.csproj|solutionrelative:coffee.digitalplatform.common\\typeutils.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3CB4C163-62A5-4E9D-9C9D-3CA9DD315DD5}|Coffee.DigitalPlatform.Views\\Coffee.DigitalPlatform.Views.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.views\\dialogs\\configurecomponentmetadata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3CB4C163-62A5-4E9D-9C9D-3CA9DD315DD5}|Coffee.DigitalPlatform.Views\\Coffee.DigitalPlatform.Views.csproj|solutionrelative:coffee.digitalplatform.views\\dialogs\\configurecomponentmetadata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{33EAFDBD-6393-42B3-BDFC-885DB518335A}|Coffee.DigitalPlatform.Entities\\Coffee.DigitalPlatform.Entities.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.entities\\converter\\columnattributetypemapper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{33EAFDBD-6393-42B3-BDFC-885DB518335A}|Coffee.DigitalPlatform.Entities\\Coffee.DigitalPlatform.Entities.csproj|solutionrelative:coffee.digitalplatform.entities\\converter\\columnattributetypemapper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{33EAFDBD-6393-42B3-BDFC-885DB518335A}|Coffee.DigitalPlatform.Entities\\Coffee.DigitalPlatform.Entities.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.entities\\deviceentity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{33EAFDBD-6393-42B3-BDFC-885DB518335A}|Coffee.DigitalPlatform.Entities\\Coffee.DigitalPlatform.Entities.csproj|solutionrelative:coffee.digitalplatform.entities\\deviceentity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2BF3FA07-79F0-4573-ADED-7933E5900C18}|Coffee.DigitalPlatform.IDataAccess\\Coffee.DigitalPlatform.IDataAccess.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.idataaccess\\ilocaldataaccess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2BF3FA07-79F0-4573-ADED-7933E5900C18}|Coffee.DigitalPlatform.IDataAccess\\Coffee.DigitalPlatform.IDataAccess.csproj|solutionrelative:coffee.digitalplatform.idataaccess\\ilocaldataaccess.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3AE7CF38-4852-4F1F-AF91-103F4C384740}|Coffee.DigitalPlatform.Models\\Coffee.DigitalPlatform.Models.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.models\\communicationparameterdefinition.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3AE7CF38-4852-4F1F-AF91-103F4C384740}|Coffee.DigitalPlatform.Models\\Coffee.DigitalPlatform.Models.csproj|solutionrelative:coffee.digitalplatform.models\\communicationparameterdefinition.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{30277DEE-8802-4E24-BD11-8FF7AE81B62E}|Coffee.DigitalPlatform.Common\\Coffee.DigitalPlatform.Common.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.common\\valueinputtypes.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{30277DEE-8802-4E24-BD11-8FF7AE81B62E}|Coffee.DigitalPlatform.Common\\Coffee.DigitalPlatform.Common.csproj|solutionrelative:coffee.digitalplatform.common\\valueinputtypes.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{B317909E-BC41-4606-899E-572096490664}|Coffee.DigitalPlatform.CommWPF\\Coffee.DigitalPlatform.CommWPF.csproj|d:\\mystudy\\\u4E0A\u4F4D\u673A\\digitalplatform\\coffee.digitalplatform.commwpf\\componentbase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -78,113 +98,167 @@
       "DocumentGroups": [
         {
           "DockedWidth": 172,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 5,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "AlarmEntity.cs",
-              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Entities\\AlarmEntity.cs",
-              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Entities\\AlarmEntity.cs",
-              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Entities\\AlarmEntity.cs",
-              "RelativeToolTip": "Coffee.DigitalPlatform.Entities\\AlarmEntity.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAA5AAAAAAAAAA==",
+              "DocumentIndex": 4,
+              "Title": "MainWindow.xaml.cs",
+              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Views\\MainWindow.xaml.cs",
+              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Views\\MainWindow.xaml.cs",
+              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Views\\MainWindow.xaml.cs",
+              "RelativeToolTip": "Coffee.DigitalPlatform.Views\\MainWindow.xaml.cs",
+              "ViewState": "AgIAAA8AAAAAAAAAAAAmwCkAAAApAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-17T09:05:16.813Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ILocalDataAccess.cs",
-              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.IDataAccess\\ILocalDataAccess.cs",
-              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.IDataAccess\\ILocalDataAccess.cs",
-              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.IDataAccess\\ILocalDataAccess.cs",
-              "RelativeToolTip": "Coffee.DigitalPlatform.IDataAccess\\ILocalDataAccess.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAA2AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-17T03:31:31.28Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-20T07:25:13.132Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "LocalDataAccess.cs",
-              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.DataAccess\\LocalDataAccess.cs",
-              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.DataAccess\\LocalDataAccess.cs",
-              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.DataAccess\\LocalDataAccess.cs",
-              "RelativeToolTip": "Coffee.DigitalPlatform.DataAccess\\LocalDataAccess.cs",
-              "ViewState": "AgIAAMwAAAAAAAAAAAAewO4AAAAYAAAAAAAAAA==",
+              "Title": "Device.cs",
+              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Models\\Device.cs",
+              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Models\\Device.cs",
+              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Models\\Device.cs",
+              "RelativeToolTip": "Coffee.DigitalPlatform.Models\\Device.cs",
+              "ViewState": "AgIAAIMBAAAAAAAAAAAkwJsBAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-17T03:14:56.865Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-19T09:43:00.612Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 2,
+              "Title": "ConfigureComponentViewModel.cs",
+              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.ViewModels\\ConfigureComponentViewModel.cs",
+              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.ViewModels\\ConfigureComponentViewModel.cs",
+              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.ViewModels\\ConfigureComponentViewModel.cs",
+              "RelativeToolTip": "Coffee.DigitalPlatform.ViewModels\\ConfigureComponentViewModel.cs",
+              "ViewState": "AgIAAAgAAAAAAAAAAAArwB4AAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-09T03:18:01.108Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
               "Title": "ConfigureComponentMetadata.cs",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Views\\Dialogs\\ConfigureComponentMetadata.cs",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Views\\Dialogs\\ConfigureComponentMetadata.cs",
               "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Views\\Dialogs\\ConfigureComponentMetadata.cs",
               "RelativeToolTip": "Coffee.DigitalPlatform.Views\\Dialogs\\ConfigureComponentMetadata.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACIAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-12T00:29:03.836Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-12T00:29:03.836Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 3,
               "Title": "ConfigureComponentDialog.xaml",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Views\\Dialogs\\ConfigureComponentDialog.xaml",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Views\\Dialogs\\ConfigureComponentDialog.xaml",
               "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Views\\Dialogs\\ConfigureComponentDialog.xaml",
               "RelativeToolTip": "Coffee.DigitalPlatform.Views\\Dialogs\\ConfigureComponentDialog.xaml",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003549|",
-              "WhenOpened": "2025-12-11T07:52:46.151Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "ConfigureComponentViewModel.cs",
-              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.ViewModels\\ConfigureComponentViewModel.cs",
-              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.ViewModels\\ConfigureComponentViewModel.cs",
-              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.ViewModels\\ConfigureComponentViewModel.cs",
-              "RelativeToolTip": "Coffee.DigitalPlatform.ViewModels\\ConfigureComponentViewModel.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIMAAAAVAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-09T03:18:01.108Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-11T07:52:46.151Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "Device.cs",
-              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Models\\Device.cs",
-              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Models\\Device.cs",
-              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Models\\Device.cs",
-              "RelativeToolTip": "Coffee.DigitalPlatform.Models\\Device.cs",
-              "ViewState": "AgIAAJYBAAAAAAAAAAAowJABAAA7AAAAAAAAAA==",
+              "Title": "LocalDataAccess.cs",
+              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.DataAccess\\LocalDataAccess.cs",
+              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.DataAccess\\LocalDataAccess.cs",
+              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.DataAccess\\LocalDataAccess.cs",
+              "RelativeToolTip": "Coffee.DigitalPlatform.DataAccess\\LocalDataAccess.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACMAAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-10T06:07:11.144Z",
+              "WhenOpened": "2025-12-17T03:14:56.865Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "ValueInputTypes.cs",
+              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Common\\ValueInputTypes.cs",
+              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Common\\ValueInputTypes.cs",
+              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Common\\ValueInputTypes.cs",
+              "RelativeToolTip": "Coffee.DigitalPlatform.Common\\ValueInputTypes.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T03:00:41.45Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "TypeUtils.cs",
+              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Common\\TypeUtils.cs",
+              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Common\\TypeUtils.cs",
+              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Common\\TypeUtils.cs",
+              "RelativeToolTip": "Coffee.DigitalPlatform.Common\\TypeUtils.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAA6wBoAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T03:13:21.972Z"
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 7,
+              "Title": "ColumnAttributeTypeMapper.cs",
+              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Entities\\Converter\\ColumnAttributeTypeMapper.cs",
+              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Entities\\Converter\\ColumnAttributeTypeMapper.cs",
+              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Entities\\Converter\\ColumnAttributeTypeMapper.cs",
+              "RelativeToolTip": "Coffee.DigitalPlatform.Entities\\Converter\\ColumnAttributeTypeMapper.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwG0AAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T02:35:38.15Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "DeviceEntity.cs",
+              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Entities\\DeviceEntity.cs",
+              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Entities\\DeviceEntity.cs",
+              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Entities\\DeviceEntity.cs",
+              "RelativeToolTip": "Coffee.DigitalPlatform.Entities\\DeviceEntity.cs",
+              "ViewState": "AgIAACMAAAAAAAAAAAAIwEoAAAAaAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-19T08:58:37.863Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "CommunicationParameterDefinition.cs",
+              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Models\\CommunicationParameterDefinition.cs",
+              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Models\\CommunicationParameterDefinition.cs",
+              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Models\\CommunicationParameterDefinition.cs",
+              "RelativeToolTip": "Coffee.DigitalPlatform.Models\\CommunicationParameterDefinition.cs",
+              "ViewState": "AgIAAAcAAAAAAAAAAAAowBsAAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-18T09:59:55.508Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "ILocalDataAccess.cs",
+              "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.IDataAccess\\ILocalDataAccess.cs",
+              "RelativeDocumentMoniker": "Coffee.DigitalPlatform.IDataAccess\\ILocalDataAccess.cs",
+              "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.IDataAccess\\ILocalDataAccess.cs",
+              "RelativeToolTip": "Coffee.DigitalPlatform.IDataAccess\\ILocalDataAccess.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwBAAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-17T03:31:31.28Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
               "Title": "ComponentBase.cs",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.CommWPF\\ComponentBase.cs",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.CommWPF\\ComponentBase.cs",
               "ToolTip": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.CommWPF\\ComponentBase.cs",
               "RelativeToolTip": "Coffee.DigitalPlatform.CommWPF\\ComponentBase.cs",
-              "ViewState": "AgIAAIwBAAAAAAAAAAAAAKgBAAARAAAAAAAAAA==",
+              "ViewState": "AgIAAHcBAAAAAAAAAIBPwKgBAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-12-06T02:46:57.065Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 13,
               "Title": "ActionManager.cs",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.CommWPF\\ActionManager.cs",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.CommWPF\\ActionManager.cs",
@@ -196,7 +270,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 14,
               "Title": "Coffee.DigitalPlatform.CommWPF.csproj",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.CommWPF\\Coffee.DigitalPlatform.CommWPF.csproj",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.CommWPF\\Coffee.DigitalPlatform.CommWPF.csproj",
@@ -208,7 +282,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 16,
               "Title": "MonitorViewModel.cs",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.ViewModels\\MonitorViewModel.cs",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.ViewModels\\MonitorViewModel.cs",
@@ -220,7 +294,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 17,
               "Title": "MonitorPage.xaml.cs",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Views\\Pages\\MonitorPage.xaml.cs",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Views\\Pages\\MonitorPage.xaml.cs",
@@ -232,7 +306,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 15,
               "Title": "MonitorPage.xaml",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Views\\Pages\\MonitorPage.xaml",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Views\\Pages\\MonitorPage.xaml",
@@ -243,7 +317,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 18,
               "Title": "App.xaml.cs",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform\\App.xaml.cs",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform\\App.xaml.cs",
@@ -255,7 +329,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 19,
               "Title": "VariableEntity.cs",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Entities\\VariableEntity.cs",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Entities\\VariableEntity.cs",
@@ -267,7 +341,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 20,
               "Title": "ManualListView.g.cs",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Components\\obj\\Debug\\net8.0-windows\\General\\ManualListView.g.cs",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Components\\obj\\Debug\\net8.0-windows\\General\\ManualListView.g.cs",
@@ -279,7 +353,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 21,
               "Title": "ManualListView.xaml.cs",
               "DocumentMoniker": "D:\\MyStudy\\\u4E0A\u4F4D\u673A\\DigitalPlatform\\Coffee.DigitalPlatform.Components\\General\\ManualListView.xaml.cs",
               "RelativeDocumentMoniker": "Coffee.DigitalPlatform.Components\\General\\ManualListView.xaml.cs",

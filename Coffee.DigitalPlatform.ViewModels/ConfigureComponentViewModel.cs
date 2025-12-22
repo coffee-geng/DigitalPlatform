@@ -1,5 +1,6 @@
 ﻿using Coffee.DigitalPlatform.Common;
 using Coffee.DigitalPlatform.CommWPF;
+using Coffee.DigitalPlatform.Entities;
 using Coffee.DigitalPlatform.IDataAccess;
 using Coffee.DigitalPlatform.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -8,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -25,7 +27,12 @@ namespace Coffee.DigitalPlatform.ViewModels
             SelectDeviceCommand = new RelayCommand<Device>(doSelectDevice);
             CloseErrorMessageBoxCommand = new RelayCommand<object>(doCloseErrorMessageBox);
 
+            LoadComponentsCommand = new RelayCommand(loadComponentsFromDatabase);
+            UnloadComponentsCommand = new RelayCommand(unloadComponents);
             CreateComponentByDragCommand = new RelayCommand<DragEventArgs>(doCreateComponentByDrag);
+
+            SaveDeviceConfigurationCommand = new RelayCommand<object>(doSaveDeviceConfigurationCommand);
+            CloseCommand = new RelayCommand<object>(doCloseCommand);
 
             if (!DesignTimeHelper.IsInDesignMode)
             {
@@ -43,8 +50,6 @@ namespace Coffee.DigitalPlatform.ViewModels
                     }).ToList()
                 });
             }
-
-            loadComponentsFromDatabase();
         }
 
         #region 设备实例
@@ -63,6 +68,10 @@ namespace Coffee.DigitalPlatform.ViewModels
             get { return _currentDevice; }
             set { SetProperty(ref _currentDevice, value); }
         }
+
+        public RelayCommand LoadComponentsCommand { get; set; }
+
+        public RelayCommand UnloadComponentsCommand { get; set; }
 
         public RelayCommand<DragEventArgs> CreateComponentByDragCommand { get; set; }
 
@@ -112,42 +121,120 @@ namespace Coffee.DigitalPlatform.ViewModels
             // 如果当前设备没有添加任何通信参数，则只提供通信协议参数供用户选择
             // 必须确定通信协议后，才可添加其他相关通信参数
             if (device != null)
-            { 
-            var commParamsByDevice = _localDataAccess.GetCommunicationParametersByDevice(device.DeviceNum);
+            {
+                var commParamsByDevice = _localDataAccess.GetCommunicationParametersByDevice(device.DeviceNum);
                 if (commParamsByDevice == null || !commParamsByDevice.Any())
                 {
-                    var protocolParamDef = _localDataAccess.GetProtocolParamDefinition();
-                    if (protocolParamDef != null)
+                    //var protocolParamDef = _localDataAccess.GetProtocolParamDefinition();
+                    //if (protocolParamDef != null)
+                    //{
+                    //    device.CommunicationParameterDefinitions.Clear();
+                    //    device.CommunicationParameterDefinitions.Add(new CommunicationParameterDefinition
+                    //    {
+                    //        Label = protocolParamDef.Label,
+                    //        ParameterName = protocolParamDef.ParameterName,
+                    //        ValueInputType = (ValueInputTypes)protocolParamDef.ValueInputType,
+                    //        ValueDataType = protocolParamDef.ValueDataType,
+                    //        DefaultOptionIndex = protocolParamDef.DefaultOptionIndex,
+                    //    });
+                    //}
+                }
+                else
+                {
+                    string protocolName = commParamsByDevice.Where(p => p.PropName == "Protocol").Select(p => p.PropValue).FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(protocolName))
                     {
-                        CommunicationParameterDefinitions = new List<CommunicationParameterDefinition>()
-                    {
-                        new CommunicationParameterDefinition
+                        IList<CommunicationParameterDefinitionEntity> paramDefEntities = _localDataAccess.GetCommunicationParamDefinitions(protocolName);
+                        if (paramDefEntities != null && paramDefEntities.Any())
                         {
-                            Label = protocolParamDef.Label,
-                            ParameterName = protocolParamDef.ParameterName,
-                            ValueInputType = (ValueInputTypes)protocolParamDef.ValueInputType,
-                            DefaultOptionIndex = protocolParamDef.DefaultOptionIndex,
+                            paramDefEntities = paramDefEntities.OrderBy(entity => entity.IsDefaultParameter ? 0 : 1).ToList();
+                            foreach (var paramDefEntity in paramDefEntities)
+                            {
+                                //不重复添加用户已经添加的通信参数到下拉框
+                                if (device.CommunicationParameterDefinitions.Any(paramDef => paramDef.ParameterName == paramDefEntity.ParameterName))
+                                {
+                                    continue;
+                                }
+                                device.CommunicationParameterDefinitions.Add(new CommunicationParameterDefinition()
+                                {
+                                    Label = paramDefEntity.Label,
+                                    ParameterName = paramDefEntity.ParameterName,
+                                    ValueInputType = (ValueInputTypes)paramDefEntity.ValueInputType,
+                                    ValueDataType = paramDefEntity.ValueDataType,
+                                    DefaultValueOption = paramDefEntity.DefaultValueOption,
+                                    DefaultOptionIndex = paramDefEntity.DefaultOptionIndex,
+                                    ValueOptions = _localDataAccess.GetCommunicationParameterOptions(paramDefEntity)?.Select(o => new CommunicationParameterOption
+                                    {
+                                        PropName = o.PropName,
+                                        PropOptionValue = o.PropOptionValue,
+                                        PropOptionLabel = o.PropOptionLabel
+                                    }).ToList()
+                                });
+                            }
                         }
-                    };
                     }
+
+                    device.CommunicationParameters.Clear();
+                    commParamsByDevice.OrderBy(entity => entity.PropName == "Protocol" ? 0 : 1).Select(paramEntity => new CommunicationParameter()
+                    {
+                        PropName = paramEntity.PropName,
+                        PropValue = paramEntity.PropValue,
+                        PropValueType = TypeUtils.GetTypeFromAssemblyQualifiedName(paramEntity.PropValueType)
+                    }).ToList().ForEach(param => device.CommunicationParameters.Add(param));
                 }
             }
         }
 
         private void loadComponentsFromDatabase()
         {
-            
+            IList<DeviceEntity> deviceEntities = _localDataAccess.ReadDevices();
+            foreach (var deviceEntity in deviceEntities)
+            {
+                var device = new Device(_localDataAccess)
+                {
+                    DeviceNum = deviceEntity.DeviceNum,
+                    Name = deviceEntity.Label,
+                    DeviceType = deviceEntity.DeviceTypeName,
+                    X = double.Parse(deviceEntity.X),
+                    Y = double.Parse(deviceEntity.Y),
+                    Z = int.Parse(deviceEntity.Z),
+                    Width = double.Parse(deviceEntity.Width),
+                    Height = double.Parse(deviceEntity.Height),
+                    FlowDirection = (FlowDirections)Enum.Parse(typeof(FlowDirections), deviceEntity.FlowDirection),
+                    Rotate = double.Parse(deviceEntity.Rotate),
+                    DeleteCommand = new RelayCommand<Device>(model =>
+                    {
+                        if (model != null)
+                            DeviceList.Remove(model);
+                    }),
+                    GetDevices = () => DeviceList.Where(d => d is IComponentContext).Cast<IComponentContext>().ToList(),
+                    GetAuxiliaryLines = () => DeviceList.Where(d => d is IAuxiliaryLineContext).Cast<IAuxiliaryLineContext>().ToList()
+                };
+                device.InitContextMenu();
+                // 加载通信参数
+                if (deviceEntity.CommunicationParameters != null)
+                {
+                    foreach (var commParamEntity in deviceEntity.CommunicationParameters)
+                    {
+                        device.CommunicationParameters.Add(new CommunicationParameter()
+                        {
+                            PropName = commParamEntity.PropName,
+                            PropValue = commParamEntity.PropValue,
+                            PropValueType = TypeUtils.GetTypeFromAssemblyQualifiedName(commParamEntity.PropValueType)
+                        });
+                    }
+                }
+                DeviceList.Add(device);
+            }
+        }
+
+        private void unloadComponents()
+        {
+            DeviceList.Clear();
         }
         #endregion
 
         #region 通信参数
-        private List<CommunicationParameterDefinition> _communicationParameterDefinitions;
-        public List<CommunicationParameterDefinition> CommunicationParameterDefinitions
-        {
-            get { return _communicationParameterDefinitions; }
-            set { SetProperty(ref _communicationParameterDefinitions, value); }
-        }
-
         private void initCommunicationParameters()
         {
             _localDataAccess.GetProtocolParamDefinition();
@@ -169,6 +256,76 @@ namespace Coffee.DigitalPlatform.ViewModels
         private void doCloseErrorMessageBox(object obj)
         {
             VisualStateManager.GoToElementState(obj as Window, "HideFailure", true);
+        }
+        #endregion
+
+        #region 读写操作及下方按钮栏
+        private bool isSaved = false;
+
+        public RelayCommand<object> CloseCommand { get; set; }
+
+        public RelayCommand<object> SaveDeviceConfigurationCommand { get; set; }
+
+        private void doCloseCommand(object owner)
+        {
+            VisualStateManager.GoToElementState(owner as Window, "NormalToSuccess", true);
+            VisualStateManager.GoToElementState(owner as Window, "NormalToFailure", true);
+
+            (owner as Window).DialogResult = isSaved;
+        }
+
+        private void doSaveDeviceConfigurationCommand(object owner)
+        {
+            VisualStateManager.GoToElementState(owner as Window, "NormalToSuccess", true);
+            VisualStateManager.GoToElementState(owner as Window, "NormalToFailure", true);
+
+            try
+            {
+                IList<DeviceEntity> deviceEntities = new List<DeviceEntity>();
+                foreach (var device in DeviceList)
+                {
+                    if (string.IsNullOrWhiteSpace(device.DeviceNum))
+                    {
+                        throw new Exception($"设备 {device.Name} 未设置设备编号，无法保存，请设置后重试。");
+                    }
+                    var deviceEntity = new DeviceEntity
+                    {
+                        DeviceNum = device.DeviceNum,
+                        DeviceTypeName = device.DeviceType,
+                        Label = device.Name,
+                        X = device.X.ToString(),
+                        Y = device.Y.ToString(),
+                        Z = device.Z.ToString(),
+                        Width = device.Width.ToString(),
+                        Height = device.Height.ToString(),
+                        FlowDirection = Enum.GetName(typeof(FlowDirections), device.FlowDirection),
+                        Rotate = device.Rotate.ToString()
+                    };
+                    foreach(var commParam in device.CommunicationParameters)
+                    {
+                        if (deviceEntity.CommunicationParameters == null)
+                        {
+                            deviceEntity.CommunicationParameters = new List<CommunicationParameterEntity>();
+                        }
+                        deviceEntity.CommunicationParameters.Add(new CommunicationParameterEntity
+                        {
+                            PropName = commParam.PropName,
+                            PropValue = commParam.PropValue,
+                            PropValueType = commParam.PropValueType.AssemblyQualifiedName
+                        });
+                    }
+                    deviceEntities.Add(deviceEntity);
+                }
+
+                _localDataAccess.SaveDevices(deviceEntities);
+
+                VisualStateManager.GoToElementState(owner as Window, "ShowSuccess", true);
+            }
+            catch(Exception ex)
+            {
+                FailureMessageOnSaving = ex.Message;
+                VisualStateManager.GoToElementState(owner as Window, "ShowFailure", true);
+            }
         }
         #endregion
     }

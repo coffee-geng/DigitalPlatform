@@ -13,6 +13,8 @@ namespace Coffee.DigitalPlatform.Models
         public string PropName { get; set; }
 
         public string PropValue { get; set; }
+
+        public Type PropValueType { get; set; }
     }
 
     public class CommunicationParameterDefinition
@@ -24,6 +26,9 @@ namespace Coffee.DigitalPlatform.Models
 
         // 通信参数值的输入方式   0表示键盘输入   1表示下拉选择
         public ValueInputTypes ValueInputType { get; set; }
+
+        //通信参数值的数据类型
+        public Type ValueDataType { get; set; }
 
         //如果输入方式是Selector，则ValueOptions为待选选项
         public List<CommunicationParameterOption> ValueOptions { get; set; }

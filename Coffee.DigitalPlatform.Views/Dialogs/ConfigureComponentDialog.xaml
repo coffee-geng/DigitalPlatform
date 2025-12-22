@@ -315,6 +315,15 @@
                 </Setter>
             </Style>
         </Grid.Resources>
+
+        <i:Interaction.Triggers>
+            <i:EventTrigger EventName="Loaded">
+                <i:InvokeCommandAction Command="{Binding LoadComponentsCommand}" />
+            </i:EventTrigger>
+            <i:EventTrigger EventName="Unloaded">
+                <i:InvokeCommandAction Command="{Binding UnloadComponentsCommand}" />
+            </i:EventTrigger>
+        </i:Interaction.Triggers>
         
         <Grid>
             <Grid.Background>
@@ -526,11 +535,9 @@
                                                 <ColumnDefinition Width="20"/>
                                             </Grid.ColumnDefinitions>
                                             <!--准备一个集合  所有的通信属性-->
-                                            <ComboBox 
-                                                  DisplayMemberPath="Label"
-                                                  SelectedValuePath="ParameterName"
-                                                  Name="cb_p_name" Margin="0,0,2,0"
-                                                  Style="{StaticResource PropComboBoxStyle}">
+                                            <ComboBox Name="cb_p_name" Margin="0,0,2,0"
+                                                DisplayMemberPath="Label" SelectedValuePath="ParameterName"
+                                                Style="{StaticResource PropComboBoxStyle}">
                                                 <ComboBox.ItemsSource>
                                                     <MultiBinding Converter="{x:Static local:CommunicationParameterSelectorSourceConverter.Instance}" Mode="OneWay">
                                                         <Binding Path="DataContext.CurrentDevice.CommunicationParameterDefinitions" RelativeSource="{RelativeSource Mode=FindAncestor,AncestorType={x:Type ItemsControl}}" />
@@ -548,11 +555,10 @@
                                             </ComboBox>
 
                                             <ComboBox Grid.Column="1" Name="cb" Visibility="Collapsed"
-                                                  ItemsSource="{Binding ElementName=cb_p_name,Path=SelectedItem.ValueOptions}"
-                                                  SelectedIndex="{Binding ElementName=cb_p_name,Path=SelectedItem.DefaultOptionIndex }"
-                                                  DisplayMemberPath="PropOptionLabel"
-                                                  SelectedValuePath="PropOptionValue"
-                                                  Style="{StaticResource PropComboBoxStyle}">
+                                                ItemsSource="{Binding ElementName=cb_p_name,Path=SelectedItem.ValueOptions}"
+                                                SelectedIndex="{Binding ElementName=cb_p_name,Path=SelectedItem.DefaultOptionIndex }"
+                                                DisplayMemberPath="PropOptionLabel" SelectedValuePath="PropOptionValue"
+                                                Style="{StaticResource PropComboBoxStyle}">
                                                 <i:Interaction.Triggers>
                                                     <i:EventTrigger EventName="SelectionChanged">
                                                         <i:InvokeCommandAction Command="{Binding ElementName=configComponentDlg,Path=DataContext.CurrentDevice.SelectCommunicationParameterValueCommand}">
@@ -560,7 +566,7 @@
                                                                 <MultiBinding Converter="{x:Static local:SelectCommunicationParameterValueCommandParameterConverter.Instance}">
                                                                     <Binding Path="SelectedItem" ElementName="cb" />
                                                                     <Binding Path="SelectedItem" ElementName="cb_p_name"/>
-                                                                    <Binding Path="(ItemsControl.AlternationIndex)" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorLevel=2,AncestorType={x:Type ItemsControl}}" />
+                                                                    <Binding Path="(ItemsControl.AlternationIndex)" RelativeSource="{RelativeSource AncestorType=ContentPresenter}" />
                                                                 </MultiBinding>
                                                             </i:InvokeCommandAction.CommandParameter>
                                                         </i:InvokeCommandAction>
@@ -570,9 +576,9 @@
                                             <TextBox Grid.Column="1" Name="tb" Text="{Binding PropValue}"/>
 
                                             <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                            <Hyperlink FontFamily="{StaticResource Iconfont}" TextDecorations="None"
-                                                       Command="{Binding Path=DataContext.CurrentDevice.RemoveCommunicationParameter, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
-                                                       CommandParameter="{Binding}">&#xe653;</Hyperlink>
+                                                <Hyperlink FontFamily="{StaticResource Iconfont}" TextDecorations="None"
+                                                           Command="{Binding Path=DataContext.CurrentDevice.RemoveCommunicationParameter, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
+                                                           CommandParameter="{Binding}">&#xe653;</Hyperlink>
                                             </TextBlock>
                                         </Grid>
                                         <DataTemplate.Triggers>
@@ -622,7 +628,7 @@
                                             <TextBox Text="{Binding VarAddress}" Grid.Column="1" HorizontalContentAlignment="Center" Margin="2,0,0,0"/>
                                             <TextBlock Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center">
                                             <Hyperlink FontFamily="{StaticResource Iconfont}" TextDecorations="None"
-                                                       Command="{Binding ElementName=win,Path=DataContext.CurrentDevice.DeleteVariableCommand}"
+                                                       Command="{Binding ElementName=configComponentDlg,Path=DataContext.CurrentDevice.DeleteVariableCommand}"
                                                        CommandParameter="{Binding}">&#xe653;</Hyperlink>
                                             </TextBlock>
                                             <ToggleButton Grid.Column="2" Name="tb" Margin="3" Style="{StaticResource PointMoreButtonStlye}" Width="20"/>
@@ -678,7 +684,6 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </ScrollViewer>
-
 
                         <TextBlock Text="其他配置" Grid.Row="5" Margin="15,10" FontWeight="Bold" Foreground="#888" VerticalAlignment="Center"/>
                         <ToggleButton Grid.Row="6" Style="{StaticResource ManualToggleButtonStyle}"
@@ -759,8 +764,8 @@
                     </StackPanel>
                 </Button>
                 <Button Grid.Column="4" Style="{StaticResource ControlButtonStyle}" 
-                        Command="{Binding SaveCommand}"
-                        CommandParameter="{Binding ElementName=win}" Name="btnSave">
+                        Command="{Binding SaveDeviceConfigurationCommand}"
+                        CommandParameter="{Binding ElementName=configComponentDlg}" Name="btnSave">
                     <StackPanel>
                         <TextBlock Text="&#xe63c;" FontFamily="{StaticResource Iconfont}"
                                    HorizontalAlignment="Center" Margin="0,1"/>
@@ -769,7 +774,7 @@
                 </Button>
                 <Button Grid.Column="5" Style="{StaticResource ControlButtonStyle}" Tag="0,10,10,0"
                     Command="{Binding CloseCommand}"
-                    CommandParameter="{Binding ElementName=win}">
+                    CommandParameter="{Binding ElementName=configComponentDlg}">
                     <StackPanel>
                         <TextBlock Text="&#xe695;" FontFamily="{StaticResource Iconfont}"
                                    HorizontalAlignment="Center" Margin="0,1"/>
@@ -817,8 +822,8 @@
                     Grid.Column="2" Height="20" Width="20"
                     Style="{StaticResource ControlButtonStyle}" VerticalAlignment="Top" 
                     Margin="0,15" HorizontalAlignment="Right"
-                    Command="{Binding CloseErrorMessageBoxCommand}"
-                    CommandParameter="{Binding ElementName=win}"/>
+                    Command="{Binding DataContext.CloseErrorMessageBoxCommand}"
+                    CommandParameter="{Binding ElementName=configComponentDlg}"/>
             </Grid>
         </Border>
 
@@ -883,7 +888,7 @@
                                         <TextBox Text="{Binding Value}" Grid.Column="2" Height="28" TextAlignment="Center"/>
 
                                         <TextBlock Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                        <Hyperlink Command="{Binding DataContext.CurrentDevice.DeleteManualControlCommand,ElementName=win}"
+                                        <Hyperlink Command="{Binding DataContext.CurrentDevice.DeleteManualControlCommand,ElementName=configComponentDlg}"
                                                    CommandParameter="{Binding}">删除</Hyperlink>
                                         </TextBlock>
                                     </Grid>

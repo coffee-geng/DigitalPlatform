@@ -10,10 +10,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="System.IO.Ports" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Coffee.DigitalPlatform.Assets\Coffee.DigitalPlatform.Assets.csproj" />
+    <ProjectReference Include="..\Coffee.DigitalPlatform.Common\Coffee.DigitalPlatform.Common.csproj" />
+    <ProjectReference Include="..\Coffee.DigitalPlatform.CommWPF\Coffee.DigitalPlatform.CommWPF.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.DataAccess\Coffee.DigitalPlatform.DataAccess.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.ViewModels\Coffee.DigitalPlatform.ViewModels.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.Views\Coffee.DigitalPlatform.Views.csproj" />
