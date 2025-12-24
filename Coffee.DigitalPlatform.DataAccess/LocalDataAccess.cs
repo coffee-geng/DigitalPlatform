@@ -184,6 +184,7 @@ namespace Coffee.DigitalPlatform.DataAccess
 
             SqlMapper.SetTypeMap(typeof(DeviceEntity), new ColumnAttributeTypeMapper<DeviceEntity>());
             SqlMapper.SetTypeMap(typeof(CommunicationParameterEntity), new ColumnAttributeTypeMapper<CommunicationParameterEntity>());
+            SqlMapper.SetTypeMap(typeof(VariableEntity), new ColumnAttributeTypeMapper<VariableEntity>());
             foreach (var pair in deviceUpdateStateDict)
             {
                 var device = pair.Key;
@@ -194,12 +195,19 @@ namespace Coffee.DigitalPlatform.DataAccess
                 else if (pair.Value == ItemUpdateStates.Deleted)
                 {
                     IList<SqlCommand> sqlCommands = new List<SqlCommand>();
-                    //删除设备信息
+                    //删除设备关联通信参数信息
                     string sql = @"DELETE FROM device_properties WHERE device_num=@DeviceNum";
                     sqlCommands.Add(new SqlCommand(sql, new Dictionary<string, object>
                     {
                         {"@DeviceNum", device.DeviceNum }
                     }));
+                    //删除设备关联变量点位信息
+                    sql = @"DELETE FROM variables WHERE device_num=@DeviceNum";
+                    sqlCommands.Add(new SqlCommand(sql, new Dictionary<string, object>
+                    {
+                        {"@DeviceNum", device.DeviceNum }
+                    }));
+                    //删除设备信息
                     sql = @"DELETE FROM devices WHERE d_num=@DeviceNum";
                     sqlCommands.Add(new SqlCommand(sql, new Dictionary<string, object>
                     {
@@ -249,6 +257,12 @@ namespace Coffee.DigitalPlatform.DataAccess
                         {
                             {"@DeviceNum", device.DeviceNum }
                         }));
+                        //删除设备现有的变量点位信息
+                        sql = @"DELETE FROM variables WHERE device_num=@DeviceNum";
+                        sqlCommands.Add(new SqlCommand(sql, new Dictionary<string, object>
+                        {
+                            {"@DeviceNum", device.DeviceNum }
+                        }));
                     }
                     if (device.CommunicationParameters != null && device.CommunicationParameters.Any())
                     {
@@ -271,6 +285,34 @@ namespace Coffee.DigitalPlatform.DataAccess
                                 {"@PropName", typeof(string) },
                                 {"@PropValue", typeof(string) },
                                 {"@PropValueType", typeof(string) }
+                            }));
+                        }
+                    }
+                    if (device.Variables != null && device.Variables.Any())
+                    {
+                        foreach (var variable in device.Variables)
+                        {
+                            //插入变量点位信息
+                            sql = @"INSERT INTO variables (device_num, var_num, var_name, var_address, var_type, offset, modulus) 
+                                VALUES (@DeviceNum, @VarNum, @VarName, @VarAddress, @VarType, @Offset, @Modulus)";
+                            sqlCommands.Add(new SqlCommand(sql, new Dictionary<string, object>()
+                            {
+                                {"@DeviceNum", device.DeviceNum },
+                                {"@VarNum",  variable.VarNum},
+                                {"@VarName",  variable.Label},
+                                {"@VarAddress", variable.Address },
+                                {"@VarType", variable.VarType },
+                                {"@Offset", variable.Offset },
+                                {"@Modulus", variable.Factor }
+                            }, new Dictionary<string, Type>()
+                            {
+                                {"@DeviceNum", typeof(string) },
+                                {"@VarNum",  typeof(string) },
+                                {"@VarName", typeof(string) },
+                                {"@VarAddress", typeof(string) },
+                                {"@VarType", typeof(string) },
+                                {"@Offset", typeof(double) },
+                                {"@Modulus", typeof(double) }
                             }));
                         }
                     }
@@ -331,6 +373,9 @@ namespace Coffee.DigitalPlatform.DataAccess
                     //获取设备的通信参数
                     var commParams = GetCommunicationParametersByDevice(device.DeviceNum);
                     device.CommunicationParameters = commParams != null ? commParams.ToList() : new List<CommunicationParameterEntity>();
+
+                    var variables = GetVariablesByDevice(device.DeviceNum);
+                    device.Variables = variables != null ? variables.ToList() : new List<VariableEntity>();
                 }
                 return devices.ToList();
             }
@@ -486,6 +531,22 @@ namespace Coffee.DigitalPlatform.DataAccess
                               .ToDictionary(g => g.Key, g => (IList<CommunicationParameterOptionEntity>)g.ToList());
             else
                 return new Dictionary<string, IList<CommunicationParameterOptionEntity>>();
+        }
+        #endregion
+
+        #region 变量点位信息
+        //得到某个设备正在使用的点位信息集合
+        public IList<VariableEntity> GetVariablesByDevice(string deviceNum)
+        {
+            SqlMapper.SetTypeMap(typeof(VariableEntity), new ColumnAttributeTypeMapper<VariableEntity>());
+            string sql = "SELECT * FROM variables WHERE device_num=@DeviceNum";
+            Dictionary<string, object> paramDict = new Dictionary<string, object>();
+            paramDict.Add("@DeviceNum", deviceNum);
+            var results = SqlQuery<VariableEntity>(sql, paramDict);
+            if (results != null && results.Any())
+                return results.ToList();
+            else
+                return null;
         }
         #endregion
     }

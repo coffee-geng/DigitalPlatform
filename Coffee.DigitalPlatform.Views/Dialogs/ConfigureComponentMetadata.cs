@@ -1,4 +1,5 @@
-﻿using Coffee.DigitalPlatform.Models;
+﻿using Coffee.DigitalPlatform.Common;
+using Coffee.DigitalPlatform.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -100,6 +101,70 @@ namespace Coffee.DigitalPlatform.Views
                 return null;
             var activeParam = paramDefinitions.Where(paramDef => paramDef.ParameterName == param.PropName).FirstOrDefault();
             return activeParam != null ? paramDefinitions.IndexOf(activeParam) : -1;
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class ActiveCommunicationParameterValueIndexConverter : IMultiValueConverter
+    {
+        public static ActiveCommunicationParameterValueIndexConverter Instance { get; } = new ActiveCommunicationParameterValueIndexConverter();
+
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values == null || values.Length < 2)
+                return null;
+            if (values[0] == null || values[0] == DependencyProperty.UnsetValue || !(values[0] is CommunicationParameter param))
+                return null;
+            if (values[1] == null || values[1] == DependencyProperty.UnsetValue || !(values[1] is CommunicationParameterDefinition paramDef))
+                return null;
+            var valOptions = paramDef.ValueOptions = paramDef.ValueOptions ?? new List<CommunicationParameterOption>();
+            if (!string.IsNullOrWhiteSpace(param.PropValue))
+            {
+                //如果通信参数有初始值，并且在选项列表中能找到，则返回对应的索引
+                var activeOption = valOptions.Where(option => string.Equals(option.PropOptionValue, param.PropValue)).FirstOrDefault();
+                if (activeOption != null)
+                {
+                    return valOptions.IndexOf(activeOption);
+                }
+                else
+                {
+                    return paramDef.DefaultOptionIndex;
+                }
+            }
+            else
+            {
+                return paramDef.DefaultOptionIndex;
+            }
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    // 点位的变量类型转换器。如果没有指定点位的变量类型，则默认为int类型。
+    public class ActiveVariableTypeConverter : IMultiValueConverter
+    {
+        public static ActiveVariableTypeConverter Instance { get; } = new ActiveVariableTypeConverter();
+
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values == null || values.Length < 2)
+                return null;
+            if (values[0] == null || values[0] == DependencyProperty.UnsetValue || !(values[0] is Variable variable))
+                return null;
+            if (values[1] == null || values[1] == DependencyProperty.UnsetValue || !(values[1] is IList<VariableType> primitiveTypeList))
+                return null;
+
+            Type primitiveType = variable.VarType != null ? variable.VarType : typeof(int); //如果没有指定点位的变量类型，则默认为int类型
+            var activePrimitive = primitiveTypeList.Where(t => t.TypeClass == primitiveType).FirstOrDefault();
+            //return activePrimitive != null ? primitiveTypeList.IndexOf(activePrimitive) : -1;
+            return activePrimitive;
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)

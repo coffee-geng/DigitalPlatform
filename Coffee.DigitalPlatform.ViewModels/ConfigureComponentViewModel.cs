@@ -13,6 +13,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
@@ -33,6 +34,8 @@ namespace Coffee.DigitalPlatform.ViewModels
 
             SaveDeviceConfigurationCommand = new RelayCommand<object>(doSaveDeviceConfigurationCommand);
             CloseCommand = new RelayCommand<object>(doCloseCommand);
+
+            PopupClosingCommand = new RelayCommand<DependencyObject>(doClosingPopupCommand);
 
             if (!DesignTimeHelper.IsInDesignMode)
             {
@@ -224,6 +227,23 @@ namespace Coffee.DigitalPlatform.ViewModels
                         });
                     }
                 }
+                // 加载变量点位
+                if (deviceEntity.Variables != null)
+                {
+                    foreach(var variableEntity in deviceEntity.Variables)
+                    {
+                        device.Variables.Add(new Variable()
+                        {
+                            DeviceNum = device.DeviceNum,
+                            VarNum = variableEntity.VarNum,
+                            VarName = variableEntity.Label,
+                            VarAddress = variableEntity.Address,
+                            VarType = TypeUtils.GetTypeFromAssemblyQualifiedName(variableEntity.VarType),
+                            Offset = variableEntity.Offset,
+                            Factor = variableEntity.Factor
+                        });
+                    }
+                }
                 DeviceList.Add(device);
             }
         }
@@ -240,6 +260,19 @@ namespace Coffee.DigitalPlatform.ViewModels
             _localDataAccess.GetProtocolParamDefinition();
         }
 
+        #endregion
+
+        #region 变量点位信息
+        public ICommand PopupClosingCommand { get; set; }
+        private void doClosingPopupCommand(DependencyObject sender)
+        {
+            var focusedElements = FocusHelper.GetAllKeyboardFocusedElements(sender);
+            foreach (var element in focusedElements)
+            {
+                element.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+            }
+            Keyboard.ClearFocus();
+        }
         #endregion
 
         #region 提示消息
@@ -281,6 +314,15 @@ namespace Coffee.DigitalPlatform.ViewModels
 
             try
             {
+                if (DeviceList != null && DeviceList.Any())
+                {
+                    var deviceWithError = DeviceList.Where(d => d.Variables != null && d.Variables.Any(v => !string.IsNullOrWhiteSpace(v.Error))).FirstOrDefault();
+                    if (deviceWithError != null)
+                    {
+                        throw new Exception($"设备 {deviceWithError.Name} 存在点位配置错误，无法保存，请检查后重试。");
+                    }
+                }
+
                 IList<DeviceEntity> deviceEntities = new List<DeviceEntity>();
                 foreach (var device in DeviceList)
                 {
@@ -301,6 +343,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                         FlowDirection = Enum.GetName(typeof(FlowDirections), device.FlowDirection),
                         Rotate = device.Rotate.ToString()
                     };
+                    //通信参数
                     foreach(var commParam in device.CommunicationParameters)
                     {
                         if (deviceEntity.CommunicationParameters == null)
@@ -314,6 +357,24 @@ namespace Coffee.DigitalPlatform.ViewModels
                             PropValueType = commParam.PropValueType.AssemblyQualifiedName
                         });
                     }
+                    //变量点位
+                    foreach (var variable in device.Variables)
+                    {
+                        if (deviceEntity.Variables == null)
+                        {
+                            deviceEntity.Variables = new List<VariableEntity>();
+                        }
+                        deviceEntity.Variables.Add(new VariableEntity
+                        {
+                            VarNum = variable.VarNum,
+                            Label = variable.VarName,
+                            Address = variable.VarAddress,
+                            VarType = variable.VarType.AssemblyQualifiedName,
+                            Offset = variable.Offset,
+                            Factor = variable.Factor
+                        });
+                    }
+
                     deviceEntities.Add(deviceEntity);
                 }
 

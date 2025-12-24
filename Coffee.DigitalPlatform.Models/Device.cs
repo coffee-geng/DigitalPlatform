@@ -29,6 +29,9 @@ namespace Coffee.DigitalPlatform.Models
             RemoveCommunicationParameter = new RelayCommand<CommunicationParameter>(doRemoveCommunicationParameter, canRemoveCommunicationParameter);
             RecommandCommunicationParameter = new RelayCommand(doRecommandCommunicationParameter);
             SelectCommunicationParameterValueCommand = new RelayCommand<SelectCommunicationParameterValueCommandParameter>(doSelectCommunicationParameterValue);
+
+            AddVariableCommand = new RelayCommand<Variable>(doAddVariable);
+            RemoveVariableCommand = new RelayCommand<Variable>(doRemoveVariable, canRemoveVariable);
         }
 
         // 设备编号
@@ -128,8 +131,6 @@ namespace Coffee.DigitalPlatform.Models
 
         // 根据这个名称动态创建一个组件实例
         public string DeviceType { get; set; }
-
-        public ObservableCollection<Variable> Variables { get; private set; } = new ObservableCollection<Variable>();
 
         public RelayCommand<Device> DeleteCommand { get; set; }
 
@@ -436,6 +437,58 @@ namespace Coffee.DigitalPlatform.Models
                     CommunicationParameterDefinitions.Add(protocolParamDef);
                 }
             }
+        }
+        #endregion
+
+        #region 变量点位配置
+        public ObservableCollection<Variable> Variables { get; private set; } = new ObservableCollection<Variable>();
+
+        public RelayCommand<Variable> AddVariableCommand { get; set; }
+
+        public RelayCommand<Variable> RemoveVariableCommand { get; set; }
+
+        private void doAddVariable(Variable variable)
+        {
+            if (variable != null)
+            {
+                Variables.Add(variable);
+            }
+            else
+            {
+                Variables.Add(new Variable()
+                {
+                    VarNum = $"V{DateTime.Now.ToString("yyyyMMddHHmmssfff")}",
+                    VarType = typeof(int), //默认为整型
+                    ValidateDuplication = (variable, propName) =>
+                    {
+                        if (propName == nameof(Variable.VarName))
+                        {
+                            //验证点位名称在当前设备中不能重复
+                            if (Variables.Any(v => v != variable && string.Equals(v.VarName, variable.VarName, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                });
+            }
+        }
+
+        private bool canRemoveVariable(Variable variable)
+        {
+            if (variable == null)
+                return false;
+            if (!Variables.Contains(variable))
+                return false;
+            return true;
+        }
+
+        private void doRemoveVariable(Variable variable)
+        {
+            if (variable == null)
+                throw new Exception("变量点位信息不能为空！");
+            Variables.Remove(variable);
         }
         #endregion
     }

@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Coffee.DigitalPlatform.Assets\Coffee.DigitalPlatform.Assets.csproj" />
+    <ProjectReference Include="..\Coffee.DigitalPlatform.Common\Coffee.DigitalPlatform.Common.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.CommWPF\Coffee.DigitalPlatform.CommWPF.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.Components\Coffee.DigitalPlatform.Components.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.Models\Coffee.DigitalPlatform.Models.csproj" />

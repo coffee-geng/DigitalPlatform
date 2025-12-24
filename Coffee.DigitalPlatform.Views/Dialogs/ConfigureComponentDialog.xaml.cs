@@ -26,7 +26,6 @@ namespace Coffee.DigitalPlatform.Views
         public ConfigureComponentDialog()
         {
             InitializeComponent();
-
             WeakReferenceMessenger.Default.Register<RepaintAuxiliaryMessage>(this, receivePaintAuxiliaryMessage);
         }
         

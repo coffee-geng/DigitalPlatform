@@ -30,5 +30,8 @@ namespace Coffee.DigitalPlatform.IDataAccess
 
         IList<CommunicationParameterOptionEntity> GetCommunicationParameterOptions(CommunicationParameterDefinitionEntity commParam);
         #endregion
+
+        #region 变量点位信息
+        #endregion
     }
 }

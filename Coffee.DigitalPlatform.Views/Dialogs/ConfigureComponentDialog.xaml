@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:Coffee.DigitalPlatform.Views"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+        xmlns:comm="clr-namespace:Coffee.DigitalPlatform.Common;assembly=Coffee.DigitalPlatform.Common"
         xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
         xmlns:component="clr-namespace:Coffee.DigitalPlatform.Components;assembly=Coffee.DigitalPlatform.Components"
         mc:Ignorable="d"
@@ -314,6 +315,19 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+
+            <ObjectDataProvider x:Key="primitiveProvider" ObjectType="{x:Type comm:PrimitiveVariableTypeFactory}"
+                                MethodName="CreateVariableTypes" />
+
+            <ControlTemplate x:Key="ValidationErrorTemplate">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" BorderBrush="Red" BorderThickness="1" CornerRadius="3">
+                        <AdornedElementPlaceholder/>
+                    </Border>
+                    <TextBlock DockPanel.Dock="Bottom" Text="{Binding [0].ErrorContent}"
+                               Foreground="Red" FontSize="12" Margin="0,5,0,0" />
+                </DockPanel>
+            </ControlTemplate>
         </Grid.Resources>
 
         <i:Interaction.Triggers>
@@ -539,7 +553,7 @@
                                                 DisplayMemberPath="Label" SelectedValuePath="ParameterName"
                                                 Style="{StaticResource PropComboBoxStyle}">
                                                 <ComboBox.ItemsSource>
-                                                    <MultiBinding Converter="{x:Static local:CommunicationParameterSelectorSourceConverter.Instance}" Mode="OneWay">
+                                                    <MultiBinding Mode="OneWay" Converter="{x:Static local:CommunicationParameterSelectorSourceConverter.Instance}">
                                                         <Binding Path="DataContext.CurrentDevice.CommunicationParameterDefinitions" RelativeSource="{RelativeSource Mode=FindAncestor,AncestorType={x:Type ItemsControl}}" />
                                                         <Binding Path="DataContext.CurrentDevice.CommunicationParameters" RelativeSource="{RelativeSource Mode=FindAncestor,AncestorType={x:Type ItemsControl}}" />
                                                         <Binding Path="." />
@@ -556,14 +570,19 @@
 
                                             <ComboBox Grid.Column="1" Name="cb" Visibility="Collapsed"
                                                 ItemsSource="{Binding ElementName=cb_p_name,Path=SelectedItem.ValueOptions}"
-                                                SelectedIndex="{Binding ElementName=cb_p_name,Path=SelectedItem.DefaultOptionIndex }"
                                                 DisplayMemberPath="PropOptionLabel" SelectedValuePath="PropOptionValue"
                                                 Style="{StaticResource PropComboBoxStyle}">
+                                                <ComboBox.SelectedIndex>
+                                                    <MultiBinding Mode="OneWay" Converter="{x:Static local:ActiveCommunicationParameterValueIndexConverter.Instance}">
+                                                        <Binding Path="." />
+                                                        <Binding Path="SelectedItem" ElementName="cb_p_name" />
+                                                    </MultiBinding>
+                                                </ComboBox.SelectedIndex>
                                                 <i:Interaction.Triggers>
                                                     <i:EventTrigger EventName="SelectionChanged">
                                                         <i:InvokeCommandAction Command="{Binding ElementName=configComponentDlg,Path=DataContext.CurrentDevice.SelectCommunicationParameterValueCommand}">
                                                             <i:InvokeCommandAction.CommandParameter>
-                                                                <MultiBinding Converter="{x:Static local:SelectCommunicationParameterValueCommandParameterConverter.Instance}">
+                                                                <MultiBinding Mode="OneWay" Converter="{x:Static local:SelectCommunicationParameterValueCommandParameterConverter.Instance}">
                                                                     <Binding Path="SelectedItem" ElementName="cb" />
                                                                     <Binding Path="SelectedItem" ElementName="cb_p_name"/>
                                                                     <Binding Path="(ItemsControl.AlternationIndex)" RelativeSource="{RelativeSource AncestorType=ContentPresenter}" />
@@ -614,7 +633,7 @@
                             <TextBlock Text="地址" Grid.Column="1" Foreground="#999" HorizontalAlignment="Center"/>
                         </Grid>
                         <ScrollViewer Grid.Row="4" MaxHeight="200" VerticalScrollBarVisibility="Hidden" Margin="10,0,0,5">
-                            <ItemsControl ItemsSource="{Binding CurrentDevice.VariableList}" Margin="0,0,10,0">
+                            <ItemsControl ItemsSource="{Binding CurrentDevice.Variables}" Margin="0,0,10,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Margin="0,1" Name="root">
@@ -624,17 +643,22 @@
                                                 <ColumnDefinition Width="auto"/>
                                                 <ColumnDefinition Width="auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBox Text="{Binding VarName}"/>
-                                            <TextBox Text="{Binding VarAddress}" Grid.Column="1" HorizontalContentAlignment="Center" Margin="2,0,0,0"/>
+                                            <TextBox HorizontalContentAlignment="Center" Margin="2,1,2,1"
+                                                Text="{Binding VarName, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}"  
+                                                ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
+                                            <TextBox Grid.Column="1" HorizontalContentAlignment="Center" Margin="2,1,2,1"
+                                                     Text="{Binding VarAddress, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}"
+                                                     ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
                                             <TextBlock Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center">
                                             <Hyperlink FontFamily="{StaticResource Iconfont}" TextDecorations="None"
-                                                       Command="{Binding ElementName=configComponentDlg,Path=DataContext.CurrentDevice.DeleteVariableCommand}"
+                                                       Command="{Binding ElementName=configComponentDlg,Path=DataContext.CurrentDevice.RemoveVariableCommand}"
                                                        CommandParameter="{Binding}">&#xe653;</Hyperlink>
                                             </TextBlock>
                                             <ToggleButton Grid.Column="2" Name="tb" Margin="3" Style="{StaticResource PointMoreButtonStlye}" Width="20"/>
                                             <Popup StaysOpen="False" IsOpen="{Binding ElementName=tb,Path=IsChecked}" 
                                                PlacementTarget="{Binding ElementName=root}" AllowsTransparency="True"
-                                               VerticalOffset="2" HorizontalOffset="0">
+                                               VerticalOffset="2" HorizontalOffset="0"
+                                                   wpf:PopupExtension.ClosingCommand="{Binding DataContext.PopupClosingCommand, ElementName=configComponentDlg}">
                                                 <Border Background="#F7F9FA" Width="{Binding ElementName=root,Path=ActualWidth}"
                                                     CornerRadius="5" BorderBrush="#DDD" BorderThickness="1" Margin="3">
                                                     <Border.Effect>
@@ -654,27 +678,24 @@
                                                         <TextBlock Text="偏移量" Grid.Row="1" Foreground="#333" VerticalAlignment="Center"/>
                                                         <TextBlock Text="系数" Grid.Row="2" Foreground="#333" VerticalAlignment="Center"/>
 
-                                                        <!--绑定List<string>     string[]类型的集合数据-->
-                                                        <ComboBox Height="26" Style="{StaticResource PropComboBoxStyle}"
-                                                              SelectedValue="{Binding VarType}" Grid.Column="1">
-                                                            <ComboBox.ItemsSource>
-                                                                <x:Array Type="sys:String">
-                                                                    <sys:String>Boolean</sys:String>
-                                                                    <sys:String>Byte</sys:String>
-                                                                    <sys:String>UInt16</sys:String>
-                                                                    <sys:String>Int16</sys:String>
-                                                                    <sys:String>UInt32</sys:String>
-                                                                    <sys:String>Int32</sys:String>
-                                                                    <sys:String>UInt64</sys:String>
-                                                                    <sys:String>Int64</sys:String>
-                                                                    <sys:String>Single</sys:String>
-                                                                    <sys:String>Double</sys:String>
-                                                                </x:Array>
-                                                            </ComboBox.ItemsSource>
+                                                        <ComboBox Grid.Column="1" Height="26" Style="{StaticResource PropComboBoxStyle}"
+                                                                  ItemsSource="{Binding Source={StaticResource primitiveProvider}}"
+                                                               DisplayMemberPath="TypeAbbrName" SelectedValuePath="TypeClass">
+                                                            <ComboBox.SelectedItem>
+                                                                <MultiBinding Mode="OneWay" Converter="{x:Static local:ActiveVariableTypeConverter.Instance}">
+                                                                    <Binding Path="DataContext" ElementName="root"/>
+                                                                    <Binding Source="{StaticResource primitiveProvider}"/>
+                                                                </MultiBinding>
+                                                            </ComboBox.SelectedItem>
+                                                            <i:Interaction.Triggers>
+                                                                <i:EventTrigger EventName="SelectionChanged">
+                                                                    <i:ChangePropertyAction PropertyName="VarType" TargetObject="{Binding DataContext, ElementName=root}" Value="{Binding SelectedValue, RelativeSource={RelativeSource Mode=FindAncestor,AncestorType={x:Type ComboBox}}}" />
+                                                                </i:EventTrigger>
+                                                            </i:Interaction.Triggers>
                                                         </ComboBox>
                                                         <TextBox Text="{Binding Offset}" Grid.Row="1" Grid.Column="1" HorizontalContentAlignment="Center"
                                                              VerticalAlignment="Center"/>
-                                                        <TextBox Text="{Binding Modulus}" Grid.Row="2" Grid.Column="1" HorizontalContentAlignment="Center"
+                                                        <TextBox Text="{Binding Factor}" Grid.Row="2" Grid.Column="1" HorizontalContentAlignment="Center"
                                                              VerticalAlignment="Center"/>
                                                     </Grid>
                                                 </Border>
