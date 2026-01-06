@@ -1,5 +1,6 @@
 ﻿using Coffee.DigitalPlatform.CommWPF;
 using Coffee.DigitalPlatform.Models;
+using Coffee.DigitalPlatform.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
 using System;
 using System.Collections.Generic;
@@ -27,6 +28,15 @@ namespace Coffee.DigitalPlatform.Views
         {
             InitializeComponent();
             WeakReferenceMessenger.Default.Register<RepaintAuxiliaryMessage>(this, receivePaintAuxiliaryMessage);
+
+            ActionManager.Register<Device>("AlarmCondition", new Action<Device>(obj =>
+            {
+                new VariableAlarmDialog()
+                {
+                    Owner = this,
+                    DataContext = new VariableAlarmViewModel(obj)
+                }.ShowDialog();
+            }));
         }
         
         BooleanToVisibilityConverter _boolToVisibilityConverter { get; set; } = new BooleanToVisibilityConverter();
@@ -40,6 +50,13 @@ namespace Coffee.DigitalPlatform.Views
             ItemsControlExtensions.SetLayoutContainer(control, panel);
         }
 
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            ActionManager.Unregister("AlarmCondition");
+        }
+
+        #region Auxiliary Lines
         private void receivePaintAuxiliaryMessage(object sender, RepaintAuxiliaryMessage message)
         {
             if (message == null || message.Value == null) 
@@ -189,5 +206,6 @@ namespace Coffee.DigitalPlatform.Views
         {
             return _auxiliaryCacheDict.Where(p => p.Key.AuxiliaryType == AuxiliaryLineTypes.VerticalRuler && p.Value.DataContext is IAuxiliaryLineContext).Select(p => p.Value.DataContext).Cast<IAuxiliaryLineContext>().FirstOrDefault();
         }
+        #endregion
     }
 }

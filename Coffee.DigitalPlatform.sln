@@ -43,6 +43,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.DigitalPlatform.Comm
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.DigitalPlatform.CommWPF", "Coffee.DigitalPlatform.CommWPF\Coffee.DigitalPlatform.CommWPF.csproj", "{B317909E-BC41-4606-899E-572096490664}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.DigitalPlatform.Controls", "Coffee.DigitalPlatform.Controls\Coffee.DigitalPlatform.Controls.csproj", "{BC2FECAB-62BE-4B02-A8CB-8AA085E8861E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -101,6 +103,10 @@ Global
 		{B317909E-BC41-4606-899E-572096490664}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B317909E-BC41-4606-899E-572096490664}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B317909E-BC41-4606-899E-572096490664}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC2FECAB-62BE-4B02-A8CB-8AA085E8861E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC2FECAB-62BE-4B02-A8CB-8AA085E8861E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC2FECAB-62BE-4B02-A8CB-8AA085E8861E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC2FECAB-62BE-4B02-A8CB-8AA085E8861E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -119,5 +125,6 @@ Global
 		{DEA8CEEB-A115-43FB-A76E-25922775ABC4} = {4E7EBC58-A488-4F97-8BEA-458ABDA29FA1}
 		{30277DEE-8802-4E24-BD11-8FF7AE81B62E} = {F9EFDD20-8253-4483-BD7E-399981706887}
 		{B317909E-BC41-4606-899E-572096490664} = {F9EFDD20-8253-4483-BD7E-399981706887}
+		{BC2FECAB-62BE-4B02-A8CB-8AA085E8861E} = {F9EFDD20-8253-4483-BD7E-399981706887}
 	EndGlobalSection
 EndGlobal

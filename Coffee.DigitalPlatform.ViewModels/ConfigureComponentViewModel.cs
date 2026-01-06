@@ -32,6 +32,8 @@ namespace Coffee.DigitalPlatform.ViewModels
             UnloadComponentsCommand = new RelayCommand(unloadComponents);
             CreateComponentByDragCommand = new RelayCommand<DragEventArgs>(doCreateComponentByDrag);
 
+            AlarmConditionCommand = new RelayCommand(doAlarmConditionCommand, canDoAlarmConditionCommand);
+
             SaveDeviceConfigurationCommand = new RelayCommand<object>(doSaveDeviceConfigurationCommand);
             CloseCommand = new RelayCommand<object>(doCloseCommand);
 
@@ -69,7 +71,16 @@ namespace Coffee.DigitalPlatform.ViewModels
         public Device CurrentDevice
         {
             get { return _currentDevice; }
-            set { SetProperty(ref _currentDevice, value); }
+            set 
+            { 
+                if (SetProperty(ref _currentDevice, value))
+                {
+                    if (AlarmConditionCommand != null)
+                    {
+                        AlarmConditionCommand.NotifyCanExecuteChanged();
+                    }
+                }
+            }
         }
 
         public RelayCommand LoadComponentsCommand { get; set; }
@@ -387,6 +398,22 @@ namespace Coffee.DigitalPlatform.ViewModels
                 FailureMessageOnSaving = ex.Message;
                 VisualStateManager.GoToElementState(owner as Window, "ShowFailure", true);
             }
+        }
+        #endregion
+
+        #region 设备条件提醒
+        public RelayCommand AlarmConditionCommand { get; set; }
+
+        private void doAlarmConditionCommand()
+        {
+            if (CurrentDevice == null)
+                return;
+            ActionManager.Execute("AlarmCondition", CurrentDevice);
+        }
+
+        private bool canDoAlarmConditionCommand()
+        {
+            return CurrentDevice != null;
         }
         #endregion
     }
