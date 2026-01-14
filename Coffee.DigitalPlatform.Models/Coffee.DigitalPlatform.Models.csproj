@@ -9,11 +9,13 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="shortid" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Coffee.DigitalPlatform.Common\Coffee.DigitalPlatform.Common.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.CommWPF\Coffee.DigitalPlatform.CommWPF.csproj" />
+    <ProjectReference Include="..\Coffee.DigitalPlatform.Controls\Coffee.DigitalPlatform.Controls.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.IDataAccess\Coffee.DigitalPlatform.IDataAccess.csproj" />
   </ItemGroup>
 

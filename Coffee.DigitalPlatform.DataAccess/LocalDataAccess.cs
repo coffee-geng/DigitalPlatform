@@ -58,6 +58,66 @@ namespace Coffee.DigitalPlatform.DataAccess
             }
         }
 
+        private T? SqlQueryFirst<T>(string sql, Dictionary<string, object> paramDict = null)
+        {
+            try
+            {
+                using (IDbConnection db = new SqliteConnection(connStr))
+                {
+                    db.Open();
+
+                    if (paramDict != null)
+                    {
+                        dynamic dynamicObj = new ExpandoObject();
+                        var expandoDict = dynamicObj as IDictionary<string, object>;
+                        foreach (var kvp in paramDict)
+                        {
+                            expandoDict[kvp.Key] = kvp.Value;
+                        }
+                        return db.QueryFirst(sql, expandoDict);
+                    }
+                    else
+                    {
+                        return db.QueryFirst(sql, null);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return default(T);
+            }
+        }
+
+        private bool SqlExist(string sql, Dictionary<string, object> paramDict = null)
+        {
+            try
+            {
+                using (IDbConnection db = new SqliteConnection(connStr))
+                {
+                    db.Open();
+
+                    if (paramDict != null)
+                    {
+                        dynamic dynamicObj = new ExpandoObject();
+                        var expandoDict = dynamicObj as IDictionary<string, object>;
+                        foreach (var kvp in paramDict)
+                        {
+                            expandoDict[kvp.Key] = kvp.Value;
+                        }
+                        return db.QueryFirst(sql, expandoDict) != null;
+                    }
+                    else
+                    {
+                        return db.QueryFirst(sql, null) != null;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
         private int SqlExecute(string sql, Dictionary<string, object> paramDict = null)
         {
             using (IDbConnection db = new SqliteConnection(connStr))
@@ -548,6 +608,247 @@ namespace Coffee.DigitalPlatform.DataAccess
             else
                 return null;
         }
+        #endregion
+
+        #region 预警信息
+        public void AddAlarmInfoToDevice(DeviceEntity device, AlarmEntity alarmInfo, ConditionEntity condition)
+        {
+            if (device == null)
+                throw new ArgumentNullException(nameof(device));
+            if (condition == null)
+                throw new ArgumentNullException(nameof(condition));
+            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
+            SqlMapper.SetTypeMap(typeof(AlarmEntity), new ColumnAttributeTypeMapper<AlarmEntity>());
+            
+            AddCondition(condition);
+
+            SqlCommand cmd = new SqlCommand(@"INSERT INTO alarms(a_num, c_num, d_num, content, alarm_time, level, state, user_id, solve_time) 
+                                                VALUES (@AlarmNum, @CNum, @DeviceNum, @Content, @AlarmTime, @Level, @State, @UserId, @SolveTime);", new Dictionary<string, object>()
+                                                {
+                                                    { "@AlarmNum", alarmInfo.AlarmNum },
+                                                    { "@CNum", alarmInfo.ConditionNum },
+                                                    { "@DeviceNum", alarmInfo.DeviceNum },
+                                                    { "@Content", alarmInfo.AlarmContent },
+                                                    { "@AlarmTime", alarmInfo.AlarmTime },
+                                                    { "@Level", alarmInfo.AlarmLevel },
+                                                    { "@State", alarmInfo.State },
+                                                    { "@UserId", alarmInfo.UserId },
+                                                    { "@SolveTime", alarmInfo.SolveTime }
+                                                });
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            sqlCommands.Add(cmd);
+            SqlExecute(sqlCommands);
+        }
+
+        public void DeleteAlarmInfoFromDevice(DeviceEntity device, string alarmNum)
+        {
+            if (device == null)
+                return;
+            if (string.IsNullOrEmpty(alarmNum))
+                return;
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var cmd = new SqlCommand("DELETE FROM alarms WHERE a_num = @AlarmNum", new Dictionary<string, object>()
+                {
+                    { "@AlarmNum", alarmNum }
+                });
+            sqlCommands.Add(cmd);
+            SqlExecute(sqlCommands);
+        }
+
+        public IList<AlarmEntity> GetAlarmsForDevice(DeviceEntity device)
+        {
+            if (device == null)
+                return null;
+            return SqlQuery<AlarmEntity>("SELECT * FROM alarms WHERE d_num = @DeviceNum", new Dictionary<string, object>()
+            {
+                { "@DeviceNum", device.DeviceNum }
+            }).ToList();
+        }
+
+        public AlarmEntity GetAlarmByNum(string alarmNum)
+        {
+            if (string.IsNullOrWhiteSpace(alarmNum))
+                return null;
+            return SqlQueryFirst<AlarmEntity>("SELECT * FROM alarms WHERE a_num = @AlarmNum", new Dictionary<string, object>()
+            {
+                { "@AlarmNum", alarmNum }
+            });
+        }
+
+        private void AddCondition(ConditionEntity condition)
+        {
+            if (condition == null)
+                return;
+            if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            {
+                { "@CNum", condition.CNum }
+            }))
+            {
+                throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+            }
+
+            //全删全插
+            var childConditions = getChildConditions(condition);
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            foreach (var childCondition in childConditions)
+            {
+                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                {
+                    { "@CNum", childCondition.CNum }
+                });
+                sqlCommands.Add(cmd);
+            }
+            SqlCommand cmd2 = new SqlCommand(@"INSERT INTO conditions(c_num, c_type, parent_id, v_num, operator, value) 
+                                                VALUES (@CNum, @CType, @ParentId, @VarNum, @Operator, @Value);", new Dictionary<string, object>()
+                                                {
+                                                    { "@CNum", condition.CNum },
+                                                    { "@CType", (int)condition.ConditionNodeTypes },
+                                                    { "@ParentId", condition.ParentId },
+                                                    { "@VarNum", condition.VarNum },
+                                                    { "@Operator", condition.Operator },
+                                                    { "@Value", condition.Value },
+                                                });
+            sqlCommands.Add(cmd2);
+            SqlExecute(sqlCommands);
+        }
+
+        private void AddConditions(IEnumerable<ConditionEntity> conditions)
+        {
+            if (conditions == null || !conditions.Any())
+                return;
+            foreach (var condition in conditions)
+            {
+                if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+                {
+                    { "@CNum", condition.CNum }
+                }))
+                {
+                    throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+                }
+            }
+
+            //全删全插
+            List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
+            foreach (var condition in conditions)
+            {
+                allConditionsForDelete.AddRange(getChildConditions(condition));
+            }
+            allConditionsForDelete = allConditionsForDelete.DistinctBy(c => c.CNum).OrderByDescending(c => c.Level).ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            foreach (var conditionItem in allConditionsForDelete)
+            {
+                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                {
+                    { "@CNum", conditionItem.CNum }
+                });
+                sqlCommands.Add(cmd);
+            }
+
+            foreach (var condition in conditions)
+            {
+                SqlCommand cmd2 = new SqlCommand(@"INSERT INTO conditions(c_num, c_type, parent_id, v_num, operator, value) 
+                                                VALUES (@CNum, @CType, @ParentId, @VarNum, @Operator, @Value);", new Dictionary<string, object>()
+                                                {
+                                                    { "@CNum", condition.CNum },
+                                                    { "@CType", (int)condition.ConditionNodeTypes },
+                                                    { "@ParentId", condition.ParentId },
+                                                    { "@VarNum", condition.VarNum },
+                                                    { "@Operator", condition.Operator },
+                                                    { "@Value", condition.Value },
+                                                });
+                sqlCommands.Add(cmd2);
+            }
+            
+            SqlExecute(sqlCommands);
+        }
+
+        private void DeleteCondition(ConditionEntity condition) 
+        {
+            if (condition == null)
+                return;
+            //如果指定条件正在使用，则不允许删除
+            if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            {
+                { "@CNum", condition.CNum }
+            }))
+            {
+                throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+            }
+            
+            var childConditions = getChildConditions(condition);
+            //删除指定条件及其组内的所有子条件项
+            IList<SqlCommand> delConditionCommands = new List<SqlCommand>();
+            foreach(var childCondition in childConditions)
+            {
+                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                {
+                    { "@CNum", childCondition.CNum }
+                });
+                delConditionCommands.Add(cmd);
+            }
+            SqlExecute(delConditionCommands);
+        }
+
+        private void DeleteConditions(IEnumerable<ConditionEntity> conditions)
+        {
+            if (conditions == null || !conditions.Any())
+                return;
+            foreach (var condition in conditions)
+            {
+                if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+                {
+                    { "@CNum", condition.CNum }
+                }))
+                {
+                    throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+                }
+            }
+
+            List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
+            foreach (var condition in conditions)
+            {
+                //删除指定条件及其组内的所有子条件项
+                allConditionsForDelete.AddRange(getChildConditions(condition));
+            }
+            allConditionsForDelete = allConditionsForDelete.DistinctBy(c => c.CNum).OrderByDescending(c => c.Level).ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            foreach (var conditionItem in allConditionsForDelete)
+            {
+                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                {
+                    { "@CNum", conditionItem.CNum }
+                });
+                sqlCommands.Add(cmd);
+            }
+            SqlExecute(sqlCommands);
+        }
+
+        private IEnumerable<ConditionEntity> getChildConditions(ConditionEntity condition)
+        {
+            //如果指定条件在某个条件链上是其他条件项的组，当其组内任一条件项正在使用，则不允许删除
+            string sql = @"WITH RECURSIVE recursive_query(id, c_num, parent_id, level) AS (
+                           SELECT id, c_num, parent_id, 0 AS level FROM conditions WHERE parent_id = IN (SELECT id FROM conditions WHERE v_num=@VNum)
+	                       UNION ALL
+	                       SELECT conditions.id, conditions.c_num, conditions.parent_id, level + 1 FROM conditions, recursive_query
+	                       WHERE conditions.parent_id = recursive_query.id
+                          );
+                          SELECT * FROM recursive_query ORDER BY level DESC;";
+            Dictionary<string, object> paramDict = new Dictionary<string, object>();
+            paramDict.Add("@VNum", condition.CNum);
+            //返回指定条件组下的所有子条件项，并且按照其在条件链上的树状顺序由子节点到父节点遍历
+            var childConditions = SqlQuery<ConditionEntity>(sql, paramDict);
+            if (childConditions != null && childConditions.Any())
+            {
+                string c_nums = string.Join(',', childConditions.Select(c => $"'{c.CNum}'"));
+                if (SqlExist($"SELECT 1 FROM alarms WHERE c_num IN ({c_nums})"))
+                    throw new Exception("当前筛选条件或其条件组正在使用中...");
+            }
+            return childConditions;
+        }
+
         #endregion
     }
 

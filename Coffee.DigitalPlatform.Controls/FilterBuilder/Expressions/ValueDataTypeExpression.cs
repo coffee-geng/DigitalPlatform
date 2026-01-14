@@ -16,7 +16,12 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
             Value = default;
         }
 
-        public TValue Value { get; set; }
+        private TValue _value;
+        public TValue Value
+        {
+            get { return _value; }
+            set { SetProperty(ref _value, value); }
+        }
 
         public override bool CalculateResult(IPropertyMetadata propertyMetadata, object entity)
         {

@@ -13,34 +13,58 @@ using System.Xml.Serialization;
 
 namespace Coffee.DigitalPlatform.Controls.FilterBuilder
 {
-    public class ConditionViewModel : ObservableObject
+    public class ConditionViewModel : ObservableObject, IDisposable
     {
-        private readonly FilterScheme _originalFilterScheme;
-
         public ConditionViewModel(FilterSchemeEditInfo filterSchemeEditInfo)
         {
             ArgumentNullException.ThrowIfNull(filterSchemeEditInfo);
 
             RawCollection = filterSchemeEditInfo.RawCollection;
-            
-            var filterScheme = filterSchemeEditInfo.FilterScheme;
-            _originalFilterScheme = filterScheme;
 
-            InstanceProperties = new InstanceProperties(_originalFilterScheme.TargetType).Properties;
+            _origionFilterScheme = filterSchemeEditInfo.FilterScheme;
 
-            FilterScheme = new FilterScheme(_originalFilterScheme.TargetType);
+            InstanceProperties = new InstanceProperties(_origionFilterScheme.TargetType).Properties;
 
+            FilterScheme = new FilterScheme(_origionFilterScheme.TargetType)
+            {
+                Title = _origionFilterScheme.Title
+            };
             FilterSchemeTitle = string.Empty;
 
             AddGroupCommand = new RelayCommand<ConditionTreeItem>(OnAddGroup);
             AddExpressionCommand = new RelayCommand<ConditionTreeItem>(OnAddExpression);
             DeleteConditionItem = new RelayCommand<ConditionTreeItem>(OnDeleteCondition, OnDeleteConditionCanExecute);
 
-            TranslateCommand = new RelayCommand(() =>
+            dispatcherTimer = new DispatcherTimer();
+            dispatcherTimer.Interval = TimeSpan.FromMicroseconds(1000);
+            dispatcherTimer.Tick += DispatcherTimer_Tick;
+            dispatcherTimer.Start();
+        }
+
+        private void DispatcherTimer_Tick(object? sender, EventArgs e)
+        {
+            if (!checkSameFilterScheme(_origionFilterScheme, FilterScheme))
             {
-                Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
-                Thread.CurrentThread.CurrentUICulture = new CultureInfo("en-US");
-            });
+                FilterSchemeUpdateTime = DateTime.Now;
+            }
+        }
+
+        private DispatcherTimer dispatcherTimer;
+
+        private FilterScheme _origionFilterScheme;
+
+        private bool checkSameFilterScheme(FilterScheme oldScheme, FilterScheme newScheme)
+        {
+            if (!ReferenceEquals(oldScheme, newScheme)) return false;
+            if (oldScheme == newScheme || newScheme == null) return false;
+            return oldScheme.ToString().Equals(newScheme.ToString());
+        }
+
+        private DateTime _filterSchemeUpdateTime = DateTime.Now;
+        public DateTime FilterSchemeUpdateTime
+        {
+            get { return _filterSchemeUpdateTime; }
+            set { SetProperty(ref _filterSchemeUpdateTime, value); }
         }
 
         public string Title
@@ -49,7 +73,7 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
         }
 
         public string FilterSchemeTitle { get; set; }
-        public FilterScheme FilterScheme { get; }
+        public FilterScheme FilterScheme { get; private set; }
        
         public IEnumerable RawCollection { get; }
         public IList PreviewItems { get; }
@@ -59,8 +83,6 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
         public RelayCommand<ConditionTreeItem> AddGroupCommand { get; }
         public RelayCommand<ConditionTreeItem> AddExpressionCommand { get; }
         public RelayCommand<ConditionTreeItem> DeleteConditionItem { get; }
-
-        public RelayCommand TranslateCommand { get; }
 
         public RelayCommand TogglePreview { get; }
 
@@ -134,6 +156,16 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
         private void ApplyFilterScheme()
         {
             FilterScheme.Apply(RawCollection, PreviewItems);
+        }
+
+        public void Dispose()
+        {
+            if (dispatcherTimer != null)
+            {
+                dispatcherTimer.Stop();
+                dispatcherTimer.Tick -= DispatcherTimer_Tick;
+                dispatcherTimer = null;
+            }
         }
     }
 }

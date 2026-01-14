@@ -26,11 +26,5 @@ namespace Coffee.DigitalPlatform.Entities
 
         [Column(name: "var_type")]
         public string VarType { get; set; }
-
-        [NotMapped]
-        public List<ConditionEntity> AlarmConditions { get; set; }
-
-        [NotMapped]
-        public List<ConditionEntity> UnionConditions { get; set; }
     }
 }

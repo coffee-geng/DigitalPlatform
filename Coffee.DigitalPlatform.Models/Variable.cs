@@ -53,6 +53,14 @@ namespace Coffee.DigitalPlatform.Models
             set { SetProperty(ref _varType, value); }
         }
 
+        // 变量是否可空类型
+        private bool _isNullableVar;
+        public bool IsNullableVar
+        {
+            get { return _isNullableVar; }
+            set { SetProperty(ref _isNullableVar, value); }
+        }
+
         // 偏移量
         private double _offset;
         public double Offset

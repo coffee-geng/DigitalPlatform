@@ -24,8 +24,8 @@
             <sys:String x:Key="FilterBuilder_DeleteItem">FilterBuilder_DeleteItem</sys:String>
         </ResourceDictionary>
     </UserControl.Resources>
-    <StackPanel>
-        <TreeView x:Name="PART_ConditionTreeView"
+    <Grid MinHeight="100" MaxHeight="200">
+        <TreeView x:Name="PART_ConditionTreeView" ScrollViewer.VerticalScrollBarVisibility="Visible"
           BorderThickness="1" Margin="25 6 6 6" BorderBrush="Transparent"
           ItemsSource="{Binding FilterScheme.ConditionItems}">
             <TreeView.Resources>
@@ -43,8 +43,8 @@
                     <Setter Property="VerticalContentAlignment" Value="Center" />
                 </Style>
 
-                <Style TargetType="{x:Type control:NumericUpDown}">
-                    <Setter Property="Height" Value="27" />
+                <Style TargetType="{x:Type control:NumericUpDown}" BasedOn="{StaticResource NumericUpDownStyle}">
+                    <Setter Property="Height" Value="26" />
                     <Setter Property="Width" Value="173" />
                     <Setter Property="MinWidth" Value="123" />
                     <Setter Property="Margin" Value="2" />
@@ -133,13 +133,13 @@
 
                             <Grid Visibility="{Binding DataTypeExpression.IsValueRequired, Converter={StaticResource b2v}}" Margin="0">
                                 <TextBox x:Name="PART_ValueTextBox"
-                                     Text="{Binding DataTypeExpression.Value}" Height="27"
+                                     Text="{Binding DataTypeExpression.Value}" Height="26"
                                      Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static fb:ValueControlType.Text}}">
                                 </TextBox>
 
-                                <control:NumericUpDown x:Name="PART_ValueNumericUpDown" Height="27" Background="Green" BorderBrush="Red" BorderThickness="3"
+                                <control:NumericUpDown x:Name="PART_ValueNumericUpDown"             
                                     Value="{Binding DataTypeExpression.Value, Mode=TwoWay}"
-                                                       ValueControlType="{Binding DataTypeExpression.ValueControlType}">
+                                    ValueControlType="{Binding DataTypeExpression.ValueControlType}">
                                     <control:NumericUpDown.Visibility>
                                         <Binding Path="DataTypeExpression.ValueControlType" Converter="{x:Static fb:ValueControlTypeVisibilityConverter.Instance}">
                                             <Binding.ConverterParameter>
@@ -195,5 +195,5 @@
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>
         </TreeView>
-    </StackPanel>
+    </Grid>
 </UserControl>

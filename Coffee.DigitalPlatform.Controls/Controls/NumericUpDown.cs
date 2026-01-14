@@ -23,7 +23,6 @@ namespace Coffee.DigitalPlatform.Controls
         {
             Loaded += NumericUpDown_Loaded;
             updateContent();
-            Background = new SolidColorBrush(Colors.Yellow);
         }
 
         private void NumericUpDown_Loaded(object sender, RoutedEventArgs e)
@@ -150,7 +149,7 @@ namespace Coffee.DigitalPlatform.Controls
                 Minimum = Minimum != null ? (int?)Convert.ToInt32(Minimum) : null,
                 Maximum = Maximum != null ? (int?)Convert.ToInt32(Maximum) : null,
             };
-            DependencyPropertyDescriptor.FromProperty(IntegerUpDown.IncrementProperty, typeof(IntegerUpDown))
+            DependencyPropertyDescriptor.FromProperty(IntegerUpDown.ValueProperty, typeof(IntegerUpDown))
                 .AddValueChanged(intUpDown, (s, e) =>
                 {
                     this.Value = (s as IntegerUpDown).Value;
@@ -186,7 +185,7 @@ namespace Coffee.DigitalPlatform.Controls
                 Minimum = Minimum != null ? (int?)Convert.ToDouble(Minimum) : null,
                 Maximum = Maximum != null ? (int?)Convert.ToDouble(Maximum) : null,
             };
-            DependencyPropertyDescriptor.FromProperty(DoubleUpDown.IncrementProperty, typeof(DoubleUpDown))
+            DependencyPropertyDescriptor.FromProperty(DoubleUpDown.ValueProperty, typeof(DoubleUpDown))
                 .AddValueChanged(doubleUpDown, (s, e) =>
                 {
                     this.Value = (s as DoubleUpDown).Value;
@@ -222,7 +221,7 @@ namespace Coffee.DigitalPlatform.Controls
                 Minimum = Minimum != null ? (decimal?)Convert.ToDecimal(Minimum) : null,
                 Maximum = Maximum != null ? (decimal?)Convert.ToDecimal(Maximum) : null,
             };
-            DependencyPropertyDescriptor.FromProperty(DecimalUpDown.IncrementProperty, typeof(DecimalUpDown))
+            DependencyPropertyDescriptor.FromProperty(DecimalUpDown.ValueProperty, typeof(DecimalUpDown))
                 .AddValueChanged(decimalUpDown, (s, e) =>
                 {
                     this.Value = (s as DecimalUpDown).Value;

@@ -17,15 +17,6 @@ namespace Coffee.DigitalPlatform.Entities
 
         [Column(name: "d_num")]
         public string DeviceNum { get; set; }
-
-        [Column(name: "d_header")]
-        public string DeviceName { get; set; }
-
-        [Column(name: "v_num")]
-        public string VariableNum { get; set; }
-
-        [Column(name: "v_header")]
-        public string VariableName { get; set; }
         #endregion
 
         #region 报警状态及数据
@@ -40,8 +31,12 @@ namespace Coffee.DigitalPlatform.Entities
 
         [Column(name: "content")]
         public string AlarmContent { get; set; }
+
         [Column(name: "level")]
         public string AlarmLevel { get; set; }
+
+        [Column("alarm_time")]
+        public string AlarmTime { get; set; }
 
         [Column("solve_time")]
         public string SolveTime { get; set; }
@@ -51,11 +46,7 @@ namespace Coffee.DigitalPlatform.Entities
         /// </summary>
         [Column(name: "user_id")]
         public string UserId { get; set; }
-        [Column(name: "real_name")]
-        public string UserName { get; set; }
 
-        [Column(name: "alarm_value")]
-        public string RecordValue { get; set; }
         [Column(name: "date_time")]
         public string RecordTime { get; set; }
     }

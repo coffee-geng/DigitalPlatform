@@ -21,51 +21,92 @@ namespace Coffee.DigitalPlatform.ViewModels
         {
             CurrentDevice = device;
 
-            AddConditionCommand = new RelayCommand(doAddConditionCommand);
+            NewAlarmCommand = new RelayCommand(doNewAlarmCommand);
+            AddNewAlarmCommand = new RelayCommand<Alarm>(doAddNewAlarmCommand);
+            CancelNewAlarmCommand = new RelayCommand(doCancelNewAlarmCommand);
+
+            ReceiveFilterSchemeCommand = new RelayCommand<ReceiveFilterSchemeArgs>(doReceiveFilterSchemeCommand);
         }
 
         public Device CurrentDevice { get; set; }
 
-        public ObservableCollection<Alarm?> AlarmConditions { get; set; } = new ObservableCollection<Alarm?>();
+        public ObservableCollection<Alarm> AlarmConditions { get; set; } = new ObservableCollection<Alarm>();
 
-        public RelayCommand AddConditionCommand { get; set; }
+        #region 新建预警信息
+        
+        public RelayCommand NewAlarmCommand { get; set; }
 
-        private void doAddConditionCommand()
+        public RelayCommand<Alarm> AddNewAlarmCommand {  get; set; }
+
+        public RelayCommand CancelNewAlarmCommand { get; set; }
+
+        public RelayCommand<ReceiveFilterSchemeArgs> ReceiveFilterSchemeCommand { get; set; }
+
+        private void doNewAlarmCommand()
         {
-            if (!AlarmConditions.Any(c => c == null))
+            if (CurrentDevice.Variables != null && CurrentDevice.Variables.Count > 0)
             {
-                AlarmConditions.Add(null);
-
-                if (CurrentDevice.Variables != null && CurrentDevice.Variables.Count > 0)
+                var variables = CurrentDevice.Variables.Distinct(new VariableByNameComparer());
+                var properties = variables.ToDictionary(v1 => v1.VarName, v2 => v2.VarType);
+                Type dynamicType = DynamicClassCreator.CreateDynamicType(CurrentDevice.DeviceNum, properties);
+                object instance = Activator.CreateInstance(dynamicType);
+                foreach (var variable in variables)
                 {
-                    //var variables = CurrentDevice.Variables.Distinct(new VariableByNameComparer());
-                    //var properties = variables.ToDictionary(v1 => v1.VarName, v2 => v2.VarType);
-                    //Type dynamicType = DynamicClassCreator.CreateDynamicType(CurrentDevice.DeviceNum, properties);
-                    //object instance = Activator.CreateInstance(dynamicType);
-                    //foreach (var variable in variables)
-                    //{
-                    //    dynamicType.GetProperty(variable.VarName).SetValue(instance, variable.Value);
-                    //}
-                    //var filterScheme = new FilterScheme(dynamicType);
-                    //var schemeInfo = new FilterSchemeEditInfo(filterScheme, new List<dynamic>() { instance }, false, false);
-                    //this.DefaultFilterScheme = schemeInfo;
-
-                    var filterScheme = new FilterScheme(typeof(TestEntity));
-                    var rawItems = new TestDataService().GetTestItems();
-                    var filterSchemeEditInfo = new FilterSchemeEditInfo(filterScheme, rawItems, true, true);
-                    this.DefaultFilterScheme = filterSchemeEditInfo;
+                    dynamicType.GetProperty(variable.VarName).SetValue(instance, variable.Value);
                 }
+                var filterScheme = new FilterScheme(dynamicType)
+                {
+                    Title = Guid.NewGuid().ToString()
+                };
+                var schemeInfo = new FilterSchemeEditInfo(filterScheme, new List<dynamic>() { instance }, true, true);
+
+                this.AlarmConditions.Add(new Alarm()
+                {
+                    ConditionTemplate = schemeInfo,
+                    IsFirstEditing = true
+                });
             }
         }
 
-        public Dictionary<Alarm, FilterSchemeEditInfo> AlarmConditionFilterSchemeDict { get; set; }
-
-        private FilterSchemeEditInfo _defaultFilterScheme = null;
-        public FilterSchemeEditInfo DefaultFilterScheme
+        private void doAddNewAlarmCommand(Alarm alarm)
         {
-            get { return _defaultFilterScheme; }
-            set { SetProperty(ref _defaultFilterScheme, value); }
+            if (alarm == null || alarm.ConditionTemplate == null)
+                return;
+            var conditionChain = ConditionFactory.CreateCondition(alarm.ConditionTemplate.FilterScheme);
+            alarm.AlarmMessage = alarm.NewAlarmMessage;
+            alarm.AlarmTag = alarm.NewAlarmTag;
+            alarm.Condition = conditionChain;
+            alarm.FormattedCondition = conditionChain.ToString();
+            alarm.IsFirstEditing = false;
+
+            // 当开始新建预警时，会先将预警模版添加到列表末尾，以便用户编辑
+            // 所以确定添加预警信息前，需将此预警模模版从列表中移除
+            if (AlarmConditions.Count > 0)
+            {
+                this.AlarmConditions.RemoveAt(AlarmConditions.Count - 1);
+            }
+            // 确定添加预警信息
+            AlarmConditions.Add(alarm);
+
+            if (CurrentDevice != null)
+            {
+                CurrentDevice.Alarms.Add(alarm);
+            }
         }
+
+        private void doCancelNewAlarmCommand()
+        {
+
+        }
+
+        private void doReceiveFilterSchemeCommand(ReceiveFilterSchemeArgs args)
+        {
+            if (args == null) return;
+            if (args.Alarm == null) return;
+            object instance = Activator.CreateInstance(args.FilterScheme.TargetType);
+            args.Alarm.ConditionTemplate = new FilterSchemeEditInfo(args.FilterScheme, new List<dynamic>() { instance }, true, true);
+        }
+        #endregion
     }
 
     public class VariableByNameComparer : IEqualityComparer<Variable>
@@ -85,6 +126,15 @@ namespace Coffee.DigitalPlatform.ViewModels
                 return hashCode;
             }
         }
+    }
+
+    public class ReceiveFilterSchemeArgs
+    {
+        public FilterScheme FilterScheme { get; set; }
+
+        //是哪一个预警列表中哪一项接收FilterScheme的更改
+        //即正在编辑的是哪一个预警信息
+        public Alarm Alarm { get; set; }
     }
 
     public class TestEntity

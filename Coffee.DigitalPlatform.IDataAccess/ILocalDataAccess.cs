@@ -32,6 +32,17 @@ namespace Coffee.DigitalPlatform.IDataAccess
         #endregion
 
         #region 变量点位信息
+        IList<VariableEntity> GetVariablesByDevice(string deviceNum);
+        #endregion
+
+        #region 预警信息
+        void AddAlarmInfoToDevice(DeviceEntity device, AlarmEntity alarmInfo, ConditionEntity condition);
+
+        void DeleteAlarmInfoFromDevice(DeviceEntity device, string alarmNum);
+
+        IList<AlarmEntity> GetAlarmsForDevice(DeviceEntity device);
+
+        AlarmEntity GetAlarmByNum(string alarmNum);
         #endregion
     }
 }

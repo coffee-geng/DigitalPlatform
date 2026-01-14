@@ -391,6 +391,9 @@ namespace Coffee.DigitalPlatform.ViewModels
 
                 _localDataAccess.SaveDevices(deviceEntities);
 
+                // 保存设备预警信息
+
+
                 VisualStateManager.GoToElementState(owner as Window, "ShowSuccess", true);
             }
             catch(Exception ex)

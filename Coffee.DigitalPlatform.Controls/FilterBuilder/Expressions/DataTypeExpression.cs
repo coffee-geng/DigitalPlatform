@@ -4,11 +4,26 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
 {
     public abstract class DataTypeExpression : ObservableObject
     {
-        public Condition SelectedCondition { get; set; }
+        private Condition _selectedCondition;
+        public Condition SelectedCondition
+        {
+            get { return _selectedCondition; }
+            set { SetProperty(ref _selectedCondition, value); }
+        }
 
-        public bool IsValueRequired { get; set; } = true;
+        private bool _isValueRequired = true;
+        public bool IsValueRequired
+        {
+            get { return _isValueRequired; }
+            set { SetProperty(ref _isValueRequired, value); }
+        }
 
-        public ValueControlType ValueControlType { get; set; }
+        private ValueControlType _valueControlType;
+        public ValueControlType ValueControlType 
+        {
+            get { return _valueControlType; }
+            set { SetProperty(ref _valueControlType, value); }
+        }
 
         private void OnSelectedConditionChanged()
         {

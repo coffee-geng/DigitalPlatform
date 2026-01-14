@@ -11,5 +11,8 @@
     <Page Update="Styles\DataGridStyle.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="Styles\ExpanderStyles.xaml">
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
 </Project>

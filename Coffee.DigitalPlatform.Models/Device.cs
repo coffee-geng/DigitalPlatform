@@ -491,6 +491,12 @@ namespace Coffee.DigitalPlatform.Models
             Variables.Remove(variable);
         }
         #endregion
+
+        #region 预警信息
+        public ObservableCollection<Alarm> Alarms { get; private set; } = new ObservableCollection<Alarm>();
+
+
+        #endregion
     }
 
     public class SelectCommunicationParameterValueCommandParameter

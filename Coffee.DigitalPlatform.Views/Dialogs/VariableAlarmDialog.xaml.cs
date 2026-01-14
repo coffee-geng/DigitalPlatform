@@ -1,9 +1,11 @@
 ﻿using Coffee.DigitalPlatform.Controls.FilterBuilder;
 using Coffee.DigitalPlatform.Models;
+using Coffee.DigitalPlatform.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -41,17 +43,17 @@ namespace Coffee.DigitalPlatform.Views
 
         public override DataTemplate SelectTemplate(object item, DependencyObject container)
         {
-            if (item == null)
+            if (item == null || !(item is Alarm alarmInfo))
+            {
+                return null;
+            }
+            if (alarmInfo.IsFirstEditing)
             {
                 return NewTemplate;
             }
-            else if (item is Alarm)
-            {
-                return AlarmTemplate;
-            }
             else
             {
-                return null;
+                return AlarmTemplate;
             }
         }
     }
@@ -65,24 +67,74 @@ namespace Coffee.DigitalPlatform.Views
             if (values == null || values.Length < 2)
                 return null;
             Alarm alarm = null;
-            Dictionary<Alarm, FilterSchemeEditInfo> alarmInfoDict = new Dictionary<Alarm, FilterSchemeEditInfo>();
             if (values[0] != DependencyProperty.UnsetValue && values[0] is Alarm)
             {
                 alarm = (Alarm)values[0];
             }
-            if (values[1] != DependencyProperty.UnsetValue && (values[1] is Dictionary<Alarm, FilterSchemeEditInfo>))
+            ConditionView conditionView = null;
+            if (values[1] != DependencyProperty.UnsetValue && (values[1] is ConditionView))
             {
-                alarmInfoDict = values[1] as Dictionary<Alarm, FilterSchemeEditInfo>;
+                conditionView = (ConditionView)values[1];
             }
-            if (alarm == null)
+            if (conditionView != null)
             {
-                if (values.Length < 3 || values[2] == DependencyProperty.UnsetValue || !(values[2] is FilterSchemeEditInfo defaultScheme))
-                    return null;
-                return new ConditionViewModel(defaultScheme);
+                //ConditionView定义在Alarm列表控件的ItemTemplate中，会继承这个控件Item的DataContext：即Alarm对象
+                //而ConditionView的ViewModel是ConditionViewModel，这是通过读取Alarm对象的ConditionTemplate转换成对应的ViewModel的
+                if (conditionView.DataContext != null && conditionView.DataContext is ConditionViewModel)
+                {
+                    return conditionView.DataContext;
+                }
+                else
+                {
+                    return new ConditionViewModel(alarm.ConditionTemplate);
+                }
             }
-            if (alarmInfoDict.TryGetValue(alarm, out FilterSchemeEditInfo filterSchemeEditInfo) && filterSchemeEditInfo != null)
+            else
             {
-                return new ConditionViewModel(filterSchemeEditInfo);
+                return new ConditionViewModel(alarm.ConditionTemplate);
+            }
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class FilterSchemeToStringConverter : IMultiValueConverter
+    {
+        public static FilterSchemeToStringConverter Instance { get; } = new FilterSchemeToStringConverter();
+
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values == null || values.Length < 2)
+                return null;
+            if (values[0] == DependencyProperty.UnsetValue || !(values[0] is FilterScheme))
+            {
+                return null;
+            }
+            return (values[0] as FilterScheme).ToString();
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class CurrentFilterSchemeChangedEventArgsConverter : IValueConverter
+    {
+        public static CurrentFilterSchemeChangedEventArgsConverter Instance { get; } = new CurrentFilterSchemeChangedEventArgsConverter();
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is RoutedPropertyChangedEventArgs<FilterScheme> changedArgs)
+            {
+                return new ReceiveFilterSchemeArgs
+                {
+                    FilterScheme = changedArgs.NewValue as FilterScheme,
+                    Alarm = parameter as Alarm
+                };
             }
             else
             {
@@ -90,7 +142,7 @@ namespace Coffee.DigitalPlatform.Views
             }
         }
 
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }

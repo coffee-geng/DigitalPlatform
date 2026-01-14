@@ -46,9 +46,6 @@ namespace Coffee.DigitalPlatform.Entities
         [NotMapped]
         public List<VariableEntity> Variables { get; set; }
 
-        [NotMapped]
-        public List<ManualControlEntity> ManualControls { get; set; }
-
         public bool Equals(DeviceEntity? other)
         {
             if (other == null)
@@ -68,10 +65,9 @@ namespace Coffee.DigitalPlatform.Entities
 
             bool b11 = TypeUtils.EqualCollection(this.CommunicationParameters, other.CommunicationParameters);
             bool b12 = TypeUtils.EqualCollection(this.Variables, other.Variables);
-            bool b13 = TypeUtils.EqualCollection(this.ManualControls, other.ManualControls);
 
             bool a = b1 && b2 && b3 && b4 && b5 && b6 && b7 && b8 && b9 && b10;
-            bool b = b11 && b12 && b13;
+            bool b = b11 && b12;
             return a && b;
         }
     }
