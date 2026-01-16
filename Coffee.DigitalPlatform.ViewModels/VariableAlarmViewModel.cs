@@ -6,9 +6,13 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -21,9 +25,13 @@ namespace Coffee.DigitalPlatform.ViewModels
         {
             CurrentDevice = device;
 
-            NewAlarmCommand = new RelayCommand(doNewAlarmCommand);
-            AddNewAlarmCommand = new RelayCommand<Alarm>(doAddNewAlarmCommand);
-            CancelNewAlarmCommand = new RelayCommand(doCancelNewAlarmCommand);
+            AddAlarmCommand = new RelayCommand(doAddAlarmCommand);
+            EditAlarmCommand = new RelayCommand<Alarm>(doEditAlarmCommand, canDoEditAlarmCommand);
+            RemoveAlarmCommand = new RelayCommand<Alarm>(doRemoveAlarmCommand, canDoRemoveAlarmCommand);
+            ConfirmAddAlarmCommand = new RelayCommand<Alarm>(doConfirmAddAlarmCommand);
+            ConfirmEditAlarmCommand = new RelayCommand<Alarm> (doConfirmEditAlarmCommand);
+            CancelAddAlarmCommand = new RelayCommand(doCancelAddAlarmCommand);
+            CancelEditAlarmCommand = new RelayCommand<Alarm>(doCancelEditAlarmCommand);
 
             ReceiveFilterSchemeCommand = new RelayCommand<ReceiveFilterSchemeArgs>(doReceiveFilterSchemeCommand);
         }
@@ -32,27 +40,83 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         public ObservableCollection<Alarm> AlarmConditions { get; set; } = new ObservableCollection<Alarm>();
 
+        private bool _isEditingAlarm;
+        public bool IsEditingAlarm
+        {
+            get { return _isEditingAlarm; }
+            set
+            {
+                if (SetProperty(ref _isEditingAlarm, value))
+                {
+                    if (EditAlarmCommand != null)
+                    {
+                        EditAlarmCommand.NotifyCanExecuteChanged();
+                    }
+                    if (RemoveAlarmCommand != null)
+                    {
+                        RemoveAlarmCommand.NotifyCanExecuteChanged();
+                    }
+                }
+            }
+        }
+
         #region 新建预警信息
-        
-        public RelayCommand NewAlarmCommand { get; set; }
 
-        public RelayCommand<Alarm> AddNewAlarmCommand {  get; set; }
+        public RelayCommand AddAlarmCommand { get; set; }
 
-        public RelayCommand CancelNewAlarmCommand { get; set; }
+        public RelayCommand<Alarm> EditAlarmCommand { get; set; }
+
+        public RelayCommand<Alarm> RemoveAlarmCommand { get; set; }
+
+        public RelayCommand<Alarm> ConfirmAddAlarmCommand {  get; set; }
+
+        public RelayCommand<Alarm> ConfirmEditAlarmCommand { get; set; }
+
+        public RelayCommand CancelAddAlarmCommand { get; set; }
+
+        public RelayCommand<Alarm> CancelEditAlarmCommand { get; set; }
 
         public RelayCommand<ReceiveFilterSchemeArgs> ReceiveFilterSchemeCommand { get; set; }
 
-        private void doNewAlarmCommand()
+        private void doAddAlarmCommand()
         {
             if (CurrentDevice.Variables != null && CurrentDevice.Variables.Count > 0)
             {
                 var variables = CurrentDevice.Variables.Distinct(new VariableByNameComparer());
-                var properties = variables.ToDictionary(v1 => v1.VarName, v2 => v2.VarType);
-                Type dynamicType = DynamicClassCreator.CreateDynamicType(CurrentDevice.DeviceNum, properties);
+                var varGenerator = VariableNameGenerator.GetInstance(CurrentDevice.DeviceNum);
+                Dictionary<string, Type> properties = new Dictionary<string, Type>();
+                Dictionary<Variable, string> variableNameDict = new Dictionary<Variable, string>(); //保存的是点位信息对象和其传入FilterBuilder中的变量名
+                foreach(var @var in variables)
+                {
+                    string varNameInFilterScheme = varGenerator.GenerateValidVariableName(@var.VarName);
+                    properties.Add(varNameInFilterScheme, var.VarType);
+                    variableNameDict.Add(var, varNameInFilterScheme);
+                }
+                Type dynamicType = DynamicClassCreator.CreateDynamicType(CurrentDevice.DeviceNum, properties, (TypeBuilder typeBuilder, Dictionary<string, PropertyBuilder> propertyBuildDict) =>
+                {
+                    foreach (var variable in variables)
+                    {
+                        // 获取自定义属性的构造函数
+                        Type attributeType = typeof(DisplayNameAttribute);
+                        ConstructorInfo constructor = attributeType.GetConstructor(new Type[] { typeof(string) });
+                        // 准备构造函数的参数
+                        object[] constructorArgs = new object[] { variable.VarName };
+                        CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(constructor, constructorArgs, new PropertyInfo[] { }, new object[] { });
+                        var varNameInFilterScheme = variableNameDict[variable];
+                        if (propertyBuildDict.TryGetValue(varNameInFilterScheme, out PropertyBuilder propertyBuild))
+                        {
+                            propertyBuild.SetCustomAttribute(attributeBuilder);
+                        }
+                    }
+                });
                 object instance = Activator.CreateInstance(dynamicType);
                 foreach (var variable in variables)
                 {
-                    dynamicType.GetProperty(variable.VarName).SetValue(instance, variable.Value);
+                    var propInfo = dynamicType.GetProperty(variable.VarName);
+                    if (propInfo != null)
+                    {
+                        propInfo.SetValue(instance, variable.Value);
+                    }
                 }
                 var filterScheme = new FilterScheme(dynamicType)
                 {
@@ -63,12 +127,99 @@ namespace Coffee.DigitalPlatform.ViewModels
                 this.AlarmConditions.Add(new Alarm()
                 {
                     ConditionTemplate = schemeInfo,
-                    IsFirstEditing = true
+                    IsFirstEditing = true,
                 });
+
+                this.IsEditingAlarm = true;
             }
         }
 
-        private void doAddNewAlarmCommand(Alarm alarm)
+        private void doEditAlarmCommand(Alarm alarm)
+        {
+            if (alarm == null)
+                return;
+            alarm.NewAlarmMessage = alarm.AlarmMessage;
+            alarm.NewAlarmTag = alarm.AlarmTag;
+            alarm.IsFirstEditing = false;
+            
+            var variables = CurrentDevice.Variables.Distinct(new VariableByNameComparer());
+            var varGenerator = VariableNameGenerator.GetInstance(CurrentDevice.DeviceNum);
+            Dictionary<string, Type> properties = new Dictionary<string, Type>();
+            Dictionary<Variable, string> variableNameDict = new Dictionary<Variable, string>(); //保存的是点位信息对象和其传入FilterBuilder中的变量名
+            foreach (var @var in variables)
+            {
+                string varNameInFilterScheme = varGenerator.GenerateValidVariableName(@var.VarName);
+                properties.Add(varNameInFilterScheme, var.VarType);
+                variableNameDict.Add(var, varNameInFilterScheme);
+            }
+            Type dynamicType = DynamicClassCreator.CreateDynamicType(CurrentDevice.DeviceNum, properties, (TypeBuilder typeBuilder, Dictionary<string, PropertyBuilder> propertyBuildDict) =>
+            {
+                foreach (var variable in variables)
+                {
+                    // 获取自定义属性的构造函数
+                    Type attributeType = typeof(DisplayNameAttribute);
+                    ConstructorInfo constructor = attributeType.GetConstructor(new Type[] { typeof(string) });
+                    // 准备构造函数的参数
+                    object[] constructorArgs = new object[] { variable.VarName };
+                    CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(constructor, constructorArgs, new PropertyInfo[] { }, new object[] { });
+                    var varNameInFilterScheme = variableNameDict[variable];
+                    if (propertyBuildDict.TryGetValue(varNameInFilterScheme, out PropertyBuilder propertyBuild))
+                    {
+                        propertyBuild.SetCustomAttribute(attributeBuilder);
+                    }
+                }
+            });
+            object instance = Activator.CreateInstance(dynamicType);
+            foreach (var variable in variables)
+            {
+                var propInfo = dynamicType.GetProperty(variable.VarName);
+                if (propInfo != null)
+                {
+                    propInfo.SetValue(instance, variable.Value);
+                }
+            }
+
+            var filterScheme = new FilterScheme(dynamicType, Guid.NewGuid().ToString(), alarm.Condition.Raw);
+            var schemeInfo = new FilterSchemeEditInfo(filterScheme, new List<dynamic>() { instance }, true, true);
+            alarm.ConditionTemplate = schemeInfo;
+
+            Task.Delay(TimeSpan.FromMilliseconds(500)).ContinueWith(t =>
+            {
+                alarm.IsEditing = true;
+                if (this.AlarmConditions != null && AlarmConditions.Any())
+                {
+                    var list = AlarmConditions.Where(c => c != alarm);
+                    foreach (var item in list)
+                    {
+                        item.IsEditing = false;
+                    }
+                }
+                this.IsEditingAlarm = true;
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        private bool canDoEditAlarmCommand(Alarm alarm)
+        {
+            return !this.IsEditingAlarm;
+        }
+
+        private void doRemoveAlarmCommand(Alarm alarm)
+        {
+            if (alarm == null || !AlarmConditions.Any(a => a == alarm))
+                return;
+            AlarmConditions.Remove(alarm);
+            if (CurrentDevice != null)
+            {
+                CurrentDevice.Alarms.Remove(alarm);
+            }
+        }
+
+        private bool canDoRemoveAlarmCommand(Alarm alarm)
+        {
+            return !this.IsEditingAlarm;
+        }
+
+        private void doConfirmAddAlarmCommand(Alarm alarm)
         {
             if (alarm == null || alarm.ConditionTemplate == null)
                 return;
@@ -79,8 +230,8 @@ namespace Coffee.DigitalPlatform.ViewModels
             alarm.FormattedCondition = conditionChain.ToString();
             alarm.IsFirstEditing = false;
 
-            // 当开始新建预警时，会先将预警模版添加到列表末尾，以便用户编辑
-            // 所以确定添加预警信息前，需将此预警模模版从列表中移除
+            // 当开始新建预警时，会先将预警模版添加到列表末尾，以便用户进行编辑
+            // 这一项是临时的，当确定编辑时，在添加编辑后的预警前，需将这临时项从列表中移除
             if (AlarmConditions.Count > 0)
             {
                 this.AlarmConditions.RemoveAt(AlarmConditions.Count - 1);
@@ -92,11 +243,46 @@ namespace Coffee.DigitalPlatform.ViewModels
             {
                 CurrentDevice.Alarms.Add(alarm);
             }
+
+            this.IsEditingAlarm = false;
         }
 
-        private void doCancelNewAlarmCommand()
+        private void doConfirmEditAlarmCommand(Alarm alarm)
         {
+            if (alarm == null || alarm.ConditionTemplate == null)
+                return;
+            var conditionChain = ConditionFactory.CreateCondition(alarm.ConditionTemplate.FilterScheme);
+            alarm.AlarmMessage = alarm.NewAlarmMessage;
+            alarm.AlarmTag = alarm.NewAlarmTag;
+            alarm.Condition = conditionChain;
+            alarm.FormattedCondition = conditionChain.ToString();
+            alarm.IsFirstEditing = false;
+            alarm.IsEditing = false;
 
+            this.IsEditingAlarm = false;
+        }
+
+        private void doCancelAddAlarmCommand()
+        {
+            // 当开始新建预警时，会先将预警模版添加到列表末尾，以便用户编辑
+            // 这一项是临时的，当取消编辑时，需将这项从列表中移除
+            if (AlarmConditions.Count > 0)
+            {
+                this.AlarmConditions.RemoveAt(AlarmConditions.Count - 1);
+            }
+
+            this.IsEditingAlarm = false;
+        }
+
+        private void doCancelEditAlarmCommand(Alarm alarm)
+        {
+            if (alarm == null)
+                return;
+            alarm.NewAlarmMessage = null;
+            alarm.NewAlarmTag = null;
+            alarm.IsEditing = false;
+
+            this.IsEditingAlarm= false;
         }
 
         private void doReceiveFilterSchemeCommand(ReceiveFilterSchemeArgs args)
@@ -135,97 +321,5 @@ namespace Coffee.DigitalPlatform.ViewModels
         //是哪一个预警列表中哪一项接收FilterScheme的更改
         //即正在编辑的是哪一个预警信息
         public Alarm Alarm { get; set; }
-    }
-
-    public class TestEntity
-    {
-        public string FirstName { get; set; }
-        public int Age { get; set; }
-        public int? Id { get; set; }
-        public DateTime DateOfBirth { get; set; }
-        public DateTime? DateOfDeath { get; set; }
-        public bool IsActive { get; set; }
-        public TimeSpan Duration { get; set; }
-        public decimal Price { get; set; }
-        public decimal? NullablePrice { get; set; }
-        public MyEnum EnumValue { get; set; }
-        public MyEnum? NullableEnumValue { get; set; }
-        public Description Description { get; set; }
-    }
-
-    public enum MyEnum
-    {
-        EnumValue1,
-
-        EnumValue2,
-
-        SpecialValue
-    }
-
-    public class Description
-    {
-        public Description(string value)
-        {
-            Value = value;
-        }
-
-        public string Value { get; }
-    }
-
-    public class TestDataService
-    {
-        private readonly Random _random = new(DateTime.Now.Millisecond);
-        private ObservableCollection<TestEntity>? _testItems;
-
-        public ObservableCollection<TestEntity> GetTestItems()
-        {
-            return _testItems ??= GenerateTestItems();
-        }
-
-        public ObservableCollection<TestEntity> GenerateTestItems()
-        {
-            var items = new ObservableCollection<TestEntity>();
-            for (var i = 0; i < 10000; i++)
-            {
-                items.Add(GenerateRandomEntity());
-            }
-
-            return items;
-        }
-
-        public TestEntity GenerateRandomEntity()
-        {
-            var testEntity = new TestEntity
-            {
-                FirstName = GetRandomString(),
-                Age = _random.Next(1, 100),
-                Id = _random.Next(10) < 1 ? null : _random.Next(10000),
-                DateOfBirth = GetRandomDateTime(),
-                DateOfDeath = _random.Next(10) >= 2 ? null : GetRandomDateTime(),
-                IsActive = _random.Next(2) == 0,
-                Duration = new TimeSpan(_random.Next(3), _random.Next(24), _random.Next(60), _random.Next(60)),
-                Price = (decimal)(_random.NextDouble() * 1000 - 500),
-                NullablePrice = (_random.Next(10) >= 5 ? (decimal?)(_random.NextDouble() * 1000 - 500) : null),
-                EnumValue = (MyEnum)_random.Next(0, 3)
-            };
-
-            var next = _random.Next(0, 4);
-            testEntity.NullableEnumValue = next == 3 ? null : (MyEnum?)next;
-
-            testEntity.Description = new Description(GetRandomString());
-            return testEntity;
-        }
-
-        public DateTime GetRandomDateTime()
-        {
-            return DateTime.Now.AddMinutes((int)(-1 * _random.NextDouble() * 30 * 365 * 24 * 60)); //years*days*hours*minuted
-        }
-
-        public string GetRandomString()
-        {
-            return _random.Next(10) < 1
-                ? null
-                : System.IO.Path.GetRandomFileName().Replace(".", string.Empty);
-        }
     }
 }

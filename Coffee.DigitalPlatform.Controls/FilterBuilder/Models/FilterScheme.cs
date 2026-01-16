@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Coffee.DigitalPlatform.Controls.FilterBuilder
 {
-    public class FilterScheme : ObservableObject
+    public class FilterScheme : ObservableObject, ICloneable
     {
         private static readonly Type DefaultTargetType = typeof(object);
 
@@ -40,9 +40,9 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
             Title = title;
 
             ConditionItems = new ObservableCollection<ConditionTreeItem>
-        {
-            root
-        };
+            {
+                root
+            };
 
             CanEdit = true;
             CanDelete = true;
@@ -173,7 +173,8 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
         {
             var stringBuilder = new StringBuilder();
 
-            stringBuilder.Append(Title);
+            //仅显示表达式，不关心Title
+            //stringBuilder.Append(Title);
 
             var rootString = Root.ToString();
             if (!string.IsNullOrEmpty(rootString))
@@ -197,13 +198,34 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
 
         public override bool Equals(object? obj)
         {
-            return obj is FilterScheme filterScheme
-                   && string.Equals(filterScheme.Title, Title);
+            //return obj is FilterScheme filterScheme
+            //       && string.Equals(filterScheme.Title, Title);
+            return ReferenceEquals(this, obj);
         }
 
-        public override int GetHashCode()
+        public object Clone()
         {
-            return Title.GetHashCode();
+            var clone = new FilterScheme(this.TargetType, this.Title);
+            clone.ConditionItems.Clear();
+            foreach (var item in this.ConditionItems)
+            {
+                ConditionTreeItem itemClone = null;
+                if (item is ConditionGroup group)
+                {
+                    itemClone = (ConditionGroup)group.Clone();
+                    itemClone.Parent = null;
+                }
+                else if (item is PropertyExpression propExpression)
+                {
+                    itemClone = (PropertyExpression)propExpression.Clone();
+                    itemClone.Parent = null;
+                }
+                if (itemClone != null)
+                {
+                    clone.ConditionItems.Add(itemClone);
+                }
+            }
+            return clone;
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
+using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -38,7 +39,7 @@ namespace Coffee.DigitalPlatform.Models
             _filterScheme = filterScheme;
 
             ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
-            initWrapper();
+            RawToWrapper();
         }
 
         private Condition(PropertyExpression expression)
@@ -48,22 +49,25 @@ namespace Coffee.DigitalPlatform.Models
             _rawPropertyExpression = expression;
 
             ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
-            initWrapper();
+            RawToWrapper();
         }
 
         //初始化表达式PropertyExpression的包装类Condition，即将表达式的属性映射到包装类
-        private void initWrapper()
+        private void RawToWrapper()
         {
             if (_rawPropertyExpression != null)
             {
                 var propertyMetadata = _rawPropertyExpression.Property;
                 var expressionMetadata =_rawPropertyExpression.DataTypeExpression;
                 if (propertyMetadata == null || expressionMetadata == null)
-                    return;   
+                    return;
+                var propInfo = propertyMetadata.OwnerType.GetProperty(propertyMetadata.Name);
                 var @var = new Variable()
                 {
                     VarType = propertyMetadata.Type,
-                    VarName = propertyMetadata.Name,
+                    VarName = propertyMetadata.DisplayName,
+                    OwnerTypeInFilterScheme = propertyMetadata.OwnerType,
+                    PropertyInFilterScheme = propInfo
                 };
                 Source = @var;
                 
@@ -108,6 +112,46 @@ namespace Coffee.DigitalPlatform.Models
         void ICondition.SetParent(ConditionChain conditionGroup)
         {
             this.Parent = conditionGroup;
+        }
+
+        public ConditionTreeItem Raw
+        {
+            get
+            {
+                if (_rawPropertyExpression == null)
+                {
+                    WrapperToRaw();
+                }
+                return _rawPropertyExpression;
+            }
+        }
+
+        private void WrapperToRaw()
+        {
+            if (Source == null)
+                throw new NullReferenceException(nameof(Source));
+            if (Source.OwnerTypeInFilterScheme == null)
+                throw new NullReferenceException(nameof(Source.OwnerTypeInFilterScheme));
+            if (Source.PropertyInFilterScheme == null)
+                throw new NullReferenceException(nameof(Source.PropertyInFilterScheme));
+
+            var propertyMetadata = new PropertyMetadata(Source.OwnerTypeInFilterScheme.GetType(), Source.PropertyInFilterScheme);
+            propertyMetadata.DisplayName = Source.VarName;
+            var rawPropertyExpression = new PropertyExpression()
+            {
+                Property = propertyMetadata
+            };
+
+            if (Parent != null && Parent.Raw != null)
+            {
+                if (!Parent.Raw.Items.Contains(rawPropertyExpression))
+                {
+                    Parent.Raw.Items.Add(rawPropertyExpression);
+                }
+                rawPropertyExpression.Parent = Parent.Raw;
+            }
+
+            _rawPropertyExpression = rawPropertyExpression;
         }
 
         private PropertyExpression _rawPropertyExpression;
@@ -394,5 +438,7 @@ namespace Coffee.DigitalPlatform.Models
         void SetParent(ConditionChain conditionGroup);
 
         string ConditionNum { get; set; }
+
+        ConditionTreeItem Raw {  get; }
     }
 }

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using System.Security.Cryptography.Xml;
 
 namespace Coffee.DigitalPlatform.Controls.FilterBuilder
 {

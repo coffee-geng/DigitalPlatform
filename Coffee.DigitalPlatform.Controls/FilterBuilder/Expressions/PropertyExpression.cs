@@ -4,12 +4,13 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Coffee.DigitalPlatform.Controls.FilterBuilder
 {
-    public class PropertyExpression : ConditionTreeItem
+    public class PropertyExpression : ConditionTreeItem, ICloneable
     {
         internal string? PropertySerializationValue { get; set; }
 
@@ -252,6 +253,97 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
 
             var dataTypeExpressionString = dataTypeExpression.ToString();
             return $"{property.DisplayName} {dataTypeExpressionString}";
+        }
+
+        public object Clone()
+        {
+            var clone = new PropertyExpression();
+            if (this.Property != null)
+            {
+                var ownerType = this.Property.OwnerType;
+                var propertyInfo = ownerType.GetProperty(this.Property.Name);
+                if (propertyInfo != null)
+                {
+                    clone.Property = new PropertyMetadata(ownerType, propertyInfo);
+
+                    clone.DataTypeExpression.SelectedCondition = this.DataTypeExpression.SelectedCondition;
+                    clone.DataTypeExpression.ValueControlType = this.DataTypeExpression.ValueControlType;
+                    clone.DataTypeExpression.IsValueRequired = this.DataTypeExpression.IsValueRequired;
+
+                    if (clone.DataTypeExpression is BooleanExpression boolExp)
+                    {
+                        boolExp.Value = (this.DataTypeExpression as BooleanExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is TimeSpanExpression timespanExp)
+                    {
+                        timespanExp.Value = (this.DataTypeExpression as TimeSpanExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is StringExpression stringExp)
+                    {
+                        stringExp.Value = (this.DataTypeExpression as StringExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is ByteExpression byteExp)
+                    {
+                        byteExp.Value = (this.DataTypeExpression as ByteExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is ShortExpression shortExp)
+                    {
+                        shortExp.Value = (this.DataTypeExpression as ShortExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is UnsignedShortExpression ushortExp)
+                    {
+                        ushortExp.Value = (this.DataTypeExpression as UnsignedShortExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is IntegerExpression intExp)
+                    {
+                        intExp.Value = (this.DataTypeExpression as IntegerExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is UnsignedIntegerExpression uintExp)
+                    {
+                        uintExp.Value = (this.DataTypeExpression as UnsignedIntegerExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is LongExpression longExp)
+                    {
+                        longExp.Value = (this.DataTypeExpression as LongExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is UnsignedLongExpression ulongExp)
+                    {
+                        ulongExp.Value = (this.DataTypeExpression as UnsignedLongExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is FloatExpression floatExp)
+                    {
+                        floatExp.Value = (this.DataTypeExpression as FloatExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is DoubleExpression doubleExp)
+                    {
+                        doubleExp.Value = (this.DataTypeExpression as DoubleExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is DecimalExpression decimalExp)
+                    {
+                        decimalExp.Value = (this.DataTypeExpression as DecimalExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is SByteExpression sbyteExp)
+                    {
+                        sbyteExp.Value = (this.DataTypeExpression as SByteExpression).Value;
+                    }
+                    else if (clone.DataTypeExpression is DateTimeExpression dateTimeExp)
+                    {
+                        dateTimeExp.Value = (this.DataTypeExpression as DateTimeExpression).Value;
+                    }
+                    else if (clone.Property.Type.IsEnum)
+                    {
+                        try
+                        {
+                            var sourceExpType = this.DataTypeExpression.GetType();
+                            var targetExpType = clone.DataTypeExpression.GetType();
+                            object val = sourceExpType.GetProperty(this.Property.Name).GetValue(this.DataTypeExpression);
+                            targetExpType.GetProperty(clone.Property.Name).SetValue(clone.DataTypeExpression, val);
+                        }
+                        catch { }
+                    }
+                }
+            }
+            return clone;
         }
     }
 }

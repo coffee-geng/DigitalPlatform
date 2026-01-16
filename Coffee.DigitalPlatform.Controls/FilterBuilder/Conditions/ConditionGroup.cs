@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Coffee.DigitalPlatform.Controls.FilterBuilder
 {
-    public class ConditionGroup : ConditionTreeItem
+    public class ConditionGroup : ConditionTreeItem, ICloneable
     {
         public ConditionGroupType Type { get; set; } = ConditionGroupType.And;
 
@@ -54,6 +54,36 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
             }
 
             return stringBuilder.ToString();
+        }
+
+        public object Clone()
+        {
+            var clone = new ConditionGroup()
+            {
+                Type = this.Type
+            };
+            if (this.Items.Any())
+            {
+                foreach(var item in this.Items)
+                {
+                    ConditionTreeItem itemClone = null;
+                    if (item is ConditionGroup group)
+                    {
+                        itemClone = (ConditionGroup)(group.Clone());
+                        itemClone.Parent = clone;
+                    }
+                    else if (item is PropertyExpression propExpression)
+                    {
+                        itemClone = (PropertyExpression)(propExpression.Clone());
+                        itemClone.Parent = clone;
+                    }
+                    if (itemClone != null)
+                    {
+                        clone.Items.Add(itemClone);
+                    }
+                }
+            }
+            return clone;
         }
     }
 }

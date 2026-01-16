@@ -66,6 +66,33 @@ namespace Coffee.DigitalPlatform.Models
             }
         }
 
+        public ConditionTreeItem Raw
+        {
+            get
+            {
+                if (_rawConditionGroup == null)
+                {
+                    WrapperToRaw();
+                }
+                return _rawConditionGroup;
+            }
+        }
+
+        private void WrapperToRaw()
+        {
+            ConditionGroup rawConditionGroup = new ConditionGroup();
+            rawConditionGroup.Type = (ConditionGroupType)Operator;
+            _rawConditionGroup = rawConditionGroup;
+            foreach (var conditionItem in ConditionItems)
+            {
+                var rawCondition = conditionItem.Raw;
+                if (!rawConditionGroup.Items.Contains(rawCondition))
+                {
+                    rawConditionGroup.Items.Add(rawCondition);
+                }
+            }
+        }
+
         public ConditionChainOperators Operator { get; set; }
 
         public ObservableCollection<ICondition> ConditionItems { get; } = new ObservableCollection<ICondition>();

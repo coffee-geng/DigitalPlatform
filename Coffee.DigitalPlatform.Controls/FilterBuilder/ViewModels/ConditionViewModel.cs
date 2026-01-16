@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -13,7 +14,7 @@ using System.Xml.Serialization;
 
 namespace Coffee.DigitalPlatform.Controls.FilterBuilder
 {
-    public class ConditionViewModel : ObservableObject, IDisposable
+    public class ConditionViewModel : ObservableObject
     {
         public ConditionViewModel(FilterSchemeEditInfo filterSchemeEditInfo)
         {
@@ -34,6 +35,9 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
             AddGroupCommand = new RelayCommand<ConditionTreeItem>(OnAddGroup);
             AddExpressionCommand = new RelayCommand<ConditionTreeItem>(OnAddExpression);
             DeleteConditionItem = new RelayCommand<ConditionTreeItem>(OnDeleteCondition, OnDeleteConditionCanExecute);
+
+            LoadFilterSchemeCommand = new RelayCommand<FilterSchemeEditInfo>(doLoadFilterSchemeCommand);
+            UnloadFilterSchemeCommand = new RelayCommand(doUnloadFilterSchemeCommand);
 
             dispatcherTimer = new DispatcherTimer();
             dispatcherTimer.Interval = TimeSpan.FromMicroseconds(1000);
@@ -72,19 +76,45 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
             get { return "Filter scheme"; }
         }
 
-        public string FilterSchemeTitle { get; set; }
-        public FilterScheme FilterScheme { get; private set; }
-       
-        public IEnumerable RawCollection { get; }
+        private string _filterSchemeTitle;
+        public string FilterSchemeTitle
+        {
+            get { return _filterSchemeTitle; }
+            set { SetProperty(ref _filterSchemeTitle, value); }
+        }
+
+        private FilterScheme _filterScheme;
+        public FilterScheme FilterScheme
+        {
+            get { return _filterScheme; }
+            set { SetProperty(ref _filterScheme, value); }
+        }
+
+        private IEnumerable _rawCollection;
+        public IEnumerable RawCollection 
+        {
+            get { return _rawCollection; }
+            set { _rawCollection = value; }
+        }
+
         public IList PreviewItems { get; }
 
-        public List<IPropertyMetadata> InstanceProperties { get; }
+        private List<IPropertyMetadata> _instanceProperties;
+        public List<IPropertyMetadata> InstanceProperties
+        {
+            get { return _instanceProperties; }
+            set { SetProperty(ref _instanceProperties, value); }
+        }
 
         public RelayCommand<ConditionTreeItem> AddGroupCommand { get; }
         public RelayCommand<ConditionTreeItem> AddExpressionCommand { get; }
         public RelayCommand<ConditionTreeItem> DeleteConditionItem { get; }
 
         public RelayCommand TogglePreview { get; }
+
+        public RelayCommand<FilterSchemeEditInfo> LoadFilterSchemeCommand { get; }
+
+        public RelayCommand UnloadFilterSchemeCommand {  get; }
 
         private bool OnDeleteConditionCanExecute(ConditionTreeItem? item)
         {
@@ -151,20 +181,35 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
             newGroup.Parent = group;
         }
 
-        
-
         private void ApplyFilterScheme()
         {
             FilterScheme.Apply(RawCollection, PreviewItems);
         }
 
-        public void Dispose()
+        private void doLoadFilterSchemeCommand(FilterSchemeEditInfo filterSchemeEditInfo)
+        {
+            ArgumentNullException.ThrowIfNull(filterSchemeEditInfo);
+
+            RawCollection = filterSchemeEditInfo.RawCollection;
+
+            _origionFilterScheme = filterSchemeEditInfo.FilterScheme;
+
+            InstanceProperties = new InstanceProperties(_origionFilterScheme.TargetType).Properties;
+
+            FilterScheme = (FilterScheme)_origionFilterScheme.Clone();
+            FilterSchemeTitle = _origionFilterScheme.Title;
+
+            if (dispatcherTimer != null)
+            {
+                dispatcherTimer.Start();
+            }
+        }
+
+        private void doUnloadFilterSchemeCommand()
         {
             if (dispatcherTimer != null)
             {
                 dispatcherTimer.Stop();
-                dispatcherTimer.Tick -= DispatcherTimer_Tick;
-                dispatcherTimer = null;
             }
         }
     }

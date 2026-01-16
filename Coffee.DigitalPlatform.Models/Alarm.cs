@@ -56,7 +56,21 @@ namespace Coffee.DigitalPlatform.Models
         //是否是新建预警信息
         public bool IsFirstEditing { get; set; } = true;
 
-        public FilterSchemeEditInfo ConditionTemplate { get; set; }
+        //如果正在编辑，则展开Expander以便显示编辑区域
+        //否则，收缩Expander以便隐藏编辑区域
+        private bool _isEditing = false;
+        public bool IsEditing
+        {
+            get { return _isEditing; }
+            set { SetProperty(ref _isEditing, value); }
+        }
+
+        private FilterSchemeEditInfo _conditionTemplate;
+        public FilterSchemeEditInfo ConditionTemplate
+        {
+            get { return _conditionTemplate; }
+            set { SetProperty(ref _conditionTemplate, value); }
+        }
 
         private string _newAlarmMessage;
         public string NewAlarmMessage

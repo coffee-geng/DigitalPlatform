@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -80,6 +81,15 @@ namespace Coffee.DigitalPlatform.Models
         // 变量值，即从设备指定点位中读取或写入的值
         public object Value { get; set; }
 
+        #region 映射到FilterScheme中的属性
+        //当加载表达式编辑器时，需要根据该设备的所有变量生成一个条件筛选类提供给FilterScheme初始化，每个变量就是类的一个属性作为操作数，根据变量的类型生成对应的操作符。
+        //提供给FilterScheme对象的条件筛选类的实例对象
+        public Type OwnerTypeInFilterScheme {  get; set; }
+
+        //当前变量在提供给FilterScheme对象的条件筛选类的属性信息
+        public PropertyInfo PropertyInFilterScheme { get; set; }
+        #endregion
+
         private Dictionary<string, string> _errorDict = new Dictionary<string, string>();
 
         public string Error => _errorDict.Values.FirstOrDefault();
@@ -109,6 +119,10 @@ namespace Coffee.DigitalPlatform.Models
                         _errorDict[columnName] = err;
                     }
                 }
+                else
+                {
+                    _errorDict.Remove(columnName);
+                }
                 return err;
             }
         }
@@ -119,9 +133,9 @@ namespace Coffee.DigitalPlatform.Models
             {
                 return "点位名称不能为空";
             }
-            else if (VarName.Length < 3 || VarName.Length > 20)
+            else if (VarName.Length < 2 || VarName.Length > 20)
             {
-                return "姓名长度应在3-20个字符之间";
+                return "姓名长度应在2-20个字符之间";
             }
             else if (ValidateDuplication != null && !ValidateDuplication(this, VarName))
             {

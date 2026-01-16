@@ -23,6 +23,8 @@
                 <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Styles/ComboBoxStyles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Styles/ExpanderStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="b2v"/>
         </ResourceDictionary>
     </Window.Resources>
     <Grid Background="#F7F9FA">
@@ -70,7 +72,7 @@
         </Button>
 
         <Button x:Name="btnAddCondition" Style="{StaticResource NormalButtonStyle}" 
-        Command="{Binding NewAlarmCommand}"
+        Command="{Binding AddAlarmCommand}"
         Background="Orange" Height="28" Margin="20,0" Grid.Row="2" 
         Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
             <TextBlock Margin="15,0">
@@ -104,7 +106,7 @@
                         <local:VariableAlarmTemplateSelector>
                             <local:VariableAlarmTemplateSelector.AlarmTemplate>
                                 <DataTemplate>
-                                    <Expander x:Name="expander" Margin="0,3" Style="{StaticResource AlarmExpanderStyle}" Padding="0" >
+                                    <Expander x:Name="expander" Margin="0,3" Style="{StaticResource AlarmExpanderStyle}" Padding="0" IsExpanded="{Binding IsEditing}">
                                         <Expander.Header>
                                             <Grid MinHeight="28" Width="{Binding ActualWidth, ElementName=expander}">
                                                 <Grid.ColumnDefinitions>
@@ -113,42 +115,100 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="80"/>
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding Path=(ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=ContentPresenter}, Converter={x:Static wpf:RowNumberConverter.Instance}, StringFormat={}{0:00}}"
+                                                <TextBlock Text="{Binding Path=(ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=ContentPresenter,AncestorLevel=2}, Converter={x:Static wpf:RowNumberConverter.Instance}, StringFormat={}{0:00}}"
                                                     VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#888"/>
-                                                <TextBlock Grid.Column="1" HorizontalAlignment="Center" Margin="3,0,5,0"
+                                                <TextBlock Grid.Column="1" HorizontalAlignment="Left" Margin="3,0,5,0"
                                                            Text="{Binding FormattedCondition}" TextWrapping="Wrap"/>
-                                                <TextBlock Grid.Column="2"
+                                                <TextBlock Grid.Column="2" HorizontalAlignment="Left"
                                                            Text="{Binding AlarmMessage}" TextWrapping="Wrap"/>
-                                                <StackPanel Orientation="Horizontal" Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding IsEditing, Converter={x:Static wpf:BoolToVisibilityConverter.Instance}, ConverterParameter=Not}">
                                                     <TextBlock Margin="0,0,5,0">
-                                                        <Hyperlink TextDecorations="None" 
-                                                            Command="{Binding EditConditionCommand}" CommandParameter="{Binding}">编辑</Hyperlink>
+                                                        <Hyperlink TextDecorations="None" IsEnabled="{Binding DataContext.IsEditingAlarm, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}, Converter={x:Static wpf:NotBooleanConverter.Instance}}"
+                                                            Command="{Binding DataContext.EditAlarmCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}" CommandParameter="{Binding}">编辑</Hyperlink>
                                                     </TextBlock>
                                                     <TextBlock>
-                                                        <Hyperlink TextDecorations="None" 
-                                                            Command="{Binding DeleteConditionCommand}" CommandParameter="{Binding}">删除</Hyperlink>
+                                                        <Hyperlink TextDecorations="None" IsEnabled="{Binding DataContext.IsEditingAlarm, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}, Converter={x:Static wpf:NotBooleanConverter.Instance}}"
+                                                            Command="{Binding DataContext.RemoveAlarmCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}" CommandParameter="{Binding}">删除</Hyperlink>
                                                     </TextBlock>
                                                 </StackPanel>
                                             </Grid>
                                         </Expander.Header>
                                         <Expander.Content>
                                             <Grid x:Name="grid">
-                                                <fb:ConditionView x:Name="conditionView" CurrentFilterScheme="{Binding FilterScheme}">
-                                                    <fb:ConditionView.DataContext>
-                                                        <MultiBinding Converter="{x:Static local:AlarmConditionViewModelConverter.Instance}">
-                                                            <Binding Path="." />
-                                                            <Binding Path="." ElementName="conditionView" />
-                                                        </MultiBinding>
-                                                    </fb:ConditionView.DataContext>
-                                                    <i:Interaction.Triggers>
-                                                        <i:EventTrigger EventName="CurrentFilterSchemeChanged">
-                                                            <i:InvokeCommandAction Command="{Binding DataContext.ReceiveFilterSchemeCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
-                                                                PassEventArgsToCommand="True" EventArgsConverter="{x:Static local:CurrentFilterSchemeChangedEventArgsConverter.Instance}" EventArgsConverterParameter="{Binding DataContext, ElementName=grid}" />
-                                                        </i:EventTrigger>
-                                                    </i:Interaction.Triggers>
-                                                </fb:ConditionView>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="auto"/>
+                                                    <RowDefinition Height="30"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid Grid.Row="0">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="28"/>
+                                                        <RowDefinition Height="*"/>
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Grid.ColumnSpan="2" Text="编辑预警信息" FontWeight="Bold" />
+                                                    <StackPanel Grid.Row="1" Orientation="Horizontal">
+                                                        <TextBlock Text="提醒内容" Width="80"/>
+                                                        <TextBox Width="400" Text="{Binding NewAlarmMessage}" />
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Grid Grid.Row="1" Margin="0,5,0,5">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="*" />
+                                                        <RowDefinition Height="*" />
+                                                    </Grid.RowDefinitions>
+                                                    <GroupBox Header="预警条件预览：">
+                                                        <TextBlock>
+                                                            <TextBlock.Text>
+                                                                <MultiBinding Converter="{x:Static local:FilterSchemeToStringConverter.Instance}">
+                                                                    <Binding Path="DataContext.FilterScheme" ElementName="conditionView" />
+                                                                    <Binding Path="DataContext.FilterSchemeUpdateTime" ElementName="conditionView" />
+                                                                </MultiBinding>
+                                                            </TextBlock.Text>
+                                                        </TextBlock>
+                                                    </GroupBox>
+                                                    <GroupBox Grid.Row="1" Header="预警条件编辑：" Margin="0,6,0,0">
+                                                        <fb:ConditionView x:Name="conditionView" CurrentFilterScheme="{Binding FilterScheme}">
+                                                            <fb:ConditionView.DataContext>
+                                                                <MultiBinding Converter="{x:Static local:AlarmConditionViewModelConverter.Instance}">
+                                                                    <Binding Path="." />
+                                                                    <Binding Path="." ElementName="conditionView" />
+                                                                </MultiBinding>
+                                                            </fb:ConditionView.DataContext>
+                                                            <i:Interaction.Triggers>
+                                                                <i:EventTrigger EventName="CurrentFilterSchemeChanged">
+                                                                    <i:InvokeCommandAction Command="{Binding DataContext.ReceiveFilterSchemeCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
+                                                                        PassEventArgsToCommand="True" EventArgsConverter="{x:Static local:CurrentFilterSchemeChangedEventArgsConverter.Instance}" EventArgsConverterParameter="{Binding DataContext, ElementName=grid}" />
+                                                                </i:EventTrigger>
+                                                            </i:Interaction.Triggers>
+                                                        </fb:ConditionView>
+                                                    </GroupBox>
+                                                </Grid>
+                                                <StackPanel Grid.Row="2" Orientation="Horizontal">
+                                                    <TextBlock Text="标签（可选）" Width="80"/>
+                                                    <TextBox Width="300"
+                                                             Text="{Binding DataContext.NewAlarmTag, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}" />
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Grid.Row="3" HorizontalAlignment="Center">
+                                                    <Button Background="#AA409EFE" Height="24" Width="80"
+                                                            Style="{StaticResource NormalButtonStyle}" Content="确定"
+                                                            Command="{Binding DataContext.ConfirmEditAlarmCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
+                                                            CommandParameter="{Binding .}"/>
+                                                    <Button Background="#AA409EFE" Height="24" Width="80" Margin="20,0,0,0"
+                                                            Style="{StaticResource NormalButtonStyle}" Content="取消"
+                                                            Command="{Binding DataContext.CancelEditAlarmCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}" 
+                                                            CommandParameter="{Binding .}"/>
+                                                </StackPanel>
                                             </Grid>
                                         </Expander.Content>
+                                        <i:Interaction.Triggers>
+                                            <i:EventTrigger EventName="Expanded">
+                                                <i:InvokeCommandAction Command="{Binding DataContext.LoadFilterSchemeCommand, ElementName=conditionView}" CommandParameter="{Binding ConditionTemplate}"/>
+                                            </i:EventTrigger>
+                                            <i:EventTrigger EventName="Collapsed">
+                                                <i:InvokeCommandAction Command="{Binding DataContext.UnloadFilterSchemeCommand, ElementName=conditionView}"/>
+                                            </i:EventTrigger>
+                                        </i:Interaction.Triggers>
                                     </Expander>
                                 </DataTemplate>
                             </local:VariableAlarmTemplateSelector.AlarmTemplate>
@@ -169,8 +229,7 @@
                                             <TextBlock Grid.ColumnSpan="2" Text="添加预警信息" FontWeight="Bold" />
                                             <StackPanel Grid.Row="1" Orientation="Horizontal">
                                                 <TextBlock Text="提醒内容" Width="80"/>
-                                                <TextBox Width="400"
-                                                         Text="{Binding NewAlarmMessage}" />
+                                                <TextBox Width="400" Text="{Binding NewAlarmMessage}" />
                                             </StackPanel>
                                         </Grid>
                                         <Grid Grid.Row="1" Margin="0,5,0,5">
@@ -214,11 +273,11 @@
                                         <StackPanel Orientation="Horizontal" Grid.Row="3" HorizontalAlignment="Center">
                                             <Button Background="#AA409EFE" Height="24" Width="80"
                                                 Style="{StaticResource NormalButtonStyle}" Content="确定"
-                                                Command="{Binding DataContext.AddNewAlarmCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
+                                                Command="{Binding DataContext.ConfirmAddAlarmCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
                                                     CommandParameter="{Binding .}"/>
                                             <Button Background="#AA409EFE" Height="24" Width="80" Margin="20,0,0,0"
                                                 Style="{StaticResource NormalButtonStyle}" Content="取消"
-                                                Command="{Binding DataContext.CancelNewAlarmCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}" />
+                                                Command="{Binding DataContext.CancelAddAlarmCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}" />
                                         </StackPanel>
                                     </Grid>
                                 </DataTemplate>

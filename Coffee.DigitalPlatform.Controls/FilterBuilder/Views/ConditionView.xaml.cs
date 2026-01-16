@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,13 +26,33 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
             InitializeComponent();
 
             this.DataContextChanged += ConditionView_DataContextChanged;
+            this.Unloaded += ConditionView_Unloaded;
         }
 
         private void ConditionView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (e.NewValue != null && e.NewValue is ConditionViewModel vm)
             {
-                CurrentFilterScheme = vm.FilterScheme;
+                //CurrentFilterScheme = vm.FilterScheme;
+                //Binding binding = new Binding();
+                //binding.Source = vm;
+                //binding.Mode = BindingMode.OneWay;
+                //binding.Path = new PropertyPath("CurrentFilterScheme");
+                //BindingOperations.SetBinding(this, ConditionView.CurrentFilterSchemeProperty, binding);
+            }
+        }
+
+        private void ConditionView_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (this.DataContext is ConditionViewModel vm)
+            {
+                if (vm.UnloadFilterSchemeCommand != null)
+                {
+                    if (vm.UnloadFilterSchemeCommand.CanExecute(null))
+                    {
+                        vm.UnloadFilterSchemeCommand.Execute(null);
+                    }
+                }
             }
         }
 
