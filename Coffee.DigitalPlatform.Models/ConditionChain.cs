@@ -11,14 +11,17 @@ namespace Coffee.DigitalPlatform.Models
 {
     public class ConditionChain : ICondition
     {
-        public ConditionChain(ConditionChainOperators @operator)
+        public ConditionChain(ConditionChainOperators @operator, string conditionNum = null)
         {
             Operator = @operator;
             ConditionItems.CollectionChanged += ConditionItems_CollectionChanged;
-            ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
+            if (!string.IsNullOrWhiteSpace(conditionNum))
+                ConditionNum = conditionNum;
+            else
+                ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
         }
 
-        private ConditionChain(FilterScheme filterScheme)
+        private ConditionChain(FilterScheme filterScheme, string conditionNum = null)
         {
             if (filterScheme == null)
                 throw new ArgumentNullException(nameof(filterScheme));
@@ -31,18 +34,24 @@ namespace Coffee.DigitalPlatform.Models
             _rawConditionGroup = group as ConditionGroup;
 
             ConditionItems.CollectionChanged += ConditionItems_CollectionChanged;
-            ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
+            if (!string.IsNullOrWhiteSpace(conditionNum))
+                ConditionNum = conditionNum;
+            else
+                ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
             initChain(_rawConditionGroup);  
         }
 
-        private ConditionChain(ConditionGroup conditionGroup)
+        private ConditionChain(ConditionGroup conditionGroup, string conditionNum = null)
         {
             if (conditionGroup != null)
             {
                 _rawConditionGroup = conditionGroup;
 
                 ConditionItems.CollectionChanged += ConditionItems_CollectionChanged;
-                ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
+                if (!string.IsNullOrWhiteSpace(conditionNum))
+                    ConditionNum = conditionNum;
+                else
+                    ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
                 initChain(conditionGroup);
             }
         }
@@ -62,6 +71,24 @@ namespace Coffee.DigitalPlatform.Models
                 {
                     var childConditionGroup = ConditionChain.ConditionChainFactory.CreateCondition(group);
                     ConditionItems.Add(childConditionGroup);
+                }
+            }
+        }
+
+        // 同步设备编号到当前条件项及其所有子条件
+        public void SyncDeviceNum(string deviceNum)
+        {
+            if (this.ConditionItems == null || this.ConditionItems.Count == 0)
+                return;
+            foreach (var conditionItem in this.ConditionItems)
+            {
+                if (conditionItem is ConditionChain conditionChain)
+                {
+                    conditionChain.SyncDeviceNum(deviceNum);
+                }
+                else if (conditionItem is Condition condition)
+                {
+                    condition.SyncDeviceNum(deviceNum);
                 }
             }
         }
@@ -122,7 +149,18 @@ namespace Coffee.DigitalPlatform.Models
             }
         }
 
-        public string ConditionNum { get; set; }
+        private string _conditionNum;
+        public string ConditionNum
+        {
+            get { return _conditionNum; }
+            private set { _conditionNum = value; }
+        }
+
+        string ICondition.ConditionNum
+        {
+            get { return ConditionNum; }
+            set { ConditionNum = value; }
+        }
 
         public ConditionChain Parent { get; private set; }
 

@@ -1,5 +1,6 @@
 ﻿using Coffee.DigitalPlatform.Common;
 using Coffee.DigitalPlatform.Controls.FilterBuilder;
+using Microsoft.Extensions.Logging;
 using System;
 using System.CodeDom;
 using System.Collections;
@@ -15,7 +16,7 @@ namespace Coffee.DigitalPlatform.Models
 {
     public class Condition : ICondition
     {
-        public Condition(Variable source, object targetValue, ConditionOperator @operator)
+        public Condition(Variable source, object targetValue, ConditionOperator @operator, string conditionNum = null)
         {
             if (source == null) 
                 throw new ArgumentNullException("source");
@@ -23,10 +24,13 @@ namespace Coffee.DigitalPlatform.Models
             Source = source;
             TargetValue = targetValue;
             Operator = @operator;
-            ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
+            if (!string.IsNullOrWhiteSpace(conditionNum))
+                ConditionNum = conditionNum;
+            else
+                ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
         }
 
-        private Condition(FilterScheme filterScheme)
+        private Condition(FilterScheme filterScheme, string conditionNum = null)
         {
             if (filterScheme == null)
                 throw new ArgumentNullException(nameof(filterScheme));
@@ -38,17 +42,23 @@ namespace Coffee.DigitalPlatform.Models
             _rawPropertyExpression = expression as PropertyExpression;
             _filterScheme = filterScheme;
 
-            ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
+            if (!string.IsNullOrWhiteSpace(conditionNum))
+                ConditionNum = conditionNum;
+            else
+                ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
             RawToWrapper();
         }
 
-        private Condition(PropertyExpression expression)
+        private Condition(PropertyExpression expression, string conditionNum = null)
         {
             if (expression == null)
                 throw new ArgumentNullException(nameof(expression));
             _rawPropertyExpression = expression;
 
-            ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
+            if (!string.IsNullOrWhiteSpace(conditionNum))
+                ConditionNum = conditionNum;
+            else
+                ConditionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
             RawToWrapper();
         }
 
@@ -65,6 +75,7 @@ namespace Coffee.DigitalPlatform.Models
                 var @var = new Variable()
                 {
                     VarType = propertyMetadata.Type,
+                    VarNum = propertyMetadata.Name,
                     VarName = propertyMetadata.DisplayName,
                     OwnerTypeInFilterScheme = propertyMetadata.OwnerType,
                     PropertyInFilterScheme = propInfo
@@ -97,15 +108,32 @@ namespace Coffee.DigitalPlatform.Models
             return dict;
         }
 
-        public string ConditionNum {  get; private set; }
+        public void SyncDeviceNum(string deviceNum)
+        {
+            if (Source != null)
+            {
+                Source.DeviceNum = deviceNum;
+            }
+        }
+
+        private string _conditionNum;
+        public string ConditionNum 
+        {
+            get { return _conditionNum; }
+            private set { _conditionNum = value; }
+        }
+
+        string ICondition.ConditionNum
+        {
+            get { return ConditionNum; }
+            set { ConditionNum = value; }
+        }
 
         public Variable Source { get; private set; }
 
         public ConditionOperator Operator { get; private set; }
 
         public object TargetValue {  get; private set; }
-
-        string ICondition.ConditionNum { get; set; }
 
         public ConditionChain Parent { get; private set; }
 
@@ -135,12 +163,13 @@ namespace Coffee.DigitalPlatform.Models
             if (Source.PropertyInFilterScheme == null)
                 throw new NullReferenceException(nameof(Source.PropertyInFilterScheme));
 
-            var propertyMetadata = new PropertyMetadata(Source.OwnerTypeInFilterScheme.GetType(), Source.PropertyInFilterScheme);
+            var propertyMetadata = new PropertyMetadata(Source.OwnerTypeInFilterScheme, Source.PropertyInFilterScheme);
             propertyMetadata.DisplayName = Source.VarName;
             var rawPropertyExpression = new PropertyExpression()
             {
                 Property = propertyMetadata
             };
+            syncValueToPropertyExpression(rawPropertyExpression);
 
             if (Parent != null && Parent.Raw != null)
             {
@@ -157,6 +186,289 @@ namespace Coffee.DigitalPlatform.Models
         private PropertyExpression _rawPropertyExpression;
 
         private FilterScheme _filterScheme;
+
+        // 将包装类的值同步到表达式PropertyExpression中
+        private void syncValueToPropertyExpression(PropertyExpression propertyExpression)
+        {
+            if (propertyExpression == null || propertyExpression.DataTypeExpression == null)
+                return;
+            var dataTypeExp = propertyExpression.DataTypeExpression;
+            dataTypeExp.SelectedCondition = (Controls.FilterBuilder.Condition)this.Operator.Operator;
+
+            if (dataTypeExp is BooleanExpression boolExp)
+            {
+                if (TargetValue is bool)
+                {
+                    boolExp.Value = (bool)TargetValue;
+                }
+                else if (TargetValue != null && bool.TryParse(TargetValue.ToString(), out bool boolResult))
+                {
+                    boolExp.Value = boolResult;
+                }
+            }
+            else if (dataTypeExp is TimeSpanExpression timespanExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    timespanExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is TimeSpan)
+                    {
+                        timespanExp.Value = (TimeSpan)TargetValue;
+                    }
+                    else if (TargetValue != null && TimeSpan.TryParse(TargetValue.ToString(), out TimeSpan timeSpanResult))
+                    {
+                        timespanExp.Value = timeSpanResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is StringExpression stringExp)
+            {
+                stringExp.Value = TargetValue != null ? TargetValue.ToString() : null;
+            }
+            else if (dataTypeExp is ByteExpression byteExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    byteExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is byte)
+                    {
+                        byteExp.Value = (byte)TargetValue;
+                    }
+                    else if (TargetValue != null && byte.TryParse(TargetValue.ToString(), out byte byteResult))
+                    {
+                        byteExp.Value = byteResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is ShortExpression shortExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    shortExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is short)
+                    {
+                        shortExp.Value = (short)TargetValue;
+                    }
+                    else if (TargetValue != null && short.TryParse(TargetValue.ToString(), out short shortResult))
+                    {
+                        shortExp.Value = shortResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is UnsignedShortExpression ushortExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    ushortExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is ushort)
+                    {
+                        ushortExp.Value = (ushort)TargetValue;
+                    }
+                    else if (TargetValue != null && ushort.TryParse(TargetValue.ToString(), out ushort ushortResult))
+                    {
+                        ushortExp.Value = ushortResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is IntegerExpression intExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    intExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is int)
+                    {
+                        intExp.Value = (int)TargetValue;
+                    }
+                    else if (TargetValue != null && int.TryParse(TargetValue.ToString(), out int intResult))
+                    {
+                        intExp.Value = intResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is UnsignedIntegerExpression uintExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    uintExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is uint)
+                    {
+                        uintExp.Value = (uint)TargetValue;
+                    }
+                    else if (TargetValue != null && uint.TryParse(TargetValue.ToString(), out uint uintResult))
+                    {
+                        uintExp.Value = uintResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is LongExpression longExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    longExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is long)
+                    {
+                        longExp.Value = (long)TargetValue;
+                    }
+                    else if (TargetValue != null && long.TryParse(TargetValue.ToString(), out long longResult))
+                    {
+                        longExp.Value = longResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is UnsignedLongExpression ulongExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    ulongExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is ulong)
+                    {
+                        ulongExp.Value = (ulong)TargetValue;
+                    }
+                    else if (TargetValue != null && ulong.TryParse(TargetValue.ToString(), out ulong ulongResult))
+                    {
+                        ulongExp.Value = ulongResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is FloatExpression floatExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    floatExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is float)
+                    {
+                        floatExp.Value = (float)TargetValue;
+                    }
+                    else if (TargetValue != null && float.TryParse(TargetValue.ToString(), out float floatResult))
+                    {
+                        floatExp.Value = floatResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is DoubleExpression doubleExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    doubleExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is double)
+                    {
+                        doubleExp.Value = (double)TargetValue;
+                    }
+                    else if (TargetValue != null && double.TryParse(TargetValue.ToString(), out double doubleResult))
+                    {
+                        doubleExp.Value = doubleResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is DecimalExpression decimalExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    decimalExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is decimal)
+                    {
+                        decimalExp.Value = (decimal)TargetValue;
+                    }
+                    else if (TargetValue != null && decimal.TryParse(TargetValue.ToString(), out decimal decimalResult))
+                    {
+                        decimalExp.Value = decimalResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is SByteExpression sbyteExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    sbyteExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is sbyte)
+                    {
+                        sbyteExp.Value = (sbyte)TargetValue;
+                    }
+                    else if (TargetValue != null && sbyte.TryParse(TargetValue.ToString(), out sbyte sbyteResult))
+                    {
+                        sbyteExp.Value = sbyteResult;
+                    }
+                }
+            }
+            else if (dataTypeExp is DateTimeExpression dateTimeExp)
+            {
+                if (Source.IsNullableVar && TargetValue == null)
+                {
+                    dateTimeExp.Value = default;
+                }
+                else
+                {
+                    if (TargetValue is DateTime)
+                    {
+                        dateTimeExp.Value = (DateTime)TargetValue;
+                    }
+                    else if (TargetValue != null && DateTime.TryParse(TargetValue.ToString(), out DateTime datetimeResult))
+                    {
+                        dateTimeExp.Value = datetimeResult;
+                    }
+                }
+            }
+            else if (IsEnumExpressionInstance(dataTypeExp))
+            {
+                try
+                {
+                    dataTypeExp.GetType().GetProperty("Value").SetValue(dataTypeExp, TargetValue);
+                }
+                catch { }
+            }
+        }
+
+        private static bool IsEnumExpressionInstance(object obj)
+        {
+            if (obj == null) return false;
+
+            Type type = obj.GetType();
+
+            // 检查是否是泛型类型
+            if (!type.IsGenericType) return false;
+
+            // 获取泛型类型定义（去掉类型参数）
+            Type genericType = type.GetGenericTypeDefinition();
+
+            // 检查是否匹配 EnumExpression<> 类型定义
+            return genericType == typeof(EnumExpression<>);
+        }
 
         public bool IsMatch()
         {
@@ -440,5 +752,7 @@ namespace Coffee.DigitalPlatform.Models
         string ConditionNum { get; set; }
 
         ConditionTreeItem Raw {  get; }
+
+        void SyncDeviceNum(string deviceNum);
     }
 }

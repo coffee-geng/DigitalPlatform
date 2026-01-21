@@ -449,6 +449,8 @@ namespace Coffee.DigitalPlatform.Models
 
         private void doAddVariable(Variable variable)
         {
+            //确保在同一个设备会话中，变量名唯一
+            VariableNameGenerator variableNameGenerator = VariableNameGenerator.GetInstance(this.DeviceNum);
             if (variable != null)
             {
                 Variables.Add(variable);
@@ -457,7 +459,8 @@ namespace Coffee.DigitalPlatform.Models
             {
                 Variables.Add(new Variable()
                 {
-                    VarNum = $"V{DateTime.Now.ToString("yyyyMMddHHmmssfff")}",
+                    DeviceNum = this.DeviceNum,
+                    VarNum = variableNameGenerator.GenerateValidVariableName(variable?.VarName, false, true),
                     VarType = typeof(int), //默认为整型
                     ValidateDuplication = (variable, propName) =>
                     {

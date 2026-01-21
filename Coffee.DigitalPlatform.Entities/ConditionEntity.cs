@@ -29,11 +29,10 @@ namespace Coffee.DigitalPlatform.Entities
         public ConditionNodeTypes ConditionNodeTypes { get; set; }
 
         //当前表单式或条件组在当前条件链的上一级条件项。如果为空，则其就是顶级条件项。
-        [Column(name: "parent_id")]
-        public int? ParentId {  get; set; }
+        [Column(name: "c_num_parent")]
+        public string? CNum_Parent {  get; set; }
 
-        [Column(name: "level")]
-        public int Level {  get; set; }
+        public int Level { get; set; }
     }
 
     public enum ConditionNodeTypes

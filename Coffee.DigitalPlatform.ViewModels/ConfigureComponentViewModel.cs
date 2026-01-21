@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using static Dapper.SqlMapper;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
@@ -99,7 +100,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             var device = new Device(_localDataAccess)
             {
                 Name = data.Label,
-                DeviceNum = "D" + DateTime.Now.ToString("yyyyMMddHHmmssFFF"),
+                DeviceNum = "d_" + DateTime.Now.ToString("yyyyMMddHHmmssFFF"),
                 DeviceType = data.TargetType,
                 Width = data.Width,
                 Height = data.Height,
@@ -202,6 +203,7 @@ namespace Coffee.DigitalPlatform.ViewModels
         private void loadComponentsFromDatabase()
         {
             IList<DeviceEntity> deviceEntities = _localDataAccess.ReadDevices();
+            Dictionary<string, Device> deviceNumDict = new Dictionary<string, Device>();
             foreach (var deviceEntity in deviceEntities)
             {
                 var device = new Device(_localDataAccess)
@@ -256,6 +258,61 @@ namespace Coffee.DigitalPlatform.ViewModels
                     }
                 }
                 DeviceList.Add(device);
+
+                if (!deviceNumDict.ContainsKey(device.DeviceNum))
+                {
+                    deviceNumDict.Add(device.DeviceNum, device);
+                }
+            }
+
+            //字典的键是设备编码，值是该设备的预警实体集合
+            Dictionary<string, IList<AlarmEntity>> deviceAlarmDict = _localDataAccess.ReadAlarms();
+            IEnumerable<ConditionEntity> topConditionEntities = _localDataAccess.GetTopConditions(); //预加载所有顶级条件选项
+            IEnumerable<ConditionEntity> conditionEntities = _localDataAccess.GetConditions(); //预加载所有顶级条件选项
+
+            foreach (var pair in deviceAlarmDict)
+            {
+                string deviceNum = pair.Key;
+                IList<AlarmEntity> alarmList = pair.Value;
+                if (!deviceNumDict.TryGetValue(deviceNum, out Device? device))
+                {
+                    throw new InvalidOperationException($"没有找到对应编码{deviceNum}的设备");
+                }
+                IList<Alarm> alarms = new List<Alarm>();
+                foreach (var alarmEntity in alarmList)
+                {
+                    var alarm = new Alarm()
+                    {
+                        AlarmNum = alarmEntity.AlarmNum,
+                        AlarmMessage = alarmEntity.AlarmMessage,
+                        AlarmTag = alarmEntity.AlarmTag,
+                        AlarmLevel = alarmEntity.AlarmLevel,
+                        AlarmTime = !string.IsNullOrWhiteSpace(alarmEntity.AlarmTime) ? DateTime.Parse(alarmEntity.AlarmTime) : (DateTime?)null
+                    };
+                    if (!string.IsNullOrWhiteSpace(alarmEntity.State) && Enum.TryParse<AlarmStatus>(alarmEntity.State, out AlarmStatus alarmStatus))
+                    {
+                        alarm.AlarmState = new AlarmState(alarmStatus);
+                        if (!string.IsNullOrWhiteSpace(alarmEntity.SolvedTime) && DateTime.TryParse(alarmEntity.SolvedTime, out DateTime solvedTime))
+                        {
+                            alarm.AlarmState.SolvedTime = solvedTime;
+                        }
+                    }
+
+                    var topConditionEntity = topConditionEntities?.FirstOrDefault(c => string.Equals(c.CNum, alarmEntity.ConditionNum));
+                    if (topConditionEntity != null)
+                    {
+                        //预警信息仅使用顶级条件项作为触发预警的条件
+                        ICondition topCondition = createConditionByEntity(topConditionEntity, conditionEntities, device.Variables.ToDictionary(v => v.VarNum, v => v));
+                        alarm.Condition = topCondition;
+                    }
+                    alarms.Add(alarm);
+                }
+
+                device.Alarms.Clear();
+                foreach(var alarm in alarms)
+                {
+                    device.Alarms.Add(alarm);
+                }
             }
         }
 
@@ -392,6 +449,53 @@ namespace Coffee.DigitalPlatform.ViewModels
                 _localDataAccess.SaveDevices(deviceEntities);
 
                 // 保存设备预警信息
+                Dictionary<string, IList<AlarmEntity>> deviceAlarmDict = new Dictionary<string, IList<AlarmEntity>>();
+                // 保存条件选项字典，键是顶级条件选项编号，值是该顶级条件选项及其子条件选项实体集合
+                Dictionary<string, IList<ConditionEntity>> conditionDict = new Dictionary<string, IList<ConditionEntity>>();
+                foreach (var device in DeviceList)
+                {
+                    IList<AlarmEntity> alarmEntities = new List<AlarmEntity>();
+                    foreach (var alarm in device.Alarms)
+                    {
+                        if (alarm.Condition == null)
+                            continue;
+                        
+                        DateTime? solvedTime = null;
+                        if (alarm.AlarmState != null && alarm.AlarmState.Status == AlarmStatus.Solved && alarm.AlarmState.SolvedTime.HasValue)
+                        {
+                            solvedTime = alarm.AlarmState.SolvedTime.Value;
+                        }
+                        //创建条件项及其子条件项实体
+                        var conditionEntities = new List<ConditionEntity>();
+                        createConditionEntitiesBy(alarm.Condition, null, conditionEntities);
+                        var topCondition = conditionEntities.Where(c => string.IsNullOrEmpty(c.CNum_Parent)).FirstOrDefault();
+
+                        if (topCondition != null && !conditionDict.ContainsKey(topCondition.CNum))
+                        {
+                            conditionDict.Add(topCondition.CNum, conditionEntities);
+                        }
+
+                        var alarmEntity = new AlarmEntity
+                        {
+                            AlarmNum = alarm.AlarmNum,
+                            AlarmMessage = alarm.AlarmMessage,
+                            AlarmTag = alarm.AlarmTag,
+                            AlarmLevel = alarm.AlarmLevel,
+                            AlarmTime = alarm.AlarmTime.HasValue ? alarm.AlarmTime.Value.ToString("yyyy/MM/dd HH:mm:ss") : null,
+                            SolvedTime = solvedTime.HasValue ? solvedTime.Value.ToString("yyyy/MM/dd HH:mm:ss") : null,
+                            ConditionNum = alarm.Condition.ConditionNum,
+                            DeviceNum = device.DeviceNum,
+                            State = alarm.AlarmState != null ? Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status) : null,
+                        };
+                        alarmEntities.Add(alarmEntity);
+                    }
+                    if (alarmEntities.Any())
+                    {
+                        deviceAlarmDict.Add(device.DeviceNum, alarmEntities);
+                    }
+                }
+                
+                _localDataAccess.SaveAlarms(deviceAlarmDict, conditionDict);
 
 
                 VisualStateManager.GoToElementState(owner as Window, "ShowSuccess", true);
@@ -401,6 +505,135 @@ namespace Coffee.DigitalPlatform.ViewModels
                 FailureMessageOnSaving = ex.Message;
                 VisualStateManager.GoToElementState(owner as Window, "ShowFailure", true);
             }
+        }
+
+        /// <summary>
+        /// 递归创建条件选项（包含子条件）实体，用于数据库操作
+        /// </summary>
+        /// <param name="condition">条件项</param>
+        /// <param name="conditionParent">条件项的父级</param>
+        /// <param name="conditionEntities">创建的条件项实体都存入这个集合</param>
+        private void createConditionEntitiesBy(ICondition condition, ConditionChain conditionParent, IList<ConditionEntity> conditionEntities)
+        {
+            if (condition == null)
+                return;
+            if (conditionEntities == null)
+            {
+                conditionEntities = new List<ConditionEntity>();
+            }
+
+            if (condition is Coffee.DigitalPlatform.Models.Condition expCondition)
+            {
+                var conditionEntity = new ConditionEntity()
+                {
+                    CNum = condition.ConditionNum,
+                    ConditionNodeTypes = ConditionNodeTypes.ConditionExpression,
+                    VarNum = expCondition.Source.VarNum,
+                    Operator = Enum.GetName(typeof(ConditionOperators), expCondition.Operator.Operator),
+                    CNum_Parent = conditionParent?.ConditionNum ?? null,
+                    Value = expCondition.TargetValue
+                };
+                conditionEntities.Add(conditionEntity);
+            }
+            else if (condition is Coffee.DigitalPlatform.Models.ConditionChain conditionGroup) // ConditionChain
+            {
+                var conditionGroupEntity = new ConditionEntity()
+                {
+                    CNum = conditionGroup.ConditionNum,
+                    ConditionNodeTypes = ConditionNodeTypes.ConditionGroup,
+                    Operator = Enum.GetName(typeof(ConditionChainOperators), conditionGroup.Operator),
+                    CNum_Parent = conditionParent?.ConditionNum ?? null
+                };
+                conditionEntities.Add(conditionGroupEntity);
+
+                if (conditionGroup.ConditionItems.Any())
+                {
+                    foreach(var conditionItem in conditionGroup.ConditionItems)
+                    {
+                        createConditionEntitiesBy(conditionItem, conditionGroup, conditionEntities);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 根据实体创建条件项（包含子条件项）
+        /// </summary>
+        /// <param name="conditionEntity">待创建条件项的实体</param>
+        /// <param name="conditionEntities">所有条件项实体</param>
+        /// <param name="variableNumDict">字典保存当前设备的变量名及点位信息</param>
+        /// <returns>返回条件项</returns>
+        private ICondition createConditionByEntity(ConditionEntity conditionEntity, IEnumerable<ConditionEntity> conditionEntities, Dictionary<string, Variable> variableNumDict)
+        {
+            if (conditionEntity == null)
+                return null;
+            if (conditionEntity.ConditionNodeTypes == ConditionNodeTypes.ConditionGroup)
+            {
+                var conditionGroup = new ConditionChain((ConditionChainOperators)Enum.Parse(typeof(ConditionChainOperators), conditionEntity.Operator), conditionEntity.CNum);
+                var childConditions = createChildConditionsByEntity(conditionGroup, conditionEntities, variableNumDict);
+                //将当前条件的子条件添加给条件条件组
+                if (childConditions != null)
+                {
+                    foreach (var childCondition in childConditions)
+                    {
+                        conditionGroup.ConditionItems.Add(childCondition);
+                    }
+                }
+                return conditionGroup;
+            }
+            else if (conditionEntity.ConditionNodeTypes == ConditionNodeTypes.ConditionExpression)
+            {
+                if (variableNumDict != null && variableNumDict.TryGetValue(conditionEntity.VarNum, out Variable variable))
+                {
+                    var @operator = new ConditionOperator((ConditionOperators)Enum.Parse(typeof(ConditionOperators), conditionEntity.Operator));
+                    var conditionExp = new Coffee.DigitalPlatform.Models.Condition(variable, conditionEntity.Value, @operator, conditionEntity.CNum);
+                    return conditionExp;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else
+                return null;
+        }
+
+        //递归调用，返回根据指定条件实体下的所有子条件项实体创建的条件项集合
+        private IEnumerable<ICondition> createChildConditionsByEntity(ICondition parentCondition, IEnumerable<ConditionEntity> conditionEntities, Dictionary<string, Variable> variableNumDict)
+        {
+            if (conditionEntities == null || !conditionEntities.Any())
+                return Enumerable.Empty<ICondition>();
+            if (parentCondition == null)
+                return Enumerable.Empty<ICondition>();
+            //获取当前条件实体的所有子条件实体集合
+            var childConditionEntities = conditionEntities.Where(c => !string.IsNullOrWhiteSpace(c.CNum_Parent) && string.Equals(c.CNum_Parent, parentCondition.ConditionNum));
+            IList<ICondition> childConditions = new List<ICondition>();
+            foreach (var childConditionEntity in childConditionEntities)
+            {
+                if (childConditionEntity.ConditionNodeTypes == ConditionNodeTypes.ConditionGroup)
+                {
+                    var conditionGroup = new ConditionChain((ConditionChainOperators)Enum.Parse(typeof(ConditionChainOperators), childConditionEntity.Operator), childConditionEntity.CNum);
+                    //将当前子条件的后代条件添加给子条件组
+                    var descendantConditions = createChildConditionsByEntity(conditionGroup, conditionEntities, variableNumDict);
+                    if (descendantConditions != null)
+                    {
+                        foreach (var desCondition in descendantConditions)
+                        {
+                            conditionGroup.ConditionItems.Add(desCondition);
+                        }
+                    }
+                }
+                else if (childConditionEntity.ConditionNodeTypes == ConditionNodeTypes.ConditionExpression)
+                {
+                    if (variableNumDict != null && variableNumDict.TryGetValue(childConditionEntity.VarNum, out Variable variable))
+                    {
+                        var @operator = new ConditionOperator((ConditionOperators)Enum.Parse(typeof(ConditionOperators), childConditionEntity.Operator));
+                        var conditionExp = new Coffee.DigitalPlatform.Models.Condition(variable, childConditionEntity.Value, @operator, childConditionEntity.CNum);
+                        childConditions.Add(conditionExp);
+                    }
+                }
+            }
+            return childConditions;
         }
         #endregion
 

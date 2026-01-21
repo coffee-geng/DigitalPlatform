@@ -35,7 +35,17 @@ namespace Coffee.DigitalPlatform.Models
         public string VarName
         {
             get { return _varName; }
-            set { SetProperty(ref _varName, value); }
+            set 
+            { 
+                if (SetProperty(ref _varName, value))
+                {
+                    //当调用Condition的RawToWrapper方法生成包装类时，因为上下文没有提供DeviceNum，而那个时候VarNum已经确定了，不需要在这里重新生成
+                    if (!string.IsNullOrWhiteSpace(DeviceNum) && VariableNameGenerator.IsDefaultFormat(VarNum))
+                    {
+                        VarNum = VariableNameGenerator.GetInstance(DeviceNum).GenerateValidVariableName(VarNum, false, true);
+                    }
+                }
+            }
         }
 
         // 变量地址

@@ -35,6 +35,10 @@ namespace Coffee.DigitalPlatform.Common
 
         public string GenerateValidVariableName(string input, bool useCamelCase = false, bool isUniqueInSession = false)
         {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return "v_" + DateTime.Now.ToString("yyyyMMddHHmmssFFF");
+            }
             //将中文转换为拼音
             string inputText = NPinyin.Pinyin.GetPinyin(input).Replace(" ", "");
 
@@ -180,6 +184,25 @@ namespace Coffee.DigitalPlatform.Common
         private static bool IsCSharpKeyword(string name)
         {
             return CSharpKeywords.Contains(name.ToLower());
+        }
+
+        //判断变量名是否是默认格式的变量名，即以v_yyyyMMddHHmmssFFF格式命名
+        //第一次创建点位信息时，用户还没有指定变量名，系统会自动生成一个默认格式的变量名，以便保证点位信息始终有变量名，即使用户没有指定
+        //但是，如果用户指定了变量名，则系统会根据用户的变量名生成一个符合类变量的名字，以便在FilterScheme中使用
+        //注意：这个名字并不随用户修改点位名字而更改，因为它作为主键与其他对象（如条件选项等关联），所以一旦生成就不再更改
+        public static bool IsDefaultFormat(string variableName)
+        {
+            if (string.IsNullOrWhiteSpace(variableName))
+                return true;
+            var name = variableName.Trim();
+            if (!name.StartsWith("v_"))
+                return false;
+            return DateTime.TryParseExact(
+                name[2..], "yyyyMMddHHmmssFFF", // 提供日期格式
+                null, // 使用默认的格式提供程序
+                System.Globalization.DateTimeStyles.None,
+                out _ // 忽略解析结果
+            );
         }
     }
 }

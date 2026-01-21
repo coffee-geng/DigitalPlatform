@@ -13,6 +13,9 @@ namespace Coffee.DigitalPlatform.Models
         public int Index { get; set; }
         public string id { get; set; }
 
+        // 预警编号
+        public string AlarmNum { get; set; }
+
         //触发报警的条件，可以是单个表达式条件，也可以是多个表达式组合成的条件链
         private ICondition _condition;
         public ICondition Condition 
@@ -21,20 +24,36 @@ namespace Coffee.DigitalPlatform.Models
             set { SetProperty(ref _condition, value); }
         }
 
-        //是否处理过这个预警信息
-        private AlarmState _alarmState;
-        public AlarmState AlarmState 
-        {
-            get { return _alarmState; }
-            set { SetProperty(ref _alarmState, value); }
-        }
-
         //预警信息
         private string _alarmMessage;
         public string AlarmMessage
         {
             get { return _alarmMessage; }
             set { SetProperty(ref _alarmMessage, value); }
+        }
+
+        //是否处理过这个预警信息
+        private AlarmState _alarmState;
+        public AlarmState AlarmState
+        {
+            get { return _alarmState; }
+            set { SetProperty(ref _alarmState, value); }
+        }
+
+        //预警触发时间
+        private DateTime? _alarmTime;
+        public DateTime? AlarmTime
+        {
+            get { return _alarmTime; }
+            set { SetProperty(ref _alarmTime, value); }
+        }
+
+        //预警等级
+        private int _alarmLevel;
+        public int AlarmLevel
+        {
+            get { return _alarmLevel; }
+            set { SetProperty(ref _alarmLevel, value); }
         }
 
         private string _alarmTag;
@@ -97,6 +116,8 @@ namespace Coffee.DigitalPlatform.Models
 
         public AlarmStatus Status { get; private set; }
 
+        //当预警处理完成，则记录处理时间
+        //否则，处理时间为null
         public DateTime? SolvedTime {  get; set; }
     }
 

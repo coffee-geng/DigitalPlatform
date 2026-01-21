@@ -6,6 +6,7 @@ using Dapper;
 using Microsoft.Data.Sqlite;
 using SQLitePCL;
 using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Diagnostics;
@@ -13,6 +14,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Xml.Linq;
 using static Dapper.SqlMapper;
 
 namespace Coffee.DigitalPlatform.DataAccess
@@ -185,10 +187,10 @@ namespace Coffee.DigitalPlatform.DataAccess
                         transaction.Commit();
                         return rows;
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         transaction.Rollback();
-                        throw new Exception($"Sql语句执行失败：{curSql}", ex); 
+                        throw new Exception($"Sql语句执行失败：{curSql}", ex);
                     }
                 }
             }
@@ -236,9 +238,6 @@ namespace Coffee.DigitalPlatform.DataAccess
 
         public void SaveDevices(IList<DeviceEntity> devices)
         {
-            if (devices == null)
-                throw new ArgumentNullException($"没有设备需要保存");
-
             var sourceDevices = ReadDevices();
             var deviceUpdateStateDict = checkDevicesForUpdating(sourceDevices, devices);
 
@@ -403,7 +402,7 @@ namespace Coffee.DigitalPlatform.DataAccess
             devicesForAdd.ForEach(d => itemUpdateStateDict.Add(d, ItemUpdateStates.Added));
 
             var otherDevices = sourceDevices.Intersect(targetDevices, new DeviceByNumComparer()).ToList(); //包括属性变更或未变更的设备
-            
+
             foreach (var sourceDevice in otherDevices)
             {
                 var targetDevice = targetDevices.FirstOrDefault(d => string.Equals(d.DeviceNum, sourceDevice.DeviceNum, StringComparison.OrdinalIgnoreCase));
@@ -428,7 +427,7 @@ namespace Coffee.DigitalPlatform.DataAccess
             var devices = SqlQuery<DeviceEntity>(sql);
             if (devices != null && devices.Any())
             {
-                foreach(var device in devices)
+                foreach (var device in devices)
                 {
                     //获取设备的通信参数
                     var commParams = GetCommunicationParametersByDevice(device.DeviceNum);
@@ -611,7 +610,13 @@ namespace Coffee.DigitalPlatform.DataAccess
         #endregion
 
         #region 预警信息
-        public void AddAlarmInfoToDevice(DeviceEntity device, AlarmEntity alarmInfo, ConditionEntity condition)
+        public void AddOrModifyAlarmInfoToDevice(DeviceEntity device, AlarmEntity alarmInfo, ConditionEntity condition)
+        {
+            var sqlCommands = CreateSqlCommandsForAddOrModifyAlarm(device, alarmInfo, condition);
+            SqlExecute(sqlCommands);
+        }
+
+        public IList<SqlCommand> CreateSqlCommandsForAddOrModifyAlarm(DeviceEntity device, AlarmEntity alarmInfo, ConditionEntity condition)
         {
             if (device == null)
                 throw new ArgumentNullException(nameof(device));
@@ -619,33 +624,42 @@ namespace Coffee.DigitalPlatform.DataAccess
                 throw new ArgumentNullException(nameof(condition));
             SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
             SqlMapper.SetTypeMap(typeof(AlarmEntity), new ColumnAttributeTypeMapper<AlarmEntity>());
-            
+
             AddCondition(condition);
 
-            SqlCommand cmd = new SqlCommand(@"INSERT INTO alarms(a_num, c_num, d_num, content, alarm_time, level, state, user_id, solve_time) 
-                                                VALUES (@AlarmNum, @CNum, @DeviceNum, @Content, @AlarmTime, @Level, @State, @UserId, @SolveTime);", new Dictionary<string, object>()
+            SqlCommand cmd = new SqlCommand(@"INSERT INTO alarms(a_num, c_num, d_num, content, alarm_time, level, state, user_id, solve_time, tag) 
+                                                VALUES (@AlarmNum, @CNum, @DeviceNum, @Content, @AlarmTime, @Level, @State, @UserId, @SolveTime, @Tag)
+                                                ON CONFLICT(a_num, d_num) DO UPDATE
+                                                SET c_num=@CNum, content=@Content, alarm_time=@AlarmTime, level=@Level, state=@State, user_id=@UserId, solve_time=@SolveTime", new Dictionary<string, object>()
                                                 {
                                                     { "@AlarmNum", alarmInfo.AlarmNum },
                                                     { "@CNum", alarmInfo.ConditionNum },
                                                     { "@DeviceNum", alarmInfo.DeviceNum },
-                                                    { "@Content", alarmInfo.AlarmContent },
+                                                    { "@Content", alarmInfo.AlarmMessage },
                                                     { "@AlarmTime", alarmInfo.AlarmTime },
                                                     { "@Level", alarmInfo.AlarmLevel },
                                                     { "@State", alarmInfo.State },
                                                     { "@UserId", alarmInfo.UserId },
-                                                    { "@SolveTime", alarmInfo.SolveTime }
+                                                    { "@SolveTime", alarmInfo.SolvedTime },
+                                                    { "@Tag", alarmInfo.AlarmTag   }
                                                 });
             IList<SqlCommand> sqlCommands = new List<SqlCommand>();
             sqlCommands.Add(cmd);
-            SqlExecute(sqlCommands);
+            return sqlCommands;
         }
 
         public void DeleteAlarmInfoFromDevice(DeviceEntity device, string alarmNum)
         {
+            var sqlCommands = CreateSqlCommandsForDeleteAlarm(device, alarmNum);
+            SqlExecute(sqlCommands);
+        }
+
+        public IList<SqlCommand> CreateSqlCommandsForDeleteAlarm(DeviceEntity device, string alarmNum)
+        {
             if (device == null)
-                return;
+                return Enumerable.Empty<SqlCommand>().ToList();
             if (string.IsNullOrEmpty(alarmNum))
-                return;
+                return Enumerable.Empty<SqlCommand>().ToList();
 
             IList<SqlCommand> sqlCommands = new List<SqlCommand>();
             var cmd = new SqlCommand("DELETE FROM alarms WHERE a_num = @AlarmNum", new Dictionary<string, object>()
@@ -653,7 +667,7 @@ namespace Coffee.DigitalPlatform.DataAccess
                     { "@AlarmNum", alarmNum }
                 });
             sqlCommands.Add(cmd);
-            SqlExecute(sqlCommands);
+            return sqlCommands;
         }
 
         public IList<AlarmEntity> GetAlarmsForDevice(DeviceEntity device)
@@ -678,8 +692,14 @@ namespace Coffee.DigitalPlatform.DataAccess
 
         private void AddCondition(ConditionEntity condition)
         {
+            var sqlCommands = CreateSqlCommandsForAddingCondition(condition);
+            SqlExecute(sqlCommands);
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForAddingCondition(ConditionEntity condition)
+        {
             if (condition == null)
-                return;
+                return Enumerable.Empty<SqlCommand>().ToList();
             if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
             {
                 { "@CNum", condition.CNum }
@@ -688,35 +708,45 @@ namespace Coffee.DigitalPlatform.DataAccess
                 throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
             }
 
-            //全删全插
-            var childConditions = getChildConditions(condition);
             IList<SqlCommand> sqlCommands = new List<SqlCommand>();
-            foreach (var childCondition in childConditions)
+            //全删全插
+            //注意：删除条件选项时，其字条件也需要同时删除
+            //但是，这里在添加条件选项时，只添加当前条件，不会主动添加其子条件，因为ConditionEntity中不包含子条件信息。要同时添加父条件和子条件，需在参数中指定
+            var childConditions = getChildConditions(condition);
+            if (childConditions != null)
             {
-                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                foreach (var childCondition in childConditions)
                 {
-                    { "@CNum", childCondition.CNum }
-                });
-                sqlCommands.Add(cmd);
+                    var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                    {
+                        { "@CNum", childCondition.CNum }
+                    });
+                    sqlCommands.Add(cmd);
+                }
             }
-            SqlCommand cmd2 = new SqlCommand(@"INSERT INTO conditions(c_num, c_type, parent_id, v_num, operator, value) 
-                                                VALUES (@CNum, @CType, @ParentId, @VarNum, @Operator, @Value);", new Dictionary<string, object>()
+            SqlCommand cmd2 = new SqlCommand(@"INSERT INTO conditions(c_num, c_type, c_num_parent, v_num, operator, value) 
+                                                VALUES (@CNum, @CType, @CNum_Parent, @VarNum, @Operator, @Value);", new Dictionary<string, object>()
                                                 {
                                                     { "@CNum", condition.CNum },
                                                     { "@CType", (int)condition.ConditionNodeTypes },
-                                                    { "@ParentId", condition.ParentId },
+                                                    { "@ParentId", condition.CNum_Parent },
                                                     { "@VarNum", condition.VarNum },
                                                     { "@Operator", condition.Operator },
                                                     { "@Value", condition.Value },
                                                 });
-            sqlCommands.Add(cmd2);
-            SqlExecute(sqlCommands);
+            return sqlCommands;
         }
 
         private void AddConditions(IEnumerable<ConditionEntity> conditions)
         {
+            var sqlCommands = CreateSqlCommandsForAddingConditions(conditions);
+            SqlExecute(sqlCommands);
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForAddingConditions(IEnumerable<ConditionEntity> conditions)
+        {
             if (conditions == null || !conditions.Any())
-                return;
+                return Enumerable.Empty<SqlCommand>().ToList();
             foreach (var condition in conditions)
             {
                 if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
@@ -729,10 +759,15 @@ namespace Coffee.DigitalPlatform.DataAccess
             }
 
             //全删全插
+            //注意：删除条件选项时，其字条件也需要同时删除
+            //但是，这里在添加条件选项时，只添加当前条件，不会主动添加其子条件，因为ConditionEntity中不包含子条件信息。要同时添加父条件和子条件，需在参数中指定
             List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
             foreach (var condition in conditions)
             {
-                allConditionsForDelete.AddRange(getChildConditions(condition));
+                var childConditions = getChildConditions(condition);
+                if (childConditions == null)
+                    continue;
+                allConditionsForDelete.AddRange(childConditions);
             }
             allConditionsForDelete = allConditionsForDelete.DistinctBy(c => c.CNum).OrderByDescending(c => c.Level).ToList();
 
@@ -748,26 +783,32 @@ namespace Coffee.DigitalPlatform.DataAccess
 
             foreach (var condition in conditions)
             {
-                SqlCommand cmd2 = new SqlCommand(@"INSERT INTO conditions(c_num, c_type, parent_id, v_num, operator, value) 
-                                                VALUES (@CNum, @CType, @ParentId, @VarNum, @Operator, @Value);", new Dictionary<string, object>()
+                SqlCommand cmd2 = new SqlCommand(@"INSERT INTO conditions(c_num, c_type, c_num_parent, v_num, operator, value) 
+                                                VALUES (@CNum, @CType, @CNum_Parent, @VarNum, @Operator, @Value);", new Dictionary<string, object>()
                                                 {
                                                     { "@CNum", condition.CNum },
                                                     { "@CType", (int)condition.ConditionNodeTypes },
-                                                    { "@ParentId", condition.ParentId },
+                                                    { "@CNum_Parent", condition.CNum_Parent },
                                                     { "@VarNum", condition.VarNum },
                                                     { "@Operator", condition.Operator },
                                                     { "@Value", condition.Value },
                                                 });
                 sqlCommands.Add(cmd2);
             }
-            
-            SqlExecute(sqlCommands);
+
+            return sqlCommands;
         }
 
-        private void DeleteCondition(ConditionEntity condition) 
+        private void DeleteCondition(ConditionEntity condition)
+        {
+            var delConditionCommands = CreateSqlCommandsForDeleteCondition(condition);
+            SqlExecute(delConditionCommands);
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForDeleteCondition(ConditionEntity condition)
         {
             if (condition == null)
-                return;
+                return Enumerable.Empty<SqlCommand>().ToList();
             //如果指定条件正在使用，则不允许删除
             if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
             {
@@ -776,11 +817,11 @@ namespace Coffee.DigitalPlatform.DataAccess
             {
                 throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
             }
-            
+
             var childConditions = getChildConditions(condition);
             //删除指定条件及其组内的所有子条件项
             IList<SqlCommand> delConditionCommands = new List<SqlCommand>();
-            foreach(var childCondition in childConditions)
+            foreach (var childCondition in childConditions)
             {
                 var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
                 {
@@ -788,13 +829,19 @@ namespace Coffee.DigitalPlatform.DataAccess
                 });
                 delConditionCommands.Add(cmd);
             }
-            SqlExecute(delConditionCommands);
+            return delConditionCommands;
         }
 
         private void DeleteConditions(IEnumerable<ConditionEntity> conditions)
         {
+            var sqlCommands = CreateSqlCommandsForDeleteConditions(conditions);
+            SqlExecute(sqlCommands);
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForDeleteConditions(IEnumerable<ConditionEntity> conditions)
+        {
             if (conditions == null || !conditions.Any())
-                return;
+                return Enumerable.Empty<SqlCommand>().ToList();
             foreach (var condition in conditions)
             {
                 if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
@@ -823,7 +870,32 @@ namespace Coffee.DigitalPlatform.DataAccess
                 });
                 sqlCommands.Add(cmd);
             }
-            SqlExecute(sqlCommands);
+            return sqlCommands;
+        }
+
+        //获取所有预警条件，包括一级预警条件及其子条件
+        public IEnumerable<ConditionEntity> GetConditions()
+        {
+            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
+            return SqlQuery<ConditionEntity>("SELECT * FROM conditions");
+        }
+
+        //获取所有一级预警条件
+        public IEnumerable<ConditionEntity> GetTopConditions()
+        {
+            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
+            return SqlQuery<ConditionEntity>("SELECT * FROM conditions WHERE c_num_parent IS NULL");
+        }
+
+        public ConditionEntity? GetConditionByCNum(string c_num)
+        {
+            if (string.IsNullOrWhiteSpace(c_num))
+                return null;
+            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
+            return SqlQueryFirst<ConditionEntity>("SELECT * FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+            {
+                { "@CNum", c_num }
+            });
         }
 
         private IEnumerable<ConditionEntity> getChildConditions(ConditionEntity condition)
@@ -849,32 +921,171 @@ namespace Coffee.DigitalPlatform.DataAccess
             return childConditions;
         }
 
+        public Dictionary<string, IList<AlarmEntity>> ReadAlarms()
+        {
+            SqlMapper.SetTypeMap(typeof(AlarmEntity), new ColumnAttributeTypeMapper<AlarmEntity>());
+            var alarms = SqlQuery<AlarmEntity>("SELECT * FROM alarms");
+            if (alarms != null && alarms.Any())
+            {
+                return alarms.GroupBy(a => a.DeviceNum)
+                             .ToDictionary(g => g.Key, g => (IList<AlarmEntity>)g.ToList());
+            }
+            else
+            {
+                return new Dictionary<string, IList<AlarmEntity>>();
+            }
+        }
+
+        /// <summary>
+        /// 保存设备的预警信息。
+        /// </summary>
+        /// <param name="deviceAlarmDict">所有的设备及其预警信息</param>
+        /// <param name="topConditionDict">所有的一级预警条件，只有一级预警条件才能作为设备预警的触发条件</param>
+        public void SaveAlarms(Dictionary<string, IList<AlarmEntity>> deviceAlarmDict, Dictionary<string, IList<ConditionEntity>> conditionDict)
+        {
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var topConditionDict = new Dictionary<string, ConditionEntity>();
+            var conditionList = new List<ConditionEntity>(); //要写入的所有条件实体
+            if (conditionDict != null)
+            {
+                foreach(var pair in conditionDict)
+                {
+                    if (!topConditionDict.ContainsKey(pair.Key))
+                    {
+                        topConditionDict.Add(pair.Key, pair.Value?.First(c => string.IsNullOrEmpty(c.CNum_Parent)));
+
+                        conditionList.AddRange(pair.Value);
+                    }
+                }
+            }
+            //保存所有关联的预警条件
+
+            var sqlCommandsForConditions = CreateSqlCommandsForAddingConditions(conditionList.DistinctBy(c => c.CNum));
+            sqlCommands.AddRange(sqlCommandsForConditions);
+
+            var alarmUpdateStateDict = checkAlarmsForUpdating(ReadAlarms(), deviceAlarmDict);
+            var alarmsForAdd = alarmUpdateStateDict.Where(pair => pair.Value == ItemUpdateStates.Added);
+            foreach (var pair in alarmsForAdd)
+            {
+                var alarm = pair.Key;
+                if (topConditionDict.TryGetValue(alarm.ConditionNum, out ConditionEntity condition))
+                {
+                    var sqlCommandsForAdd = CreateSqlCommandsForAddOrModifyAlarm(new DeviceEntity { DeviceNum = alarm.DeviceNum }, alarm, condition);
+                    sqlCommands.AddRange(sqlCommandsForAdd);
+                }
+                else
+                {
+                    //如果没有找到对应的一级预警条件，则当前预警信息无效，需将其从数据库中剔除
+                    var sqlCommandsForDelete = CreateSqlCommandsForDeleteAlarm(new DeviceEntity { DeviceNum = alarm.DeviceNum }, alarm.AlarmNum);
+                    sqlCommands.AddRange(sqlCommandsForDelete);
+                }
+            }
+
+            SqlExecute(sqlCommands);
+        }
+
+        private Dictionary<AlarmEntity, ItemUpdateStates> checkAlarmsForUpdating(Dictionary<string, IList<AlarmEntity>> sourceAlarmDict, Dictionary<string, IList<AlarmEntity>> targetAlarmDict)
+        {
+            if (sourceAlarmDict == null || !sourceAlarmDict.Any())
+                return targetAlarmDict != null ? targetAlarmDict.SelectMany(kvp => kvp.Value).ToDictionary(a => a, a => ItemUpdateStates.Added) : new Dictionary<AlarmEntity, ItemUpdateStates>();
+            if (targetAlarmDict == null || !targetAlarmDict.Any())
+            {
+                if (sourceAlarmDict != null && sourceAlarmDict.Any())
+                    return sourceAlarmDict.SelectMany(kvp => kvp.Value).ToDictionary(a => a, a => ItemUpdateStates.Deleted);
+                else
+                    return new Dictionary<AlarmEntity, ItemUpdateStates>();
+            }
+            Dictionary<AlarmEntity, ItemUpdateStates> itemUpdateStateDict = new Dictionary<AlarmEntity, ItemUpdateStates>();
+            //先判断每个设备的更新状态，即它是新添加或被删除的，还是需要进一步比较
+            foreach (var sourceKvp in sourceAlarmDict)
+            {
+                var deviceNum = sourceKvp.Key;
+                var sourceAlarms = sourceKvp.Value;
+                if (!targetAlarmDict.ContainsKey(deviceNum))
+                {
+                    //目标集合中不存在该设备，则该设备的所有报警信息均为删除状态
+                    foreach (var alarm in sourceAlarms)
+                    {
+                        itemUpdateStateDict.Add(alarm, ItemUpdateStates.Deleted);
+                    }
+                }
+                else
+                {
+                    var targetAlarms = targetAlarmDict[deviceNum];
+                    var alarmsForRemove = sourceAlarms.Except(targetAlarms, new AlarmByNumComparer()).ToList();
+                    alarmsForRemove.ForEach(a => itemUpdateStateDict.Add(a, ItemUpdateStates.Deleted));
+                    var alarmsForAdd = targetAlarms.Except(sourceAlarms, new AlarmByNumComparer()).ToList();
+                    alarmsForAdd.ForEach(a => itemUpdateStateDict.Add(a, ItemUpdateStates.Added));
+
+                    var otherAlarms = sourceAlarms.Intersect(targetAlarms, new AlarmByNumComparer()).ToList(); //包括属性变更或未变更的报警信息
+                    foreach (var sourceAlarm in otherAlarms)
+                    {
+                        var targetAlarm = targetAlarms.FirstOrDefault(a => string.Equals(a.AlarmNum, sourceAlarm.AlarmNum, StringComparison.OrdinalIgnoreCase) && string.Equals(a.DeviceNum, sourceAlarm.DeviceNum, StringComparison.OrdinalIgnoreCase));
+                        if (targetAlarm == null)
+                            continue;
+                        if (!targetAlarm.Equals(sourceAlarm))
+                        {
+                            itemUpdateStateDict.Add(targetAlarm, ItemUpdateStates.Modified);
+                        }
+                        else
+                        {
+                            itemUpdateStateDict.Add(targetAlarm, ItemUpdateStates.Unchanged);
+                        }
+                    }
+                }
+            }
+            return itemUpdateStateDict;
+        }
         #endregion
-    }
 
-    internal class DeviceByNumComparer : IEqualityComparer<DeviceEntity>
-    {
-        public bool Equals(DeviceEntity x, DeviceEntity y)
+        internal class DeviceByNumComparer : IEqualityComparer<DeviceEntity>
         {
-            if (x == null && y == null)
-                return true;
-            if (x == null || y == null)
-                return false;
-            return string.Equals(x.DeviceNum, y.DeviceNum, StringComparison.OrdinalIgnoreCase);
+            public bool Equals(DeviceEntity x, DeviceEntity y)
+            {
+                if (x == null && y == null)
+                    return true;
+                if (x == null || y == null)
+                    return false;
+                return string.Equals(x.DeviceNum, y.DeviceNum, StringComparison.OrdinalIgnoreCase);
+            }
+            public int GetHashCode(DeviceEntity obj)
+            {
+                if (obj == null || string.IsNullOrEmpty(obj.DeviceNum))
+                    return 0;
+                return obj.DeviceNum.GetHashCode();
+            }
         }
-        public int GetHashCode(DeviceEntity obj)
-        {
-            if (obj == null || string.IsNullOrEmpty(obj.DeviceNum))
-                return 0;
-            return obj.DeviceNum.GetHashCode();
-        }
-    }
 
-    public enum ItemUpdateStates
-    {
-        Unchanged = 0,
-        Added = 1,
-        Modified = 2,
-        Deleted = 3
+        internal class AlarmByNumComparer : IEqualityComparer<AlarmEntity>
+        {
+            public bool Equals(AlarmEntity x, AlarmEntity y)
+            {
+                if (x == null && y == null)
+                    return true;
+                if (x == null || y == null)
+                    return false;
+                return string.Equals(x.AlarmNum, y.AlarmNum, StringComparison.OrdinalIgnoreCase) && string.Equals(x.DeviceNum, y.DeviceNum, StringComparison.OrdinalIgnoreCase);
+            }
+            public int GetHashCode(AlarmEntity obj)
+            {
+                if (obj == null || string.IsNullOrEmpty(obj.AlarmNum))
+                    return 0;
+                unchecked // 允许溢出
+                {
+                    int hash = 17;
+                    hash = hash * 23 + (obj.AlarmNum?.GetHashCode() ?? 0);
+                    hash = hash * 23 + (obj.DeviceNum?.GetHashCode() ?? 0);
+                    return hash;
+                }
+            }
+        }
+
+        public enum ItemUpdateStates
+        {
+            Unchanged = 0,
+            Added = 1,
+            Modified = 2,
+            Deleted = 3
+        }
     }
 }

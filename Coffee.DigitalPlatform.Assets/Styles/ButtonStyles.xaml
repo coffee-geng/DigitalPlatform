@@ -27,7 +27,7 @@
                                     </RadialGradientBrush>
                                 </Border.Background>
                             </Border>
-                            <Border CornerRadius="4" Background="{TemplateBinding Background}"/>
+                            <Border CornerRadius="4" Background="{TemplateBinding Background}" Name="border"/>
                             <Border Background="#11000000" CornerRadius="5" Visibility="Collapsed" Name="mask"/>
 
                             <ContentPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
@@ -37,6 +37,9 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="mask" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Background" Value="Gray"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

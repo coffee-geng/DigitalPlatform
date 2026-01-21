@@ -24,22 +24,25 @@ namespace Coffee.DigitalPlatform.Entities
         /// 记录类型：正常0、报警10、报警已处理1、联控2
         /// </summary>
         [Column(name: "state")]
-        public string State { get; set; }
+        public string? State { get; set; }
 
         [Column(name: "a_num")]
         public string AlarmNum { get; set; }
 
         [Column(name: "content")]
-        public string AlarmContent { get; set; }
+        public string AlarmMessage { get; set; }
+
+        [Column(name: "tag")]
+        public string? AlarmTag { get; set; }
 
         [Column(name: "level")]
-        public string AlarmLevel { get; set; }
+        public int AlarmLevel { get; set; }
 
         [Column("alarm_time")]
-        public string AlarmTime { get; set; }
+        public string? AlarmTime { get; set; }
 
         [Column("solve_time")]
-        public string SolveTime { get; set; }
+        public string? SolvedTime { get; set; }
         #endregion
         /// <summary>
         /// 操作员

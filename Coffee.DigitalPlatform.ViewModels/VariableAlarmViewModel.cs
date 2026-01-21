@@ -25,7 +25,7 @@ namespace Coffee.DigitalPlatform.ViewModels
         {
             CurrentDevice = device;
 
-            AddAlarmCommand = new RelayCommand(doAddAlarmCommand);
+            AddAlarmCommand = new RelayCommand(doAddAlarmCommand, canDoAddAlarmCommand);
             EditAlarmCommand = new RelayCommand<Alarm>(doEditAlarmCommand, canDoEditAlarmCommand);
             RemoveAlarmCommand = new RelayCommand<Alarm>(doRemoveAlarmCommand, canDoRemoveAlarmCommand);
             ConfirmAddAlarmCommand = new RelayCommand<Alarm>(doConfirmAddAlarmCommand);
@@ -34,9 +34,49 @@ namespace Coffee.DigitalPlatform.ViewModels
             CancelEditAlarmCommand = new RelayCommand<Alarm>(doCancelEditAlarmCommand);
 
             ReceiveFilterSchemeCommand = new RelayCommand<ReceiveFilterSchemeArgs>(doReceiveFilterSchemeCommand);
+
+            if (CurrentDevice.Variables != null && CurrentDevice.Variables.Count > 0)
+            {
+                var instance = createAlarmConditionFilter();
+                var dynamicType = instance.GetType();
+
+                //根据设备点位信息，定义了当前设备预警条件的默认筛选器上下文
+                var filterScheme = new FilterScheme(dynamicType)
+                {
+                    Title = Guid.NewGuid().ToString()
+                };
+                var schemeInfo = new FilterSchemeEditInfo(filterScheme, new List<dynamic>() { instance }, true, true);
+
+                if (device.Alarms != null && device.Alarms.Count > 0)
+                {
+                    foreach (var alarm in device.Alarms)
+                    {
+                        ICondition topCondition = alarm.Condition;
+                        if (topCondition != null)
+                        {
+                            topCondition.SyncDeviceNum(device.DeviceNum);
+                        }
+                        initVariableInCondition(topCondition, device, dynamicType);
+                        if (topCondition != null)
+                        {
+                            //根据当前预警条件，生成对应的条件筛选器上下文
+                            var filterSchemeByAlarm = new FilterScheme(dynamicType, Guid.NewGuid().ToString(), alarm.Condition.Raw);
+                            var schemeInfoByAlarm = new FilterSchemeEditInfo(filterScheme, new List<dynamic>() { instance }, true, true);
+                            alarm.ConditionTemplate = schemeInfoByAlarm;
+                            alarm.FormattedCondition = topCondition.ToString();
+                        }
+                        else
+                        {
+                            alarm.ConditionTemplate = schemeInfo;
+                        }
+                        alarm.IsFirstEditing = false;
+                        this.AlarmConditions.Add(alarm);
+                    }
+                }
+            }
         }
 
-        public Device CurrentDevice { get; set; }
+        public Device CurrentDevice { get; private set; }
 
         public ObservableCollection<Alarm> AlarmConditions { get; set; } = new ObservableCollection<Alarm>();
 
@@ -55,6 +95,10 @@ namespace Coffee.DigitalPlatform.ViewModels
                     if (RemoveAlarmCommand != null)
                     {
                         RemoveAlarmCommand.NotifyCanExecuteChanged();
+                    }
+                    if (AddAlarmCommand != null)
+                    {
+                        AddAlarmCommand.NotifyCanExecuteChanged();
                     }
                 }
             }
@@ -82,42 +126,9 @@ namespace Coffee.DigitalPlatform.ViewModels
         {
             if (CurrentDevice.Variables != null && CurrentDevice.Variables.Count > 0)
             {
-                var variables = CurrentDevice.Variables.Distinct(new VariableByNameComparer());
-                var varGenerator = VariableNameGenerator.GetInstance(CurrentDevice.DeviceNum);
-                Dictionary<string, Type> properties = new Dictionary<string, Type>();
-                Dictionary<Variable, string> variableNameDict = new Dictionary<Variable, string>(); //保存的是点位信息对象和其传入FilterBuilder中的变量名
-                foreach(var @var in variables)
-                {
-                    string varNameInFilterScheme = varGenerator.GenerateValidVariableName(@var.VarName);
-                    properties.Add(varNameInFilterScheme, var.VarType);
-                    variableNameDict.Add(var, varNameInFilterScheme);
-                }
-                Type dynamicType = DynamicClassCreator.CreateDynamicType(CurrentDevice.DeviceNum, properties, (TypeBuilder typeBuilder, Dictionary<string, PropertyBuilder> propertyBuildDict) =>
-                {
-                    foreach (var variable in variables)
-                    {
-                        // 获取自定义属性的构造函数
-                        Type attributeType = typeof(DisplayNameAttribute);
-                        ConstructorInfo constructor = attributeType.GetConstructor(new Type[] { typeof(string) });
-                        // 准备构造函数的参数
-                        object[] constructorArgs = new object[] { variable.VarName };
-                        CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(constructor, constructorArgs, new PropertyInfo[] { }, new object[] { });
-                        var varNameInFilterScheme = variableNameDict[variable];
-                        if (propertyBuildDict.TryGetValue(varNameInFilterScheme, out PropertyBuilder propertyBuild))
-                        {
-                            propertyBuild.SetCustomAttribute(attributeBuilder);
-                        }
-                    }
-                });
-                object instance = Activator.CreateInstance(dynamicType);
-                foreach (var variable in variables)
-                {
-                    var propInfo = dynamicType.GetProperty(variable.VarName);
-                    if (propInfo != null)
-                    {
-                        propInfo.SetValue(instance, variable.Value);
-                    }
-                }
+                var instance = createAlarmConditionFilter();
+                var dynamicType = instance.GetType();
+
                 var filterScheme = new FilterScheme(dynamicType)
                 {
                     Title = Guid.NewGuid().ToString()
@@ -134,6 +145,11 @@ namespace Coffee.DigitalPlatform.ViewModels
             }
         }
 
+        private bool canDoAddAlarmCommand()
+        {
+            return !this.IsEditingAlarm;
+        }
+
         private void doEditAlarmCommand(Alarm alarm)
         {
             if (alarm == null)
@@ -141,43 +157,9 @@ namespace Coffee.DigitalPlatform.ViewModels
             alarm.NewAlarmMessage = alarm.AlarmMessage;
             alarm.NewAlarmTag = alarm.AlarmTag;
             alarm.IsFirstEditing = false;
-            
-            var variables = CurrentDevice.Variables.Distinct(new VariableByNameComparer());
-            var varGenerator = VariableNameGenerator.GetInstance(CurrentDevice.DeviceNum);
-            Dictionary<string, Type> properties = new Dictionary<string, Type>();
-            Dictionary<Variable, string> variableNameDict = new Dictionary<Variable, string>(); //保存的是点位信息对象和其传入FilterBuilder中的变量名
-            foreach (var @var in variables)
-            {
-                string varNameInFilterScheme = varGenerator.GenerateValidVariableName(@var.VarName);
-                properties.Add(varNameInFilterScheme, var.VarType);
-                variableNameDict.Add(var, varNameInFilterScheme);
-            }
-            Type dynamicType = DynamicClassCreator.CreateDynamicType(CurrentDevice.DeviceNum, properties, (TypeBuilder typeBuilder, Dictionary<string, PropertyBuilder> propertyBuildDict) =>
-            {
-                foreach (var variable in variables)
-                {
-                    // 获取自定义属性的构造函数
-                    Type attributeType = typeof(DisplayNameAttribute);
-                    ConstructorInfo constructor = attributeType.GetConstructor(new Type[] { typeof(string) });
-                    // 准备构造函数的参数
-                    object[] constructorArgs = new object[] { variable.VarName };
-                    CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(constructor, constructorArgs, new PropertyInfo[] { }, new object[] { });
-                    var varNameInFilterScheme = variableNameDict[variable];
-                    if (propertyBuildDict.TryGetValue(varNameInFilterScheme, out PropertyBuilder propertyBuild))
-                    {
-                        propertyBuild.SetCustomAttribute(attributeBuilder);
-                    }
-                }
-            });
-            object instance = Activator.CreateInstance(dynamicType);
-            foreach (var variable in variables)
-            {
-                var propInfo = dynamicType.GetProperty(variable.VarName);
-                if (propInfo != null)
-                {
-                    propInfo.SetValue(instance, variable.Value);
-                }
-            }
+
+            var instance = createAlarmConditionFilter();
+            var dynamicType = instance.GetType();
 
             var filterScheme = new FilterScheme(dynamicType, Guid.NewGuid().ToString(), alarm.Condition.Raw);
             var schemeInfo = new FilterSchemeEditInfo(filterScheme, new List<dynamic>() { instance }, true, true);
@@ -224,6 +206,8 @@ namespace Coffee.DigitalPlatform.ViewModels
             if (alarm == null || alarm.ConditionTemplate == null)
                 return;
             var conditionChain = ConditionFactory.CreateCondition(alarm.ConditionTemplate.FilterScheme);
+            
+            alarm.AlarmNum = "a_" + DateTime.Now.ToString("yyyyMMddHHmmssFFF");
             alarm.AlarmMessage = alarm.NewAlarmMessage;
             alarm.AlarmTag = alarm.NewAlarmTag;
             alarm.Condition = conditionChain;
@@ -291,6 +275,95 @@ namespace Coffee.DigitalPlatform.ViewModels
             if (args.Alarm == null) return;
             object instance = Activator.CreateInstance(args.FilterScheme.TargetType);
             args.Alarm.ConditionTemplate = new FilterSchemeEditInfo(args.FilterScheme, new List<dynamic>() { instance }, true, true);
+        }
+
+        //根据当前设备的点位变量信息生成用于过滤预警条件的类
+        private object createAlarmConditionFilter()
+        {
+            try
+            {
+                var variables = CurrentDevice.Variables.Distinct(new VariableByNameComparer());
+                var varGenerator = VariableNameGenerator.GetInstance(CurrentDevice.DeviceNum);
+                Dictionary<string, Type> properties = new Dictionary<string, Type>();
+                Dictionary<Variable, string> variableNameDict = new Dictionary<Variable, string>(); //保存的是点位信息对象和其传入FilterBuilder中的变量名
+                foreach (var @var in variables)
+                {
+                    string varNameInFilterScheme = @var.VarNum;
+                    properties.Add(varNameInFilterScheme, @var.VarType);
+                    variableNameDict.Add(@var, varNameInFilterScheme);
+                }
+                Type dynamicType = DynamicClassCreator.CreateDynamicType(CurrentDevice.DeviceNum, properties, (TypeBuilder typeBuilder, Dictionary<string, PropertyBuilder> propertyBuildDict) =>
+                {
+                    foreach (var variable in variables)
+                    {
+                        // 获取自定义属性的构造函数
+                        Type attributeType = typeof(DisplayNameAttribute);
+                        ConstructorInfo constructor = attributeType.GetConstructor(new Type[] { typeof(string) });
+                        // 准备构造函数的参数
+                        object[] constructorArgs = new object[] { variable.VarName };
+                        CustomAttributeBuilder attributeBuilder = new CustomAttributeBuilder(constructor, constructorArgs, new PropertyInfo[] { }, new object[] { });
+                        var varNameInFilterScheme = variableNameDict[variable];
+                        if (propertyBuildDict.TryGetValue(varNameInFilterScheme, out PropertyBuilder propertyBuild))
+                        {
+                            propertyBuild.SetCustomAttribute(attributeBuilder);
+                        }
+                    }
+                });
+                object instance = Activator.CreateInstance(dynamicType);
+                foreach (var variable in variables)
+                {
+                    var propInfo = dynamicType.GetProperty(variable.VarName);
+                    if (propInfo != null)
+                    {
+                        propInfo.SetValue(instance, variable.Value);
+                    }
+                }
+                return instance;
+            }
+            catch(Exception ex)
+            {
+                throw new Exception($"不能根据当前设备的点位变量信息生成用于过滤预警条件的类！", ex);
+            }
+        }
+
+        // 递归初始化预警条件中的点位变量信息
+        private void initVariableInCondition(ICondition condition, Device device, Type dynamicType)
+        {
+            if (condition == null)
+                return;
+            if (condition is Coffee.DigitalPlatform.Models.Condition conditionExp)
+            {
+                if (!string.Equals(conditionExp.Source.DeviceNum, device.DeviceNum))
+                {
+                    throw new Exception($"预警条件中的点位变量所属设备编号{conditionExp.Source.DeviceNum}，与当前设备编号{device.DeviceNum}不匹配，无法加载预警条件！");
+                }
+                var variable = device.Variables.FirstOrDefault(v => v.VarNum == conditionExp.Source.VarNum);
+                if (variable == null)
+                {
+                    throw new Exception($"预警条件中的点位变量编号{conditionExp.Source.VarNum}，在当前设备的点位变量列表中不存在，无法加载预警条件！");
+                }
+                PropertyInfo property = null;
+                try
+                {
+                    property = dynamicType.GetProperty(variable.VarNum);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"预警条件中的点位变量编号{conditionExp.Source.VarNum}，在当前设备的点位变量列表中不存在，无法加载预警条件！");
+                }
+                conditionExp.Source.OwnerTypeInFilterScheme = dynamicType;
+                conditionExp.Source.PropertyInFilterScheme = property;
+            }
+            else if (condition is Coffee.DigitalPlatform.Models.ConditionChain conditionGroup)
+            {
+                if (conditionGroup.ConditionItems.Any())
+                {
+                    foreach (var conditionItem in conditionGroup.ConditionItems)
+                    {
+                        initVariableInCondition(conditionItem, device, dynamicType);
+                    }
+                }
+            }
         }
         #endregion
     }
