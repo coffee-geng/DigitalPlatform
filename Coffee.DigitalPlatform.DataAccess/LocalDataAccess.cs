@@ -700,18 +700,28 @@ namespace Coffee.DigitalPlatform.DataAccess
         {
             if (condition == null)
                 return Enumerable.Empty<SqlCommand>().ToList();
-            if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
-            {
-                { "@CNum", condition.CNum }
-            }))
-            {
-                throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
-            }
-
             IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+
+            //if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            //{
+            //    { "@CNum", condition.CNum }
+            //}))
+            //{
+            //    //throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+            //    var cmd = new SqlCommand("DELETE FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            //        {
+            //            { "@CNum", condition.CNum }
+            //        });
+            //    sqlCommands.Add(cmd);
+            //}
+
             //全删全插
             //注意：删除条件选项时，其字条件也需要同时删除
             //但是，这里在添加条件选项时，只添加当前条件，不会主动添加其子条件，因为ConditionEntity中不包含子条件信息。要同时添加父条件和子条件，需在参数中指定
+            sqlCommands.Add(new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                            {
+                                { "@CNum", condition.CNum }
+                            }));
             var childConditions = getChildConditions(condition);
             if (childConditions != null)
             {
@@ -747,16 +757,23 @@ namespace Coffee.DigitalPlatform.DataAccess
         {
             if (conditions == null || !conditions.Any())
                 return Enumerable.Empty<SqlCommand>().ToList();
-            foreach (var condition in conditions)
-            {
-                if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
-                {
-                    { "@CNum", condition.CNum }
-                }))
-                {
-                    throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
-                }
-            }
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+
+            //foreach (var condition in conditions)
+            //{
+            //    if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            //    {
+            //        { "@CNum", condition.CNum }
+            //    }))
+            //    {
+            //        //throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+            //        var cmd = new SqlCommand("DELETE FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            //        {
+            //            { "@CNum", condition.CNum }
+            //        });
+            //        sqlCommands.Add(cmd);
+            //    }
+            //}
 
             //全删全插
             //注意：删除条件选项时，其字条件也需要同时删除
@@ -764,6 +781,7 @@ namespace Coffee.DigitalPlatform.DataAccess
             List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
             foreach (var condition in conditions)
             {
+                allConditionsForDelete.Add(condition);
                 var childConditions = getChildConditions(condition);
                 if (childConditions == null)
                     continue;
@@ -771,7 +789,6 @@ namespace Coffee.DigitalPlatform.DataAccess
             }
             allConditionsForDelete = allConditionsForDelete.DistinctBy(c => c.CNum).OrderByDescending(c => c.Level).ToList();
 
-            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
             foreach (var conditionItem in allConditionsForDelete)
             {
                 var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
@@ -810,18 +827,21 @@ namespace Coffee.DigitalPlatform.DataAccess
             if (condition == null)
                 return Enumerable.Empty<SqlCommand>().ToList();
             //如果指定条件正在使用，则不允许删除
-            if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
-            {
-                { "@CNum", condition.CNum }
-            }))
-            {
-                throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
-            }
+            //if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            //{
+            //    { "@CNum", condition.CNum }
+            //}))
+            //{
+            //    throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+            //}
 
-            var childConditions = getChildConditions(condition);
+            List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
             //删除指定条件及其组内的所有子条件项
+            allConditionsForDelete.Add(condition);
+            allConditionsForDelete.AddRange(getChildConditions(condition));
+
             IList<SqlCommand> delConditionCommands = new List<SqlCommand>();
-            foreach (var childCondition in childConditions)
+            foreach (var childCondition in allConditionsForDelete)
             {
                 var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
                 {
@@ -844,19 +864,20 @@ namespace Coffee.DigitalPlatform.DataAccess
                 return Enumerable.Empty<SqlCommand>().ToList();
             foreach (var condition in conditions)
             {
-                if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
-                {
-                    { "@CNum", condition.CNum }
-                }))
-                {
-                    throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
-                }
+                //if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+                //{
+                //    { "@CNum", condition.CNum }
+                //}))
+                //{
+                //    throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+                //}
             }
 
             List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
             foreach (var condition in conditions)
             {
                 //删除指定条件及其组内的所有子条件项
+                allConditionsForDelete.Add(condition);
                 allConditionsForDelete.AddRange(getChildConditions(condition));
             }
             allConditionsForDelete = allConditionsForDelete.DistinctBy(c => c.CNum).OrderByDescending(c => c.Level).ToList();
@@ -901,15 +922,15 @@ namespace Coffee.DigitalPlatform.DataAccess
         private IEnumerable<ConditionEntity> getChildConditions(ConditionEntity condition)
         {
             //如果指定条件在某个条件链上是其他条件项的组，当其组内任一条件项正在使用，则不允许删除
-            string sql = @"WITH RECURSIVE recursive_query(id, c_num, parent_id, level) AS (
-                           SELECT id, c_num, parent_id, 0 AS level FROM conditions WHERE parent_id = IN (SELECT id FROM conditions WHERE v_num=@VNum)
+            string sql = @"WITH RECURSIVE recursive_query(id, c_num, c_num_parent, level) AS (
+                           SELECT id, c_num, c_num_parent, 1 AS level FROM conditions WHERE c_num_parent = @CNum
 	                       UNION ALL
-	                       SELECT conditions.id, conditions.c_num, conditions.parent_id, level + 1 FROM conditions, recursive_query
-	                       WHERE conditions.parent_id = recursive_query.id
-                          );
+	                       SELECT conditions.id, conditions.c_num, conditions.c_num_parent, level + 1 FROM conditions, recursive_query
+	                       WHERE conditions.c_num_parent = recursive_query.c_num
+                          )
                           SELECT * FROM recursive_query ORDER BY level DESC;";
             Dictionary<string, object> paramDict = new Dictionary<string, object>();
-            paramDict.Add("@VNum", condition.CNum);
+            paramDict.Add("@CNum", condition.CNum);
             //返回指定条件组下的所有子条件项，并且按照其在条件链上的树状顺序由子节点到父节点遍历
             var childConditions = SqlQuery<ConditionEntity>(sql, paramDict);
             if (childConditions != null && childConditions.Any())
@@ -958,24 +979,41 @@ namespace Coffee.DigitalPlatform.DataAccess
                     }
                 }
             }
-            //保存所有关联的预警条件
+            
+            var oldTopConditions = GetTopConditions();
+            //得到当前还在使用的一级预警条件编号集合
+            var aliveConditionNumList = deviceAlarmDict.Select(p => p.Value).SelectMany(a => a)
+                           .Select(a => a.ConditionNum)
+                           .Distinct();
+            //删除那些不再使用的一级预警条件及其子条件
+            var topConditionsForDelete = oldTopConditions.Where(c => c.CNum_Parent == null && !aliveConditionNumList.Contains(c.CNum)).ToList();
+            var sqlCommandsForDeleteConditions = CreateSqlCommandsForDeleteConditions(topConditionsForDelete);
+            sqlCommands.AddRange(sqlCommandsForDeleteConditions);
 
             var sqlCommandsForConditions = CreateSqlCommandsForAddingConditions(conditionList.DistinctBy(c => c.CNum));
             sqlCommands.AddRange(sqlCommandsForConditions);
 
             var alarmUpdateStateDict = checkAlarmsForUpdating(ReadAlarms(), deviceAlarmDict);
-            var alarmsForAdd = alarmUpdateStateDict.Where(pair => pair.Value == ItemUpdateStates.Added);
-            foreach (var pair in alarmsForAdd)
+            foreach (var pair in alarmUpdateStateDict)
             {
-                var alarm = pair.Key;
-                if (topConditionDict.TryGetValue(alarm.ConditionNum, out ConditionEntity condition))
+                if (pair.Value == ItemUpdateStates.Added || pair.Value == ItemUpdateStates.Modified)
                 {
-                    var sqlCommandsForAdd = CreateSqlCommandsForAddOrModifyAlarm(new DeviceEntity { DeviceNum = alarm.DeviceNum }, alarm, condition);
-                    sqlCommands.AddRange(sqlCommandsForAdd);
+                    var alarm = pair.Key;
+                    if (topConditionDict.TryGetValue(alarm.ConditionNum, out ConditionEntity condition))
+                    {
+                        var sqlCommandsForAdd = CreateSqlCommandsForAddOrModifyAlarm(new DeviceEntity { DeviceNum = alarm.DeviceNum }, alarm, condition);
+                        sqlCommands.AddRange(sqlCommandsForAdd);
+                    }
+                    else
+                    {
+                        //如果没有找到对应的一级预警条件，则当前预警信息无效，需将其从数据库中剔除
+                        var sqlCommandsForDelete = CreateSqlCommandsForDeleteAlarm(new DeviceEntity { DeviceNum = alarm.DeviceNum }, alarm.AlarmNum);
+                        sqlCommands.AddRange(sqlCommandsForDelete);
+                    }
                 }
-                else
+                else if (pair.Value == ItemUpdateStates.Deleted)
                 {
-                    //如果没有找到对应的一级预警条件，则当前预警信息无效，需将其从数据库中剔除
+                    var alarm = pair.Key;
                     var sqlCommandsForDelete = CreateSqlCommandsForDeleteAlarm(new DeviceEntity { DeviceNum = alarm.DeviceNum }, alarm.AlarmNum);
                     sqlCommands.AddRange(sqlCommandsForDelete);
                 }

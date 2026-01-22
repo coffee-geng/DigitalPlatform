@@ -34,6 +34,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             CancelEditAlarmCommand = new RelayCommand<Alarm>(doCancelEditAlarmCommand);
 
             ReceiveFilterSchemeCommand = new RelayCommand<ReceiveFilterSchemeArgs>(doReceiveFilterSchemeCommand);
+            ResetCommand = new RelayCommand(doResetCommand);
 
             if (CurrentDevice.Variables != null && CurrentDevice.Variables.Count > 0)
             {
@@ -121,6 +122,8 @@ namespace Coffee.DigitalPlatform.ViewModels
         public RelayCommand<Alarm> CancelEditAlarmCommand { get; set; }
 
         public RelayCommand<ReceiveFilterSchemeArgs> ReceiveFilterSchemeCommand { get; set; }
+
+        public RelayCommand ResetCommand { get; set; }
 
         private void doAddAlarmCommand()
         {
@@ -275,6 +278,18 @@ namespace Coffee.DigitalPlatform.ViewModels
             if (args.Alarm == null) return;
             object instance = Activator.CreateInstance(args.FilterScheme.TargetType);
             args.Alarm.ConditionTemplate = new FilterSchemeEditInfo(args.FilterScheme, new List<dynamic>() { instance }, true, true);
+        }
+
+        private void doResetCommand()
+        {
+            //当退出窗口时，需要重置所有预警条件的编辑状态，以便下次打开窗口时没有预警条件处于编辑状态
+            if (this.AlarmConditions != null)
+            {
+                foreach(var alarm in this.AlarmConditions)
+                {
+                    alarm.IsEditing = false;
+                }
+            }
         }
 
         //根据当前设备的点位变量信息生成用于过滤预警条件的类

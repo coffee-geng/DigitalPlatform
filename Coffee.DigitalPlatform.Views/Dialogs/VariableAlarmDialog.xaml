@@ -68,7 +68,8 @@
 
         <Button Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource WindowControlButtonStyle}" 
         WindowChrome.IsHitTestVisibleInChrome="True" Margin="10,0" Content="&#xe653;" FontFamily="{StaticResource Iconfont}"
-        Width="30" Height="30" Click="BtnCancel_Click">
+        Width="30" Height="30" Click="BtnCancel_Click"
+                Command="{Binding ResetCommand}">
         </Button>
 
         <Button x:Name="btnAddCondition" Style="{StaticResource NormalButtonStyle}" 
