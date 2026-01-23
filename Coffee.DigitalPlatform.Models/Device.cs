@@ -32,6 +32,9 @@ namespace Coffee.DigitalPlatform.Models
 
             AddVariableCommand = new RelayCommand<Variable>(doAddVariable);
             RemoveVariableCommand = new RelayCommand<Variable>(doRemoveVariable, canRemoveVariable);
+
+            AddControlInfoByManualCommand = new RelayCommand<ControlInfoByManual>(doAddControlInfoByManual);
+            DeleteControlInfoByManualCommand = new RelayCommand<ControlInfoByManual>(doDeleteControlInfoByManualCommand, canDeleteControlInfoByManualCommand);
         }
 
         // 设备编号
@@ -498,7 +501,48 @@ namespace Coffee.DigitalPlatform.Models
         #region 预警信息
         public ObservableCollection<Alarm> Alarms { get; private set; } = new ObservableCollection<Alarm>();
 
+        #endregion
 
+        #region 手动控制设备
+        public ObservableCollection<ControlInfoByManual> ControlInfosByManual { get; private set; } = new ObservableCollection<ControlInfoByManual>();
+
+        public RelayCommand<ControlInfoByManual> AddControlInfoByManualCommand { get; set; }
+
+        public RelayCommand<ControlInfoByManual> DeleteControlInfoByManualCommand { get; set; }
+
+        private void doAddControlInfoByManual(ControlInfoByManual controlInfo)
+        {
+            //确保在同一个设备会话中，变量名唯一
+            VariableNameGenerator variableNameGenerator = VariableNameGenerator.GetInstance(this.DeviceNum);
+            if (controlInfo != null)
+            {
+                ControlInfosByManual.Add(controlInfo);
+            }
+            else
+            {
+                ControlInfosByManual.Add(new ControlInfoByManual()
+                {
+                    CNum = variableNameGenerator.GenerateValidVariableName(controlInfo?.Header, false, true),
+                    DeviceNum = this.DeviceNum
+                });
+            }
+        }
+
+        private void doDeleteControlInfoByManualCommand(ControlInfoByManual controlInfo)
+        {
+            if (controlInfo == null)
+                throw new Exception("手动控制信息不能为空！");
+            ControlInfosByManual.Remove(controlInfo);
+        }
+
+        private bool canDeleteControlInfoByManualCommand(ControlInfoByManual controlInfo)
+        {
+            if (controlInfo == null)
+                return false;
+            if (!ControlInfosByManual.Contains(controlInfo))
+                return false;
+            return true;
+        }
         #endregion
     }
 

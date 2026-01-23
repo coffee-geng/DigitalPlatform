@@ -25,9 +25,9 @@ namespace Coffee.DigitalPlatform.ViewModels
         {
             CurrentDevice = device;
 
-            AddAlarmCommand = new RelayCommand(doAddAlarmCommand, canDoAddAlarmCommand);
-            EditAlarmCommand = new RelayCommand<Alarm>(doEditAlarmCommand, canDoEditAlarmCommand);
-            RemoveAlarmCommand = new RelayCommand<Alarm>(doRemoveAlarmCommand, canDoRemoveAlarmCommand);
+            AddAlarmCommand = new RelayCommand(doAddAlarmCommand, canAddAlarmCommand);
+            EditAlarmCommand = new RelayCommand<Alarm>(doEditAlarmCommand, canEditAlarmCommand);
+            RemoveAlarmCommand = new RelayCommand<Alarm>(doRemoveAlarmCommand, canRemoveAlarmCommand);
             ConfirmAddAlarmCommand = new RelayCommand<Alarm>(doConfirmAddAlarmCommand);
             ConfirmEditAlarmCommand = new RelayCommand<Alarm> (doConfirmEditAlarmCommand);
             CancelAddAlarmCommand = new RelayCommand(doCancelAddAlarmCommand);
@@ -148,7 +148,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             }
         }
 
-        private bool canDoAddAlarmCommand()
+        private bool canAddAlarmCommand()
         {
             return !this.IsEditingAlarm;
         }
@@ -183,7 +183,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
-        private bool canDoEditAlarmCommand(Alarm alarm)
+        private bool canEditAlarmCommand(Alarm alarm)
         {
             return !this.IsEditingAlarm;
         }
@@ -199,7 +199,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             }
         }
 
-        private bool canDoRemoveAlarmCommand(Alarm alarm)
+        private bool canRemoveAlarmCommand(Alarm alarm)
         {
             return !this.IsEditingAlarm;
         }

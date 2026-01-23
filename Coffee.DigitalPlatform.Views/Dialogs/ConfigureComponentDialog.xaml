@@ -235,7 +235,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="TextBox">
-                            <Border BorderBrush="#EEE" BorderThickness="1" CornerRadius="3" MinHeight="26" Background="White" Name="border">
+                            <Border BorderBrush="#D4D4D4" BorderThickness="1" CornerRadius="3" MinHeight="26" Background="White" Name="border">
                                 <ScrollViewer Name="PART_ContentHost" Margin="0"/>
                             </Border>
                             <ControlTemplate.Triggers>
@@ -650,7 +650,7 @@
                                                      Text="{Binding VarAddress, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}"
                                                      ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
                                             <TextBlock Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                            <Hyperlink FontFamily="{StaticResource Iconfont}" TextDecorations="None"
+                                                <Hyperlink FontFamily="{StaticResource Iconfont}" TextDecorations="None"
                                                        Command="{Binding ElementName=configComponentDlg,Path=DataContext.CurrentDevice.RemoveVariableCommand}"
                                                        CommandParameter="{Binding}">&#xe653;</Hyperlink>
                                             </TextBlock>
@@ -848,7 +848,7 @@
             </Grid>
         </Border>
 
-        <Popup StaysOpen="False" IsOpen="{Binding ElementName=btnManual,Path=IsChecked}"
+        <Popup StaysOpen="False" IsOpen="{Binding IsChecked, ElementName=btnManual}"
            AllowsTransparency="True" PlacementTarget="{Binding ElementName=btnManual}"
            Placement="Left">
             <Border Background="#F7F9FA" Margin="5,5,10,5" Width="260" CornerRadius="5">
@@ -870,8 +870,7 @@
                     <TextBlock Text="手动控制选项" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold" Foreground="#777"/>
                     <Button Style="{StaticResource ControlButtonStyle}" Content="&#xe8fe;" FontFamily="{StaticResource Iconfont}"
                         Width="20" Height="20" HorizontalAlignment="Right" Margin="10,0" Tag="3"
-                        Command="{Binding CurrentDevice.AddManualControlCommand}"/>
-
+                        Command="{Binding CurrentDevice.AddControlInfoByManualCommand}"/>
 
                     <Grid Grid.Row="1" Margin="10,0">
                         <Grid.RowDefinitions>
@@ -893,7 +892,7 @@
 
 
                         <ItemsControl Grid.Row="1" 
-                                  ItemsSource="{Binding CurrentDevice.ManualList}" Margin="0,0,0,10"
+                                  ItemsSource="{Binding CurrentDevice.ControlInfosByManual}" Margin="0,0,0,10"
                                   Name="ic1">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -904,12 +903,18 @@
                                             <ColumnDefinition/>
                                             <ColumnDefinition Width="35"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBox Text="{Binding ControlHeader}" Height="28" IsHitTestVisible="True" Focusable="True" FocusManager.IsFocusScope="True"/>
-                                        <TextBox Text="{Binding ControlAddress}" Grid.Column="1" Height="28" TextAlignment="Center"/>
-                                        <TextBox Text="{Binding Value}" Grid.Column="2" Height="28" TextAlignment="Center"/>
+                                        <TextBox Height="28" Margin="2,1,2,1"
+                                            Text="{Binding Header, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}" 
+                                                 ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
+                                        <TextBox Grid.Column="1" Height="28" Margin="2,1,2,1" TextAlignment="Center"
+                                            Text="{Binding Address, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}" 
+                                            ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
+                                        <TextBox Grid.Column="2" Height="28" Margin="2,1,2,1" TextAlignment="Center"
+                                            Text="{Binding Value, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}" 
+                                            ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
 
                                         <TextBlock Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                        <Hyperlink Command="{Binding DataContext.CurrentDevice.DeleteManualControlCommand,ElementName=configComponentDlg}"
+                                            <Hyperlink Command="{Binding DataContext.CurrentDevice.DeleteControlInfoByManualCommand,ElementName=configComponentDlg}"
                                                    CommandParameter="{Binding}">删除</Hyperlink>
                                         </TextBlock>
                                     </Grid>

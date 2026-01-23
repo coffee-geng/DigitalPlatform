@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq;
 using System.Net.Http.Headers;
@@ -1076,6 +1077,113 @@ namespace Coffee.DigitalPlatform.DataAccess
         }
         #endregion
 
+        #region 手动控制信息
+        public Dictionary<string, IList<ControlInfoByManualEntity>> ReadControlInfosByManual()
+        {
+            SqlMapper.SetTypeMap(typeof(ControlInfoByManualEntity), new ColumnAttributeTypeMapper<ControlInfoByManualEntity>());
+            var controlInfos = SqlQuery<ControlInfoByManualEntity>("SELECT * FROM manual_controls");
+            if (controlInfos != null && controlInfos.Any())
+            {
+                return controlInfos.GroupBy(a => a.DeviceNum)
+                             .ToDictionary(g => g.Key, g => (IList<ControlInfoByManualEntity>)g.ToList());
+            }
+            else
+            {
+                return new Dictionary<string, IList<ControlInfoByManualEntity>>();
+            }
+        }
+
+        public void SaveControlInfosByManual(Dictionary<string, IList<ControlInfoByManualEntity>> deviceControlInfoDict)
+        {
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+
+            var controlInfoUpdateStateDict = checkControlInfoByManualForUpdating(ReadControlInfosByManual(), deviceControlInfoDict);
+            foreach (var pair in controlInfoUpdateStateDict)
+            {
+                var controlInfo = pair.Key;
+                if (pair.Value == ItemUpdateStates.Added || pair.Value == ItemUpdateStates.Modified)
+                {
+                    var cmd = new SqlCommand(@"INSERT INTO manual_controls(c_num, d_num, c_header, c_address, c_value, c_value_type) 
+                                                VALUES (@CNum, @DeviceNum, @Header, @Address, @Value, @ValueType)
+                                                ON CONFLICT(c_num, d_num) DO UPDATE
+                                                SET c_header=@Header, c_address=@Address, c_value=@Value, c_value_type=@ValueType", new Dictionary<string, object>()
+                                                {
+                                                    { "@CNum", controlInfo.CNum },
+                                                    { "@DeviceNum", controlInfo.DeviceNum },
+                                                    { "@Header", controlInfo.Header },
+                                                    { "@Address", controlInfo.Address },
+                                                    { "@Value", controlInfo.Value },
+                                                    { "@ValueType", controlInfo.ValueType }
+                                                });
+                    sqlCommands.Add(cmd);
+                }
+                else if (pair.Value == ItemUpdateStates.Deleted)
+                {
+                    var cmd = new SqlCommand("DELETE FROM manual_controls WHERE c_num = @CNum", new Dictionary<string, object>()
+                    {
+                        { "@CNum", controlInfo.CNum }
+                    });
+                    sqlCommands.Add(cmd);
+                }
+            }
+
+            SqlExecute(sqlCommands);
+        }
+
+        private Dictionary<ControlInfoByManualEntity, ItemUpdateStates> checkControlInfoByManualForUpdating(Dictionary<string, IList<ControlInfoByManualEntity>> sourceControlInfoDict, Dictionary<string, IList<ControlInfoByManualEntity>> targetControlInfoDict)
+        {
+            if (sourceControlInfoDict == null || !sourceControlInfoDict.Any())
+                return targetControlInfoDict != null ? targetControlInfoDict.SelectMany(kvp => kvp.Value).ToDictionary(a => a, a => ItemUpdateStates.Added) : new Dictionary<ControlInfoByManualEntity, ItemUpdateStates>();
+            if (targetControlInfoDict == null || !targetControlInfoDict.Any())
+            {
+                if (sourceControlInfoDict != null && sourceControlInfoDict.Any())
+                    return sourceControlInfoDict.SelectMany(kvp => kvp.Value).ToDictionary(a => a, a => ItemUpdateStates.Deleted);
+                else
+                    return new Dictionary<ControlInfoByManualEntity, ItemUpdateStates>();
+            }
+            Dictionary<ControlInfoByManualEntity, ItemUpdateStates> itemUpdateStateDict = new Dictionary<ControlInfoByManualEntity, ItemUpdateStates>();
+            //先判断每个设备的更新状态，即它是新添加或被删除的，还是需要进一步比较
+            foreach (var sourceKvp in sourceControlInfoDict)
+            {
+                var deviceNum = sourceKvp.Key;
+                var sourceControlInfos = sourceKvp.Value;
+                if (!targetControlInfoDict.ContainsKey(deviceNum))
+                {
+                    //目标集合中不存在该设备，则该设备的所有手动控制信息均为删除状态
+                    foreach (var controlInfo in sourceControlInfos)
+                    {
+                        itemUpdateStateDict.Add(controlInfo, ItemUpdateStates.Deleted);
+                    }
+                }
+                else
+                {
+                    var targetControlInfos = targetControlInfoDict[deviceNum];
+                    var controlInfosForRemove = sourceControlInfos.Except(targetControlInfos, new ControlInfoByManualByNumComparer()).ToList();
+                    controlInfosForRemove.ForEach(a => itemUpdateStateDict.Add(a, ItemUpdateStates.Deleted));
+                    var controlInfosForAdd = targetControlInfos.Except(sourceControlInfos, new ControlInfoByManualByNumComparer()).ToList();
+                    controlInfosForAdd.ForEach(a => itemUpdateStateDict.Add(a, ItemUpdateStates.Added));
+
+                    var otherControlInfos = sourceControlInfos.Intersect(targetControlInfos, new ControlInfoByManualByNumComparer()).ToList(); //包括属性变更或未变更的手动控制信息
+                    foreach (var sourceControlInfo in otherControlInfos)
+                    {
+                        var targetControlInfo = targetControlInfos.FirstOrDefault(a => string.Equals(a.CNum, sourceControlInfo.CNum, StringComparison.OrdinalIgnoreCase) && string.Equals(a.DeviceNum, sourceControlInfo.DeviceNum, StringComparison.OrdinalIgnoreCase));
+                        if (targetControlInfo == null)
+                            continue;
+                        if (!targetControlInfo.Equals(sourceControlInfo))
+                        {
+                            itemUpdateStateDict.Add(targetControlInfo, ItemUpdateStates.Modified);
+                        }
+                        else
+                        {
+                            itemUpdateStateDict.Add(targetControlInfo, ItemUpdateStates.Unchanged);
+                        }
+                    }
+                }
+            }
+            return itemUpdateStateDict;
+        }
+        #endregion
+
         internal class DeviceByNumComparer : IEqualityComparer<DeviceEntity>
         {
             public bool Equals(DeviceEntity x, DeviceEntity y)
@@ -1112,6 +1220,31 @@ namespace Coffee.DigitalPlatform.DataAccess
                 {
                     int hash = 17;
                     hash = hash * 23 + (obj.AlarmNum?.GetHashCode() ?? 0);
+                    hash = hash * 23 + (obj.DeviceNum?.GetHashCode() ?? 0);
+                    return hash;
+                }
+            }
+        }
+
+        internal class ControlInfoByManualByNumComparer : IEqualityComparer<ControlInfoByManualEntity>
+        {
+            public bool Equals(ControlInfoByManualEntity? x, ControlInfoByManualEntity? y)
+            {
+                if (x == null && y == null)
+                    return true;
+                if (x == null || y == null)
+                    return false;
+                return string.Equals(x.CNum, y.CNum, StringComparison.OrdinalIgnoreCase) && string.Equals(x.DeviceNum, y.DeviceNum, StringComparison.OrdinalIgnoreCase);
+            }
+
+            public int GetHashCode([DisallowNull] ControlInfoByManualEntity obj)
+            {
+                if (obj == null || string.IsNullOrEmpty(obj.CNum))
+                    return 0;
+                unchecked // 允许溢出
+                {
+                    int hash = 17;
+                    hash = hash * 23 + (obj.CNum?.GetHashCode() ?? 0);
                     hash = hash * 23 + (obj.DeviceNum?.GetHashCode() ?? 0);
                     return hash;
                 }

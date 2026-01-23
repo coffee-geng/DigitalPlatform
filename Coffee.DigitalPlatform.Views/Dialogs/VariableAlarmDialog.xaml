@@ -34,7 +34,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="TextBox">
-                            <Border BorderBrush="#EEE" BorderThickness="1" CornerRadius="3" MinHeight="26" Background="White" Name="border">
+                            <Border BorderBrush="#D4D4D4" BorderThickness="1" CornerRadius="3" MinHeight="26" Background="White" Name="border">
                                 <ScrollViewer Name="PART_ContentHost" Margin="0"/>
                             </Border>
                             <ControlTemplate.Triggers>

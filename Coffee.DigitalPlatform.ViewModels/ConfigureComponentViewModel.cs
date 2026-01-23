@@ -314,6 +314,46 @@ namespace Coffee.DigitalPlatform.ViewModels
                     device.Alarms.Add(alarm);
                 }
             }
+
+            //字典的键是设备编码，值是该设备的手动控制选项实体集合
+            Dictionary<string, IList<ControlInfoByManualEntity>> deviceControlInfoByManualDict = _localDataAccess.ReadControlInfosByManual();
+            foreach(var pair in deviceControlInfoByManualDict)
+            {
+                string deviceNum = pair.Key;
+                IList<ControlInfoByManualEntity> controlInfoList = pair.Value;
+                if (!deviceNumDict.TryGetValue(deviceNum, out Device? device))
+                {
+                    throw new InvalidOperationException($"没有找到对应编码{deviceNum}的设备");
+                }
+                IList<ControlInfoByManual> controlInfos = new List<ControlInfoByManual>();
+                foreach (var controlInfoEntity in controlInfoList)
+                {
+                    try
+                    {
+                        Type valueType = TypeUtils.GetTypeFromAssemblyQualifiedName(controlInfoEntity.ValueType);
+                        var controlInfo = new ControlInfoByManual()
+                        {
+                            CNum = controlInfoEntity.CNum,
+                            DeviceNum = controlInfoEntity.DeviceNum,
+                            Header = controlInfoEntity.Header,
+                            Address = controlInfoEntity.Address,
+                            ValueType = valueType,
+                            Value = ObjectToStringConverter.ConvertFromString(controlInfoEntity.Value, valueType)
+                        };
+                        controlInfos.Add(controlInfo);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"加载手动控制选项{controlInfoEntity.Header} 的值失败，当前值不符合类型{controlInfoEntity.ValueType}的格式！");
+                    }
+                }
+
+                device.ControlInfosByManual.Clear();
+                foreach (var controlInfo in controlInfos)
+                {
+                    device.ControlInfosByManual.Add(controlInfo);
+                }
+            }
         }
 
         private void unloadComponents()
@@ -384,10 +424,16 @@ namespace Coffee.DigitalPlatform.ViewModels
             {
                 if (DeviceList != null && DeviceList.Any())
                 {
-                    var deviceWithError = DeviceList.Where(d => d.Variables != null && d.Variables.Any(v => !string.IsNullOrWhiteSpace(v.Error))).FirstOrDefault();
-                    if (deviceWithError != null)
+                    var deviceWithVariableError = DeviceList.Where(d => d.Variables != null && d.Variables.Any(v => !string.IsNullOrWhiteSpace(v.Error))).FirstOrDefault();
+                    if (deviceWithVariableError != null)
                     {
-                        throw new Exception($"设备 {deviceWithError.Name} 存在点位配置错误，无法保存，请检查后重试。");
+                        throw new Exception($"设备 {deviceWithVariableError.Name} 存在点位配置错误，无法保存，请检查后重试。");
+                    }
+
+                    var deviceWithControlByManualError = DeviceList.Where(d => d.ControlInfosByManual != null && d.ControlInfosByManual.Any(c => !string.IsNullOrWhiteSpace(c.Error))).FirstOrDefault();
+                    if (deviceWithControlByManualError != null)
+                    {
+                        throw new Exception($"设备 {deviceWithControlByManualError.Name} 存在手动控制选项配置错误，无法保存，请检查后重试。");
                     }
                 }
 
@@ -497,6 +543,30 @@ namespace Coffee.DigitalPlatform.ViewModels
                 
                 _localDataAccess.SaveAlarms(deviceAlarmDict, conditionDict);
 
+                // 保存手动控制选项信息
+                Dictionary<string, IList<ControlInfoByManualEntity>> deviceControlInfoByManualDict = new Dictionary<string, IList<ControlInfoByManualEntity>>();
+                foreach (var device in DeviceList)
+                {
+                    IList<ControlInfoByManualEntity> controlInfoEntities = new List<ControlInfoByManualEntity>();
+                    foreach (var controlInfo in device.ControlInfosByManual)
+                    {
+                        var controlInfoEntity = new ControlInfoByManualEntity
+                        {
+                            CNum = controlInfo.CNum,
+                            DeviceNum = device.DeviceNum,
+                            Header = controlInfo.Header,
+                            Address = controlInfo.Address,
+                            ValueType = controlInfo.ValueType.AssemblyQualifiedName,
+                            Value = ObjectToStringConverter.ConvertToString(controlInfo.Value)
+                        };
+                        controlInfoEntities.Add(controlInfoEntity);
+                    }
+                    if (controlInfoEntities.Any())
+                    {
+                        deviceControlInfoByManualDict.Add(device.DeviceNum, controlInfoEntities);
+                    }
+                }
+                _localDataAccess.SaveControlInfosByManual(deviceControlInfoByManualDict);
 
                 VisualStateManager.GoToElementState(owner as Window, "ShowSuccess", true);
             }
@@ -506,7 +576,9 @@ namespace Coffee.DigitalPlatform.ViewModels
                 VisualStateManager.GoToElementState(owner as Window, "ShowFailure", true);
             }
         }
+        #endregion
 
+        #region 条件选项
         /// <summary>
         /// 递归创建条件选项（包含子条件）实体，用于数据库操作
         /// </summary>
@@ -548,7 +620,7 @@ namespace Coffee.DigitalPlatform.ViewModels
 
                 if (conditionGroup.ConditionItems.Any())
                 {
-                    foreach(var conditionItem in conditionGroup.ConditionItems)
+                    foreach (var conditionItem in conditionGroup.ConditionItems)
                     {
                         createConditionEntitiesBy(conditionItem, conditionGroup, conditionEntities);
                     }
@@ -651,6 +723,10 @@ namespace Coffee.DigitalPlatform.ViewModels
         {
             return CurrentDevice != null;
         }
+        #endregion
+
+        #region 手动控制选项
+        
         #endregion
     }
 }

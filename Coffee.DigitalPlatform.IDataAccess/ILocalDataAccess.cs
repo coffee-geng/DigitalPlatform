@@ -61,5 +61,12 @@ namespace Coffee.DigitalPlatform.IDataAccess
 
         ConditionEntity? GetConditionByCNum(string c_num);
         #endregion
+
+        #region 手动控制信息
+
+        Dictionary<string, IList<ControlInfoByManualEntity>> ReadControlInfosByManual();
+
+        void SaveControlInfosByManual(Dictionary<string, IList<ControlInfoByManualEntity>> deviceControlInfoDict);
+        #endregion
     }
 }
