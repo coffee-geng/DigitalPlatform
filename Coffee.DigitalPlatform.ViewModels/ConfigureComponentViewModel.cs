@@ -34,6 +34,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             CreateComponentByDragCommand = new RelayCommand<DragEventArgs>(doCreateComponentByDrag);
 
             AlarmConditionCommand = new RelayCommand(doAlarmConditionCommand, canDoAlarmConditionCommand);
+            ControlInfoByTriggerConditionCommand = new RelayCommand(doControlInfoByTriggerConditionCommand, canDoControlInfoByTriggerConditionCommand);
 
             SaveDeviceConfigurationCommand = new RelayCommand<object>(doSaveDeviceConfigurationCommand);
             CloseCommand = new RelayCommand<object>(doCloseCommand);
@@ -79,6 +80,10 @@ namespace Coffee.DigitalPlatform.ViewModels
                     if (AlarmConditionCommand != null)
                     {
                         AlarmConditionCommand.NotifyCanExecuteChanged();
+                    }
+                    if (ControlInfoByTriggerConditionCommand != null)
+                    {
+                        ControlInfoByTriggerConditionCommand.NotifyCanExecuteChanged();
                     }
                 }
             }
@@ -354,6 +359,67 @@ namespace Coffee.DigitalPlatform.ViewModels
                     device.ControlInfosByManual.Add(controlInfo);
                 }
             }
+
+            //字典的键是设备编码，值是该设备的联动控制选项实体集合
+            Dictionary<string, IList<ControlInfoByTriggerEntity>> deviceControlInfoByTriggerDict = _localDataAccess.ReadControlInfosByTrigger();
+            foreach(var pair in deviceControlInfoByTriggerDict)
+            {
+                string deviceNum = pair.Key;
+                IList<ControlInfoByTriggerEntity> controlInfoEntities = pair.Value;
+                if (!deviceNumDict.TryGetValue(deviceNum, out Device? device))
+                {
+                    throw new InvalidOperationException($"没有找到对应编码{deviceNum}的设备");
+                }
+                IList<ControlInfoByTrigger> controlInfos = new List<ControlInfoByTrigger>();
+                foreach (var controlInfoEntity in controlInfoEntities)
+                {
+                    Type? valueType = null;
+                    object @value;
+                    try
+                    {
+                        var @var = device.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == controlInfoEntity.VarNum);
+                        valueType = @var.VarType;
+                        @value = ObjectToStringConverter.ConvertFromString(controlInfoEntity.Value, valueType);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (valueType != null)
+                        {
+                            throw new Exception($"加载手动控制选项{controlInfoEntity.Header} 的值失败，当前值不符合类型{valueType.Name}的格式！");
+                        }
+                        else
+                        {
+                            throw new Exception($"加载手动控制选项{controlInfoEntity.Header} 的值失败，当前值格式不正确！");
+                        }
+                    }
+
+                    Variable variable = device.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == controlInfoEntity.VarNum);
+                    var targetDevice = DeviceList?.FirstOrDefault(d => !string.IsNullOrWhiteSpace(deviceNum) && d.DeviceNum == deviceNum);
+                    var controlInfo = new ControlInfoByTrigger()
+                    {
+                        LinkageNum = controlInfoEntity.LinkageNum,
+                        Device = targetDevice,
+                        Header = controlInfoEntity.Header,
+                        Variable = variable,
+                        Value = value
+                    };
+
+                    var topConditionEntity = topConditionEntities?.FirstOrDefault(c => string.Equals(c.CNum, controlInfoEntity.ConditionNum));
+                    if (topConditionEntity != null)
+                    {
+                        //联控选项信息仅使用顶级条件项作为触发联动控制的条件
+                        ICondition topCondition = createConditionByEntity(topConditionEntity, conditionEntities, device.Variables.ToDictionary(v => v.VarNum, v => v));
+                        controlInfo.Condition = topCondition;
+                    }
+                    controlInfos.Add(controlInfo);
+                }
+
+                device.ControlInfosByTrigger.Clear();
+                foreach (var controlInfo in controlInfos)
+                {
+                    device.ControlInfosByTrigger.Add(controlInfo);
+                }
+            }
         }
 
         private void unloadComponents()
@@ -496,7 +562,7 @@ namespace Coffee.DigitalPlatform.ViewModels
 
                 // 保存设备预警信息
                 Dictionary<string, IList<AlarmEntity>> deviceAlarmDict = new Dictionary<string, IList<AlarmEntity>>();
-                // 保存条件选项字典，键是顶级条件选项编号，值是该顶级条件选项及其子条件选项实体集合
+                // 保存用于预警信息的条件选项字典，键是顶级条件选项编号，值是该顶级条件选项及其子条件选项实体集合
                 Dictionary<string, IList<ConditionEntity>> conditionDict = new Dictionary<string, IList<ConditionEntity>>();
                 foreach (var device in DeviceList)
                 {
@@ -529,7 +595,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                             AlarmLevel = alarm.AlarmLevel,
                             AlarmTime = alarm.AlarmTime.HasValue ? alarm.AlarmTime.Value.ToString("yyyy/MM/dd HH:mm:ss") : null,
                             SolvedTime = solvedTime.HasValue ? solvedTime.Value.ToString("yyyy/MM/dd HH:mm:ss") : null,
-                            ConditionNum = alarm.Condition.ConditionNum,
+                            ConditionNum = alarm.Condition?.ConditionNum,
                             DeviceNum = device.DeviceNum,
                             State = alarm.AlarmState != null ? Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status) : null,
                         };
@@ -567,6 +633,46 @@ namespace Coffee.DigitalPlatform.ViewModels
                     }
                 }
                 _localDataAccess.SaveControlInfosByManual(deviceControlInfoByManualDict);
+
+                // 保存联动控制选项信息
+                Dictionary<string, IList<ControlInfoByTriggerEntity>> deviceControlInfoByTriggerDict = new Dictionary<string, IList<ControlInfoByTriggerEntity>>();
+                conditionDict = new Dictionary<string, IList<ConditionEntity>>(); //保存用于联控信息的条件选项字典
+                foreach (var device in DeviceList)
+                {
+                    IList<ControlInfoByTriggerEntity> controlInfoEntities = new List<ControlInfoByTriggerEntity>();
+                    foreach (var controlInfo in device.ControlInfosByTrigger)
+                    {
+                        if (controlInfo.Condition == null)
+                            continue;
+
+                        //创建条件项及其子条件项实体
+                        var conditionEntities = new List<ConditionEntity>();
+                        createConditionEntitiesBy(controlInfo.Condition, null, conditionEntities);
+                        var topCondition = conditionEntities.Where(c => string.IsNullOrEmpty(c.CNum_Parent)).FirstOrDefault();
+
+                        if (topCondition != null && !conditionDict.ContainsKey(topCondition.CNum))
+                        {
+                            conditionDict.Add(topCondition.CNum, conditionEntities);
+                        }
+
+                        var controlInfoEntity = new ControlInfoByTriggerEntity
+                        {
+                            LinkageNum = controlInfo.LinkageNum,
+                            DeviceNum = device.DeviceNum,
+                            ConditionNum = controlInfo.Condition?.ConditionNum,
+                            Header = controlInfo.Header,
+                            VarNum = controlInfo.Variable?.VarNum,
+                            Value = ObjectToStringConverter.ConvertToString(controlInfo.Value)
+                        };
+                        controlInfoEntities.Add(controlInfoEntity);
+                    }
+                    if (controlInfoEntities.Any())
+                    {
+                        deviceControlInfoByTriggerDict.Add(device.DeviceNum, controlInfoEntities);
+                    }
+                }
+
+                _localDataAccess.SaveControlInfosByTrigger(deviceControlInfoByTriggerDict, conditionDict);
 
                 VisualStateManager.GoToElementState(owner as Window, "ShowSuccess", true);
             }
@@ -726,7 +832,23 @@ namespace Coffee.DigitalPlatform.ViewModels
         #endregion
 
         #region 手动控制选项
-        
+
+        #endregion
+
+        #region 联动控制选项
+        public RelayCommand ControlInfoByTriggerConditionCommand { get; set; }
+
+        private void doControlInfoByTriggerConditionCommand()
+        {
+            if (CurrentDevice == null)
+                return;
+            ActionManager.Execute("ControlInfoByTriggerCondition", CurrentDevice);
+        }
+
+        private bool canDoControlInfoByTriggerConditionCommand()
+        {
+            return CurrentDevice != null;
+        }
         #endregion
     }
 }

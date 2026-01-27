@@ -37,6 +37,18 @@ namespace Coffee.DigitalPlatform.Views
                     DataContext = new VariableAlarmViewModel(obj)
                 }.ShowDialog();
             }));
+
+            ActionManager.Register<Device>("ControlInfoByTriggerCondition", new Action<Device>(obj =>
+            {
+                var vm = this.DataContext as ConfigureComponentViewModel;
+                if (vm == null)
+                    return;
+                new ControlInfoByTriggerDialog()
+                {
+                    Owner = this,
+                    DataContext = new ControlInfoByTriggerViewModel(obj, vm.DeviceList)
+                }.ShowDialog();
+            }));
         }
         
         BooleanToVisibilityConverter _boolToVisibilityConverter { get; set; } = new BooleanToVisibilityConverter();

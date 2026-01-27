@@ -1,21 +1,10 @@
 ﻿using Coffee.DigitalPlatform.Controls.FilterBuilder;
 using Coffee.DigitalPlatform.Models;
 using Coffee.DigitalPlatform.ViewModels;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace Coffee.DigitalPlatform.Views
 {
@@ -133,7 +122,7 @@ namespace Coffee.DigitalPlatform.Views
                 return new ReceiveFilterSchemeArgs
                 {
                     FilterScheme = changedArgs.NewValue as FilterScheme,
-                    Alarm = parameter as Alarm
+                    Receiver = parameter as IReceiveFilterScheme
                 };
             }
             else

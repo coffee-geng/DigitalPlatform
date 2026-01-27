@@ -102,7 +102,7 @@
                 <TextBlock Text="操作" Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center"/>
             </Grid>
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" Grid.ColumnSpan="2">
-                <ItemsControl ItemsSource="{Binding AlarmConditions}" AlternationCount="10000" Name="ic" Margin="10,5">
+                <ItemsControl ItemsSource="{Binding Alarms}" AlternationCount="10000" Name="ic" Margin="10,5">
                     <ItemsControl.ItemTemplateSelector>
                         <local:VariableAlarmTemplateSelector>
                             <local:VariableAlarmTemplateSelector.AlarmTemplate>

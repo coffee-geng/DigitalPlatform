@@ -71,7 +71,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                             alarm.ConditionTemplate = schemeInfo;
                         }
                         alarm.IsFirstEditing = false;
-                        this.AlarmConditions.Add(alarm);
+                        this.Alarms.Add(alarm);
                     }
                 }
             }
@@ -79,7 +79,7 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         public Device CurrentDevice { get; private set; }
 
-        public ObservableCollection<Alarm> AlarmConditions { get; set; } = new ObservableCollection<Alarm>();
+        public ObservableCollection<Alarm> Alarms { get; set; } = new ObservableCollection<Alarm>();
 
         private bool _isEditingAlarm;
         public bool IsEditingAlarm
@@ -138,7 +138,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                 };
                 var schemeInfo = new FilterSchemeEditInfo(filterScheme, new List<dynamic>() { instance }, true, true);
 
-                this.AlarmConditions.Add(new Alarm()
+                this.Alarms.Add(new Alarm()
                 {
                     ConditionTemplate = schemeInfo,
                     IsFirstEditing = true,
@@ -171,9 +171,9 @@ namespace Coffee.DigitalPlatform.ViewModels
             Task.Delay(TimeSpan.FromMilliseconds(500)).ContinueWith(t =>
             {
                 alarm.IsEditing = true;
-                if (this.AlarmConditions != null && AlarmConditions.Any())
+                if (this.Alarms != null && Alarms.Any())
                 {
-                    var list = AlarmConditions.Where(c => c != alarm);
+                    var list = Alarms.Where(c => c != alarm);
                     foreach (var item in list)
                     {
                         item.IsEditing = false;
@@ -190,9 +190,9 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         private void doRemoveAlarmCommand(Alarm alarm)
         {
-            if (alarm == null || !AlarmConditions.Any(a => a == alarm))
+            if (alarm == null || !Alarms.Any(a => a == alarm))
                 return;
-            AlarmConditions.Remove(alarm);
+            Alarms.Remove(alarm);
             if (CurrentDevice != null)
             {
                 CurrentDevice.Alarms.Remove(alarm);
@@ -219,12 +219,12 @@ namespace Coffee.DigitalPlatform.ViewModels
 
             // 当开始新建预警时，会先将预警模版添加到列表末尾，以便用户进行编辑
             // 这一项是临时的，当确定编辑时，在添加编辑后的预警前，需将这临时项从列表中移除
-            if (AlarmConditions.Count > 0)
+            if (Alarms.Count > 0)
             {
-                this.AlarmConditions.RemoveAt(AlarmConditions.Count - 1);
+                this.Alarms.RemoveAt(Alarms.Count - 1);
             }
             // 确定添加预警信息
-            AlarmConditions.Add(alarm);
+            Alarms.Add(alarm);
 
             if (CurrentDevice != null)
             {
@@ -253,9 +253,9 @@ namespace Coffee.DigitalPlatform.ViewModels
         {
             // 当开始新建预警时，会先将预警模版添加到列表末尾，以便用户编辑
             // 这一项是临时的，当取消编辑时，需将这项从列表中移除
-            if (AlarmConditions.Count > 0)
+            if (Alarms.Count > 0)
             {
-                this.AlarmConditions.RemoveAt(AlarmConditions.Count - 1);
+                this.Alarms.RemoveAt(Alarms.Count - 1);
             }
 
             this.IsEditingAlarm = false;
@@ -275,17 +275,17 @@ namespace Coffee.DigitalPlatform.ViewModels
         private void doReceiveFilterSchemeCommand(ReceiveFilterSchemeArgs args)
         {
             if (args == null) return;
-            if (args.Alarm == null) return;
+            if (args.Receiver == null) return;
             object instance = Activator.CreateInstance(args.FilterScheme.TargetType);
-            args.Alarm.ConditionTemplate = new FilterSchemeEditInfo(args.FilterScheme, new List<dynamic>() { instance }, true, true);
+            args.Receiver.ConditionTemplate = new FilterSchemeEditInfo(args.FilterScheme, new List<dynamic>() { instance }, true, true);
         }
 
         private void doResetCommand()
         {
             //当退出窗口时，需要重置所有预警条件的编辑状态，以便下次打开窗口时没有预警条件处于编辑状态
-            if (this.AlarmConditions != null)
+            if (this.Alarms != null)
             {
-                foreach(var alarm in this.AlarmConditions)
+                foreach(var alarm in this.Alarms)
                 {
                     alarm.IsEditing = false;
                 }
@@ -406,8 +406,8 @@ namespace Coffee.DigitalPlatform.ViewModels
     {
         public FilterScheme FilterScheme { get; set; }
 
-        //是哪一个预警列表中哪一项接收FilterScheme的更改
-        //即正在编辑的是哪一个预警信息
-        public Alarm Alarm { get; set; }
+        //是哪一项接收FilterScheme的更改
+        //即正在编辑的是哪一个预警信息或联控选项信息
+        public IReceiveFilterScheme Receiver { get; set; }
     }
 }

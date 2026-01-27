@@ -725,9 +725,9 @@
                         </Button>
                         <Button Grid.Row="8" Style="{StaticResource ControlButtonStyle}" 
                             Height="30" Margin="5,3" HorizontalContentAlignment="Stretch" Tag="5"
-                            Command="{Binding UnionConditionCommand}">
+                            Command="{Binding ControlInfoByTriggerConditionCommand}">
                             <Grid Margin="10,0">
-                                <TextBlock Text="自动联动选项" VerticalAlignment="Center" Foreground="#666"/>
+                                <TextBlock Text="联动控制选项" VerticalAlignment="Center" Foreground="#666"/>
                                 <TextBlock Text="&#xe720;" FontFamily="{StaticResource Iconfont}" 
                                        VerticalAlignment="Center" HorizontalAlignment="Right"/>
                             </Grid>

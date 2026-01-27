@@ -544,6 +544,11 @@ namespace Coffee.DigitalPlatform.Models
             return true;
         }
         #endregion
+
+        #region 联动控制设备
+        public ObservableCollection<ControlInfoByTrigger> ControlInfosByTrigger { get; private set; } = new ObservableCollection<ControlInfoByTrigger>();
+
+        #endregion
     }
 
     public class SelectCommunicationParameterValueCommandParameter

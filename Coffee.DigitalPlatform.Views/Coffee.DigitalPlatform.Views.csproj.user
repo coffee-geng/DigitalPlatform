@@ -5,6 +5,9 @@
     <Compile Update="Dialogs\ConfigureComponentDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Dialogs\ControlInfoByTriggerDialog.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Dialogs\VariableAlarmDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -20,6 +23,9 @@
   </ItemGroup>
   <ItemGroup>
     <Page Update="Dialogs\ConfigureComponentDialog.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Dialogs\ControlInfoByTriggerDialog.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Dialogs\VariableAlarmDialog.xaml">

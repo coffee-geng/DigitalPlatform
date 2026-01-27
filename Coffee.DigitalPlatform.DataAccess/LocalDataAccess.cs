@@ -610,6 +610,260 @@ namespace Coffee.DigitalPlatform.DataAccess
         }
         #endregion
 
+        #region 条件选项
+        //获取所有预警条件，包括一级预警条件及其子条件
+        public IEnumerable<ConditionEntity> GetConditions()
+        {
+            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
+            return SqlQuery<ConditionEntity>("SELECT * FROM conditions");
+        }
+
+        //获取所有一级预警条件
+        public IEnumerable<ConditionEntity> GetTopConditions()
+        {
+            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
+            return SqlQuery<ConditionEntity>("SELECT * FROM conditions WHERE c_num_parent IS NULL");
+        }
+
+        public ConditionEntity? GetConditionByCNum(string c_num)
+        {
+            if (string.IsNullOrWhiteSpace(c_num))
+                return null;
+            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
+            return SqlQueryFirst<ConditionEntity>("SELECT * FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+            {
+                { "@CNum", c_num }
+            });
+        }
+
+        private IEnumerable<ConditionEntity> getChildConditions(ConditionEntity condition)
+        {
+            //如果指定条件在某个条件链上是其他条件项的组，当其组内任一条件项正在使用，则不允许删除
+            string sql = @"WITH RECURSIVE recursive_query(id, c_num, c_num_parent, level) AS (
+                           SELECT id, c_num, c_num_parent, 1 AS level FROM conditions WHERE c_num_parent = @CNum
+	                       UNION ALL
+	                       SELECT conditions.id, conditions.c_num, conditions.c_num_parent, level + 1 FROM conditions, recursive_query
+	                       WHERE conditions.c_num_parent = recursive_query.c_num
+                          )
+                          SELECT * FROM recursive_query ORDER BY level DESC;";
+            Dictionary<string, object> paramDict = new Dictionary<string, object>();
+            paramDict.Add("@CNum", condition.CNum);
+            //返回指定条件组下的所有子条件项，并且按照其在条件链上的树状顺序由子节点到父节点遍历
+            var childConditions = SqlQuery<ConditionEntity>(sql, paramDict);
+            if (childConditions != null && childConditions.Any())
+            {
+                string c_nums = string.Join(',', childConditions.Select(c => $"'{c.CNum}'"));
+                if (SqlExist($"SELECT 1 FROM alarms WHERE c_num IN ({c_nums})"))
+                    throw new Exception("当前筛选条件或其条件组正在使用中...");
+            }
+            return childConditions;
+        }
+
+        private void AddCondition(ConditionEntity condition)
+        {
+            var sqlCommands = CreateSqlCommandsForAddingCondition(condition);
+            SqlExecute(sqlCommands);
+        }
+
+        private void AddConditions(IEnumerable<ConditionEntity> conditions)
+        {
+            var sqlCommands = CreateSqlCommandsForAddingConditions(conditions);
+            SqlExecute(sqlCommands);
+        }
+
+        private void DeleteCondition(ConditionEntity condition)
+        {
+            var delConditionCommands = CreateSqlCommandsForDeleteCondition(condition);
+            SqlExecute(delConditionCommands);
+        }
+
+        private void DeleteConditions(IEnumerable<ConditionEntity> conditions)
+        {
+            var sqlCommands = CreateSqlCommandsForDeleteConditions(conditions);
+            SqlExecute(sqlCommands);
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForAddingCondition(ConditionEntity condition)
+        {
+            if (condition == null)
+                return Enumerable.Empty<SqlCommand>().ToList();
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+
+            //if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            //{
+            //    { "@CNum", condition.CNum }
+            //}))
+            //{
+            //    //throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+            //    var cmd = new SqlCommand("DELETE FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            //        {
+            //            { "@CNum", condition.CNum }
+            //        });
+            //    sqlCommands.Add(cmd);
+            //}
+
+            //全删全插
+            //注意：删除条件选项时，其字条件也需要同时删除
+            //但是，这里在添加条件选项时，只添加当前条件，不会主动添加其子条件，因为ConditionEntity中不包含子条件信息。要同时添加父条件和子条件，需在参数中指定
+            sqlCommands.Add(new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                            {
+                                { "@CNum", condition.CNum }
+                            }));
+            var childConditions = getChildConditions(condition);
+            if (childConditions != null)
+            {
+                foreach (var childCondition in childConditions)
+                {
+                    var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                    {
+                        { "@CNum", childCondition.CNum }
+                    });
+                    sqlCommands.Add(cmd);
+                }
+            }
+            SqlCommand cmd2 = new SqlCommand(@"INSERT INTO conditions(c_num, c_type, c_num_parent, v_num, operator, value) 
+                                                VALUES (@CNum, @CType, @CNum_Parent, @VarNum, @Operator, @Value);", new Dictionary<string, object>()
+                                                {
+                                                    { "@CNum", condition.CNum },
+                                                    { "@CType", (int)condition.ConditionNodeTypes },
+                                                    { "@ParentId", condition.CNum_Parent },
+                                                    { "@VarNum", condition.VarNum },
+                                                    { "@Operator", condition.Operator },
+                                                    { "@Value", condition.Value },
+                                                });
+            return sqlCommands;
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForAddingConditions(IEnumerable<ConditionEntity> conditions)
+        {
+            if (conditions == null || !conditions.Any())
+                return Enumerable.Empty<SqlCommand>().ToList();
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+
+            //foreach (var condition in conditions)
+            //{
+            //    if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            //    {
+            //        { "@CNum", condition.CNum }
+            //    }))
+            //    {
+            //        //throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+            //        var cmd = new SqlCommand("DELETE FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            //        {
+            //            { "@CNum", condition.CNum }
+            //        });
+            //        sqlCommands.Add(cmd);
+            //    }
+            //}
+
+            //全删全插
+            //注意：删除条件选项时，其字条件也需要同时删除
+            //但是，这里在添加条件选项时，只添加当前条件，不会主动添加其子条件，因为ConditionEntity中不包含子条件信息。要同时添加父条件和子条件，需在参数中指定
+            List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
+            foreach (var condition in conditions)
+            {
+                allConditionsForDelete.Add(condition);
+                var childConditions = getChildConditions(condition);
+                if (childConditions == null)
+                    continue;
+                allConditionsForDelete.AddRange(childConditions);
+            }
+            allConditionsForDelete = allConditionsForDelete.DistinctBy(c => c.CNum).OrderByDescending(c => c.Level).ToList();
+
+            foreach (var conditionItem in allConditionsForDelete)
+            {
+                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                {
+                    { "@CNum", conditionItem.CNum }
+                });
+                sqlCommands.Add(cmd);
+            }
+
+            foreach (var condition in conditions)
+            {
+                SqlCommand cmd2 = new SqlCommand(@"INSERT INTO conditions(c_num, c_type, c_num_parent, v_num, operator, value) 
+                                                VALUES (@CNum, @CType, @CNum_Parent, @VarNum, @Operator, @Value);", new Dictionary<string, object>()
+                                                {
+                                                    { "@CNum", condition.CNum },
+                                                    { "@CType", (int)condition.ConditionNodeTypes },
+                                                    { "@CNum_Parent", condition.CNum_Parent },
+                                                    { "@VarNum", condition.VarNum },
+                                                    { "@Operator", condition.Operator },
+                                                    { "@Value", condition.Value },
+                                                });
+                sqlCommands.Add(cmd2);
+            }
+
+            return sqlCommands;
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForDeleteCondition(ConditionEntity condition)
+        {
+            if (condition == null)
+                return Enumerable.Empty<SqlCommand>().ToList();
+            //如果指定条件正在使用，则不允许删除
+            //if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+            //{
+            //    { "@CNum", condition.CNum }
+            //}))
+            //{
+            //    throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+            //}
+
+            List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
+            //删除指定条件及其组内的所有子条件项
+            allConditionsForDelete.Add(condition);
+            allConditionsForDelete.AddRange(getChildConditions(condition));
+
+            IList<SqlCommand> delConditionCommands = new List<SqlCommand>();
+            foreach (var childCondition in allConditionsForDelete)
+            {
+                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                {
+                    { "@CNum", childCondition.CNum }
+                });
+                delConditionCommands.Add(cmd);
+            }
+            return delConditionCommands;
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForDeleteConditions(IEnumerable<ConditionEntity> conditions)
+        {
+            if (conditions == null || !conditions.Any())
+                return Enumerable.Empty<SqlCommand>().ToList();
+            foreach (var condition in conditions)
+            {
+                //if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
+                //{
+                //    { "@CNum", condition.CNum }
+                //}))
+                //{
+                //    throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
+                //}
+            }
+
+            List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
+            foreach (var condition in conditions)
+            {
+                //删除指定条件及其组内的所有子条件项
+                allConditionsForDelete.Add(condition);
+                allConditionsForDelete.AddRange(getChildConditions(condition));
+            }
+            allConditionsForDelete = allConditionsForDelete.DistinctBy(c => c.CNum).OrderByDescending(c => c.Level).ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            foreach (var conditionItem in allConditionsForDelete)
+            {
+                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
+                {
+                    { "@CNum", conditionItem.CNum }
+                });
+                sqlCommands.Add(cmd);
+            }
+            return sqlCommands;
+        }
+        #endregion
+
         #region 预警信息
         public void AddOrModifyAlarmInfoToDevice(DeviceEntity device, AlarmEntity alarmInfo, ConditionEntity condition)
         {
@@ -689,258 +943,6 @@ namespace Coffee.DigitalPlatform.DataAccess
             {
                 { "@AlarmNum", alarmNum }
             });
-        }
-
-        private void AddCondition(ConditionEntity condition)
-        {
-            var sqlCommands = CreateSqlCommandsForAddingCondition(condition);
-            SqlExecute(sqlCommands);
-        }
-
-        private IList<SqlCommand> CreateSqlCommandsForAddingCondition(ConditionEntity condition)
-        {
-            if (condition == null)
-                return Enumerable.Empty<SqlCommand>().ToList();
-            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
-
-            //if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
-            //{
-            //    { "@CNum", condition.CNum }
-            //}))
-            //{
-            //    //throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
-            //    var cmd = new SqlCommand("DELETE FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
-            //        {
-            //            { "@CNum", condition.CNum }
-            //        });
-            //    sqlCommands.Add(cmd);
-            //}
-
-            //全删全插
-            //注意：删除条件选项时，其字条件也需要同时删除
-            //但是，这里在添加条件选项时，只添加当前条件，不会主动添加其子条件，因为ConditionEntity中不包含子条件信息。要同时添加父条件和子条件，需在参数中指定
-            sqlCommands.Add(new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
-                            {
-                                { "@CNum", condition.CNum }
-                            }));
-            var childConditions = getChildConditions(condition);
-            if (childConditions != null)
-            {
-                foreach (var childCondition in childConditions)
-                {
-                    var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
-                    {
-                        { "@CNum", childCondition.CNum }
-                    });
-                    sqlCommands.Add(cmd);
-                }
-            }
-            SqlCommand cmd2 = new SqlCommand(@"INSERT INTO conditions(c_num, c_type, c_num_parent, v_num, operator, value) 
-                                                VALUES (@CNum, @CType, @CNum_Parent, @VarNum, @Operator, @Value);", new Dictionary<string, object>()
-                                                {
-                                                    { "@CNum", condition.CNum },
-                                                    { "@CType", (int)condition.ConditionNodeTypes },
-                                                    { "@ParentId", condition.CNum_Parent },
-                                                    { "@VarNum", condition.VarNum },
-                                                    { "@Operator", condition.Operator },
-                                                    { "@Value", condition.Value },
-                                                });
-            return sqlCommands;
-        }
-
-        private void AddConditions(IEnumerable<ConditionEntity> conditions)
-        {
-            var sqlCommands = CreateSqlCommandsForAddingConditions(conditions);
-            SqlExecute(sqlCommands);
-        }
-
-        private IList<SqlCommand> CreateSqlCommandsForAddingConditions(IEnumerable<ConditionEntity> conditions)
-        {
-            if (conditions == null || !conditions.Any())
-                return Enumerable.Empty<SqlCommand>().ToList();
-            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
-
-            //foreach (var condition in conditions)
-            //{
-            //    if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
-            //    {
-            //        { "@CNum", condition.CNum }
-            //    }))
-            //    {
-            //        //throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
-            //        var cmd = new SqlCommand("DELETE FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
-            //        {
-            //            { "@CNum", condition.CNum }
-            //        });
-            //        sqlCommands.Add(cmd);
-            //    }
-            //}
-
-            //全删全插
-            //注意：删除条件选项时，其字条件也需要同时删除
-            //但是，这里在添加条件选项时，只添加当前条件，不会主动添加其子条件，因为ConditionEntity中不包含子条件信息。要同时添加父条件和子条件，需在参数中指定
-            List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
-            foreach (var condition in conditions)
-            {
-                allConditionsForDelete.Add(condition);
-                var childConditions = getChildConditions(condition);
-                if (childConditions == null)
-                    continue;
-                allConditionsForDelete.AddRange(childConditions);
-            }
-            allConditionsForDelete = allConditionsForDelete.DistinctBy(c => c.CNum).OrderByDescending(c => c.Level).ToList();
-
-            foreach (var conditionItem in allConditionsForDelete)
-            {
-                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
-                {
-                    { "@CNum", conditionItem.CNum }
-                });
-                sqlCommands.Add(cmd);
-            }
-
-            foreach (var condition in conditions)
-            {
-                SqlCommand cmd2 = new SqlCommand(@"INSERT INTO conditions(c_num, c_type, c_num_parent, v_num, operator, value) 
-                                                VALUES (@CNum, @CType, @CNum_Parent, @VarNum, @Operator, @Value);", new Dictionary<string, object>()
-                                                {
-                                                    { "@CNum", condition.CNum },
-                                                    { "@CType", (int)condition.ConditionNodeTypes },
-                                                    { "@CNum_Parent", condition.CNum_Parent },
-                                                    { "@VarNum", condition.VarNum },
-                                                    { "@Operator", condition.Operator },
-                                                    { "@Value", condition.Value },
-                                                });
-                sqlCommands.Add(cmd2);
-            }
-
-            return sqlCommands;
-        }
-
-        private void DeleteCondition(ConditionEntity condition)
-        {
-            var delConditionCommands = CreateSqlCommandsForDeleteCondition(condition);
-            SqlExecute(delConditionCommands);
-        }
-
-        private IList<SqlCommand> CreateSqlCommandsForDeleteCondition(ConditionEntity condition)
-        {
-            if (condition == null)
-                return Enumerable.Empty<SqlCommand>().ToList();
-            //如果指定条件正在使用，则不允许删除
-            //if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
-            //{
-            //    { "@CNum", condition.CNum }
-            //}))
-            //{
-            //    throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
-            //}
-
-            List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
-            //删除指定条件及其组内的所有子条件项
-            allConditionsForDelete.Add(condition);
-            allConditionsForDelete.AddRange(getChildConditions(condition));
-
-            IList<SqlCommand> delConditionCommands = new List<SqlCommand>();
-            foreach (var childCondition in allConditionsForDelete)
-            {
-                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
-                {
-                    { "@CNum", childCondition.CNum }
-                });
-                delConditionCommands.Add(cmd);
-            }
-            return delConditionCommands;
-        }
-
-        private void DeleteConditions(IEnumerable<ConditionEntity> conditions)
-        {
-            var sqlCommands = CreateSqlCommandsForDeleteConditions(conditions);
-            SqlExecute(sqlCommands);
-        }
-
-        private IList<SqlCommand> CreateSqlCommandsForDeleteConditions(IEnumerable<ConditionEntity> conditions)
-        {
-            if (conditions == null || !conditions.Any())
-                return Enumerable.Empty<SqlCommand>().ToList();
-            foreach (var condition in conditions)
-            {
-                //if (SqlExist(@"SELECT 1 FROM alarms WHERE c_num = @CNum", new Dictionary<string, object>()
-                //{
-                //    { "@CNum", condition.CNum }
-                //}))
-                //{
-                //    throw new Exception($"当前筛选条件'{condition.CNum}'正在使用中...");
-                //}
-            }
-
-            List<ConditionEntity> allConditionsForDelete = new List<ConditionEntity>();
-            foreach (var condition in conditions)
-            {
-                //删除指定条件及其组内的所有子条件项
-                allConditionsForDelete.Add(condition);
-                allConditionsForDelete.AddRange(getChildConditions(condition));
-            }
-            allConditionsForDelete = allConditionsForDelete.DistinctBy(c => c.CNum).OrderByDescending(c => c.Level).ToList();
-
-            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
-            foreach (var conditionItem in allConditionsForDelete)
-            {
-                var cmd = new SqlCommand("DELETE FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
-                {
-                    { "@CNum", conditionItem.CNum }
-                });
-                sqlCommands.Add(cmd);
-            }
-            return sqlCommands;
-        }
-
-        //获取所有预警条件，包括一级预警条件及其子条件
-        public IEnumerable<ConditionEntity> GetConditions()
-        {
-            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
-            return SqlQuery<ConditionEntity>("SELECT * FROM conditions");
-        }
-
-        //获取所有一级预警条件
-        public IEnumerable<ConditionEntity> GetTopConditions()
-        {
-            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
-            return SqlQuery<ConditionEntity>("SELECT * FROM conditions WHERE c_num_parent IS NULL");
-        }
-
-        public ConditionEntity? GetConditionByCNum(string c_num)
-        {
-            if (string.IsNullOrWhiteSpace(c_num))
-                return null;
-            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
-            return SqlQueryFirst<ConditionEntity>("SELECT * FROM conditions WHERE c_num = @CNum", new Dictionary<string, object>()
-            {
-                { "@CNum", c_num }
-            });
-        }
-
-        private IEnumerable<ConditionEntity> getChildConditions(ConditionEntity condition)
-        {
-            //如果指定条件在某个条件链上是其他条件项的组，当其组内任一条件项正在使用，则不允许删除
-            string sql = @"WITH RECURSIVE recursive_query(id, c_num, c_num_parent, level) AS (
-                           SELECT id, c_num, c_num_parent, 1 AS level FROM conditions WHERE c_num_parent = @CNum
-	                       UNION ALL
-	                       SELECT conditions.id, conditions.c_num, conditions.c_num_parent, level + 1 FROM conditions, recursive_query
-	                       WHERE conditions.c_num_parent = recursive_query.c_num
-                          )
-                          SELECT * FROM recursive_query ORDER BY level DESC;";
-            Dictionary<string, object> paramDict = new Dictionary<string, object>();
-            paramDict.Add("@CNum", condition.CNum);
-            //返回指定条件组下的所有子条件项，并且按照其在条件链上的树状顺序由子节点到父节点遍历
-            var childConditions = SqlQuery<ConditionEntity>(sql, paramDict);
-            if (childConditions != null && childConditions.Any())
-            {
-                string c_nums = string.Join(',', childConditions.Select(c => $"'{c.CNum}'"));
-                if (SqlExist($"SELECT 1 FROM alarms WHERE c_num IN ({c_nums})"))
-                    throw new Exception("当前筛选条件或其条件组正在使用中...");
-            }
-            return childConditions;
         }
 
         public Dictionary<string, IList<AlarmEntity>> ReadAlarms()
@@ -1184,6 +1186,212 @@ namespace Coffee.DigitalPlatform.DataAccess
         }
         #endregion
 
+        #region 联动控制信息
+        public void AddOrModifyControlInfoByTriggerToDevice(DeviceEntity device, ControlInfoByTriggerEntity controlInfo, ConditionEntity condition)
+        {
+            var sqlCommands = CreateSqlCommandsForAddOrModifyControlInfoByTrigger(device, controlInfo, condition);
+            SqlExecute(sqlCommands);
+        }
+
+        public IList<SqlCommand> CreateSqlCommandsForAddOrModifyControlInfoByTrigger(DeviceEntity device, ControlInfoByTriggerEntity controlInfo, ConditionEntity condition)
+        {
+            if (device == null)
+                throw new ArgumentNullException(nameof(device));
+            if (condition == null)
+                throw new ArgumentNullException(nameof(condition));
+            SqlMapper.SetTypeMap(typeof(ConditionEntity), new ColumnAttributeTypeMapper<ConditionEntity>());
+            SqlMapper.SetTypeMap(typeof(ControlInfoByTriggerEntity), new ColumnAttributeTypeMapper<ControlInfoByTriggerEntity>());
+
+            AddCondition(condition);
+
+            SqlCommand cmd = new SqlCommand(@"INSERT INTO trigger_controls(u_num, c_num, d_num, c_header, v_num, c_value) 
+                                                VALUES (@LinkageNum, @ConditionNum, @DeviceNum, @Header, @VarNum, @Value)
+                                                ON CONFLICT(u_num, d_num) DO UPDATE
+                                                SET c_num=@ConditionNum, c_header=@Header, v_num=@VarNum, c_value=@Value", new Dictionary<string, object>()
+                                                {
+                                                    { "@LinkageNum", controlInfo.LinkageNum },
+                                                    { "@ConditionNum", controlInfo.ConditionNum },
+                                                    { "@DeviceNum", controlInfo.DeviceNum },
+                                                    { "@Header", controlInfo.Header },
+                                                    { "@VarNum", controlInfo.VarNum },
+                                                    { "@Value", controlInfo.Value }
+                                                });
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            sqlCommands.Add(cmd);
+            return sqlCommands;
+        }
+
+        public void DeleteControlInfoByTriggerFromDevice(DeviceEntity device, string linkageNum)
+        {
+            var sqlCommands = CreateSqlCommandsForDeleteControlInfoByTrigger(device, linkageNum);
+            SqlExecute(sqlCommands);
+        }
+
+        public IList<SqlCommand> CreateSqlCommandsForDeleteControlInfoByTrigger(DeviceEntity device, string linkageNum)
+        {
+            if (device == null)
+                return Enumerable.Empty<SqlCommand>().ToList();
+            if (string.IsNullOrEmpty(linkageNum))
+                return Enumerable.Empty<SqlCommand>().ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var cmd = new SqlCommand("DELETE FROM trigger_controls WHERE u_num = @LinkageNum", new Dictionary<string, object>()
+                {
+                    { "@LinkageNum", linkageNum }
+                });
+            sqlCommands.Add(cmd);
+            return sqlCommands;
+        }
+
+        public IList<ControlInfoByTriggerEntity> GetControlInfosByTriggerForDevice(DeviceEntity device)
+        {
+            if (device == null)
+                return null;
+            return SqlQuery<ControlInfoByTriggerEntity>("SELECT * FROM trigger_controls WHERE d_num = @DeviceNum", new Dictionary<string, object>()
+            {
+                { "@DeviceNum", device.DeviceNum }
+            }).ToList();
+        }
+
+        public ControlInfoByTriggerEntity GetControlInfoByTriggerByNum(string linkageNum)
+        {
+            if (string.IsNullOrWhiteSpace(linkageNum))
+                return null;
+            return SqlQueryFirst<ControlInfoByTriggerEntity>("SELECT * FROM trigger_controls WHERE u_num = @LinkageNum", new Dictionary<string, object>()
+            {
+                { "@LinkageNum", linkageNum }
+            });
+        }
+
+        public Dictionary<string, IList<ControlInfoByTriggerEntity>> ReadControlInfosByTrigger()
+        {
+            SqlMapper.SetTypeMap(typeof(ControlInfoByTriggerEntity), new ColumnAttributeTypeMapper<ControlInfoByTriggerEntity>());
+            var controlInfos = SqlQuery<ControlInfoByTriggerEntity>("SELECT * FROM trigger_controls");
+            if (controlInfos != null && controlInfos.Any())
+            {
+                return controlInfos.GroupBy(a => a.DeviceNum)
+                             .ToDictionary(g => g.Key, g => (IList<ControlInfoByTriggerEntity>)g.ToList());
+            }
+            else
+            {
+                return new Dictionary<string, IList<ControlInfoByTriggerEntity>>();
+            }
+        }
+
+        public void SaveControlInfosByTrigger(Dictionary<string, IList<ControlInfoByTriggerEntity>> deviceControlInfoDict, Dictionary<string, IList<ConditionEntity>> conditionDict)
+        {
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var topConditionDict = new Dictionary<string, ConditionEntity>();
+            var conditionList = new List<ConditionEntity>(); //要写入的所有条件实体
+            if (conditionDict != null)
+            {
+                foreach (var pair in conditionDict)
+                {
+                    if (!topConditionDict.ContainsKey(pair.Key))
+                    {
+                        topConditionDict.Add(pair.Key, pair.Value?.First(c => string.IsNullOrEmpty(c.CNum_Parent)));
+
+                        conditionList.AddRange(pair.Value);
+                    }
+                }
+            }
+
+            var oldTopConditions = GetTopConditions();
+            //得到当前还在使用的一级联控条件编号集合
+            var aliveConditionNumList = deviceControlInfoDict.Select(p => p.Value).SelectMany(a => a)
+                           .Select(a => a.ConditionNum)
+                           .Distinct();
+            //删除那些不再使用的一级联控条件及其子条件
+            var topConditionsForDelete = oldTopConditions.Where(c => c.CNum_Parent == null && !aliveConditionNumList.Contains(c.CNum)).ToList();
+            var sqlCommandsForDeleteConditions = CreateSqlCommandsForDeleteConditions(topConditionsForDelete);
+            sqlCommands.AddRange(sqlCommandsForDeleteConditions);
+
+            var sqlCommandsForConditions = CreateSqlCommandsForAddingConditions(conditionList.DistinctBy(c => c.CNum));
+            sqlCommands.AddRange(sqlCommandsForConditions);
+
+            var controlInfoUpdateStateDict = checkControlInfosByTriggerForUpdating(ReadControlInfosByTrigger(), deviceControlInfoDict);
+            foreach (var pair in controlInfoUpdateStateDict)
+            {
+                if (pair.Value == ItemUpdateStates.Added || pair.Value == ItemUpdateStates.Modified)
+                {
+                    var controlInfo = pair.Key;
+                    if (topConditionDict.TryGetValue(controlInfo.ConditionNum, out ConditionEntity condition))
+                    {
+                        var sqlCommandsForAdd = CreateSqlCommandsForAddOrModifyControlInfoByTrigger(new DeviceEntity { DeviceNum = controlInfo.DeviceNum }, controlInfo, condition);
+                        sqlCommands.AddRange(sqlCommandsForAdd);
+                    }
+                    else
+                    {
+                        //如果没有找到对应的一级联控条件，则当前联控选项信息无效，需将其从数据库中剔除
+                        var sqlCommandsForDelete = CreateSqlCommandsForDeleteControlInfoByTrigger(new DeviceEntity { DeviceNum = controlInfo.DeviceNum }, controlInfo.LinkageNum);
+                        sqlCommands.AddRange(sqlCommandsForDelete);
+                    }
+                }
+                else if (pair.Value == ItemUpdateStates.Deleted)
+                {
+                    var controlInfo = pair.Key;
+                    var sqlCommandsForDelete = CreateSqlCommandsForDeleteControlInfoByTrigger(new DeviceEntity { DeviceNum = controlInfo.DeviceNum }, controlInfo.LinkageNum);
+                    sqlCommands.AddRange(sqlCommandsForDelete);
+                }
+            }
+
+            SqlExecute(sqlCommands);
+        }
+
+        private Dictionary<ControlInfoByTriggerEntity, ItemUpdateStates> checkControlInfosByTriggerForUpdating(Dictionary<string, IList<ControlInfoByTriggerEntity>> sourceControlInfoDict, Dictionary<string, IList<ControlInfoByTriggerEntity>> targetControlInfoDict)
+        {
+            if (sourceControlInfoDict == null || !sourceControlInfoDict.Any())
+                return targetControlInfoDict != null ? targetControlInfoDict.SelectMany(kvp => kvp.Value).ToDictionary(a => a, a => ItemUpdateStates.Added) : new Dictionary<ControlInfoByTriggerEntity, ItemUpdateStates>();
+            if (targetControlInfoDict == null || !targetControlInfoDict.Any())
+            {
+                if (sourceControlInfoDict != null && sourceControlInfoDict.Any())
+                    return sourceControlInfoDict.SelectMany(kvp => kvp.Value).ToDictionary(a => a, a => ItemUpdateStates.Deleted);
+                else
+                    return new Dictionary<ControlInfoByTriggerEntity, ItemUpdateStates>();
+            }
+            Dictionary<ControlInfoByTriggerEntity, ItemUpdateStates> itemUpdateStateDict = new Dictionary<ControlInfoByTriggerEntity, ItemUpdateStates>();
+            //先判断每个设备的更新状态，即它是新添加或被删除的，还是需要进一步比较
+            foreach (var sourceKvp in sourceControlInfoDict)
+            {
+                var deviceNum = sourceKvp.Key;
+                var sourceControlInfos = sourceKvp.Value;
+                if (!targetControlInfoDict.ContainsKey(deviceNum))
+                {
+                    //目标集合中不存在该设备，则该设备的所有报警信息均为删除状态
+                    foreach (var controlInfo in sourceControlInfos)
+                    {
+                        itemUpdateStateDict.Add(controlInfo, ItemUpdateStates.Deleted);
+                    }
+                }
+                else
+                {
+                    var targetControlInfos = targetControlInfoDict[deviceNum];
+                    var controlInfosForRemove = sourceControlInfos.Except(targetControlInfos, new ControlInfoByTriggerByNumComparer()).ToList();
+                    controlInfosForRemove.ForEach(a => itemUpdateStateDict.Add(a, ItemUpdateStates.Deleted));
+                    var controlInfosForAdd = targetControlInfos.Except(sourceControlInfos, new ControlInfoByTriggerByNumComparer()).ToList();
+                    controlInfosForAdd.ForEach(a => itemUpdateStateDict.Add(a, ItemUpdateStates.Added));
+
+                    var otherControlInfos = sourceControlInfos.Intersect(targetControlInfos, new ControlInfoByTriggerByNumComparer()).ToList(); //包括属性变更或未变更的报警信息
+                    foreach (var sourceControlInfo in otherControlInfos)
+                    {
+                        var targetControlInfo = targetControlInfos.FirstOrDefault(a => string.Equals(a.LinkageNum, sourceControlInfo.LinkageNum, StringComparison.OrdinalIgnoreCase) && string.Equals(a.DeviceNum, sourceControlInfo.DeviceNum, StringComparison.OrdinalIgnoreCase));
+                        if (targetControlInfo == null)
+                            continue;
+                        if (!targetControlInfo.Equals(sourceControlInfo))
+                        {
+                            itemUpdateStateDict.Add(targetControlInfo, ItemUpdateStates.Modified);
+                        }
+                        else
+                        {
+                            itemUpdateStateDict.Add(targetControlInfo, ItemUpdateStates.Unchanged);
+                        }
+                    }
+                }
+            }
+            return itemUpdateStateDict;
+        }
+        #endregion
+
         internal class DeviceByNumComparer : IEqualityComparer<DeviceEntity>
         {
             public bool Equals(DeviceEntity x, DeviceEntity y)
@@ -1245,6 +1453,31 @@ namespace Coffee.DigitalPlatform.DataAccess
                 {
                     int hash = 17;
                     hash = hash * 23 + (obj.CNum?.GetHashCode() ?? 0);
+                    hash = hash * 23 + (obj.DeviceNum?.GetHashCode() ?? 0);
+                    return hash;
+                }
+            }
+        }
+
+        internal class ControlInfoByTriggerByNumComparer : IEqualityComparer<ControlInfoByTriggerEntity>
+        {
+            public bool Equals(ControlInfoByTriggerEntity? x, ControlInfoByTriggerEntity? y)
+            {
+                if (x == null && y == null)
+                    return true;
+                if (x == null || y == null)
+                    return false;
+                return string.Equals(x.LinkageNum, y.LinkageNum, StringComparison.OrdinalIgnoreCase) && string.Equals(x.DeviceNum, y.DeviceNum, StringComparison.OrdinalIgnoreCase);
+            }
+
+            public int GetHashCode([DisallowNull] ControlInfoByTriggerEntity obj)
+            {
+                if (obj == null || string.IsNullOrEmpty(obj.LinkageNum))
+                    return 0;
+                unchecked // 允许溢出
+                {
+                    int hash = 17;
+                    hash = hash * 23 + (obj.LinkageNum?.GetHashCode() ?? 0);
                     hash = hash * 23 + (obj.DeviceNum?.GetHashCode() ?? 0);
                     return hash;
                 }

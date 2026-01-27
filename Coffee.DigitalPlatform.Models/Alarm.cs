@@ -8,19 +8,18 @@ using System.Threading.Tasks;
 
 namespace Coffee.DigitalPlatform.Models
 {
-    public class Alarm : ObservableObject
+    public class Alarm : ObservableObject, IReceiveFilterScheme
     {
         public int Index { get; set; }
-        public string id { get; set; }
 
         // 预警编号
         public string AlarmNum { get; set; }
 
         //触发报警的条件，可以是单个表达式条件，也可以是多个表达式组合成的条件链
         private ICondition _condition;
-        public ICondition Condition 
+        public ICondition Condition
         {
-            get {  return _condition; }
+            get { return _condition; }
             set { SetProperty(ref _condition, value); }
         }
 
@@ -71,7 +70,7 @@ namespace Coffee.DigitalPlatform.Models
         }
 
         #region Alarm 编辑状态的属性
-        
+
         //是否是新建预警信息
         public bool IsFirstEditing { get; set; } = true;
 
@@ -118,12 +117,17 @@ namespace Coffee.DigitalPlatform.Models
 
         //当预警处理完成，则记录处理时间
         //否则，处理时间为null
-        public DateTime? SolvedTime {  get; set; }
+        public DateTime? SolvedTime { get; set; }
     }
 
     public enum AlarmStatus
     {
         Unsolved,
         Solved
+    }
+
+    public interface IReceiveFilterScheme
+    {
+        FilterSchemeEditInfo ConditionTemplate { get; set; }
     }
 }
