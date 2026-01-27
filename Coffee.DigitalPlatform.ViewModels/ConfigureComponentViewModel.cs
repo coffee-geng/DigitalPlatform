@@ -333,23 +333,32 @@ namespace Coffee.DigitalPlatform.ViewModels
                 IList<ControlInfoByManual> controlInfos = new List<ControlInfoByManual>();
                 foreach (var controlInfoEntity in controlInfoList)
                 {
+                    Variable variable = device.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == controlInfoEntity.VarNum);
                     try
                     {
-                        Type valueType = TypeUtils.GetTypeFromAssemblyQualifiedName(controlInfoEntity.ValueType);
                         var controlInfo = new ControlInfoByManual()
                         {
                             CNum = controlInfoEntity.CNum,
                             DeviceNum = controlInfoEntity.DeviceNum,
                             Header = controlInfoEntity.Header,
-                            Address = controlInfoEntity.Address,
-                            ValueType = valueType,
-                            Value = ObjectToStringConverter.ConvertFromString(controlInfoEntity.Value, valueType)
+                            Variable = variable
                         };
+                        if (variable != null)
+                        {
+                            controlInfo.Value = ObjectToStringConverter.ConvertFromString(controlInfoEntity.Value, variable.VarType);
+                        }
                         controlInfos.Add(controlInfo);
                     }
                     catch (Exception ex)
                     {
-                        throw new Exception($"加载手动控制选项{controlInfoEntity.Header} 的值失败，当前值不符合类型{controlInfoEntity.ValueType}的格式！");
+                        if (variable != null)
+                        {
+                            throw new Exception($"加载手动控制选项{controlInfoEntity.Header} 的值失败，当前值不符合类型{variable.VarType.Name}的格式！");
+                        }
+                        else
+                        {
+                            throw new Exception($"加载手动控制选项{controlInfoEntity.Header} 的值失败，当前值格式不正确！");
+                        }
                     }
                 }
 
@@ -364,20 +373,25 @@ namespace Coffee.DigitalPlatform.ViewModels
             Dictionary<string, IList<ControlInfoByTriggerEntity>> deviceControlInfoByTriggerDict = _localDataAccess.ReadControlInfosByTrigger();
             foreach(var pair in deviceControlInfoByTriggerDict)
             {
-                string deviceNum = pair.Key;
+                string conditionDeviceNum = pair.Key;
                 IList<ControlInfoByTriggerEntity> controlInfoEntities = pair.Value;
-                if (!deviceNumDict.TryGetValue(deviceNum, out Device? device))
+                if (!deviceNumDict.TryGetValue(conditionDeviceNum, out Device? conditionDevice))
                 {
-                    throw new InvalidOperationException($"没有找到对应编码{deviceNum}的设备");
+                    throw new InvalidOperationException($"没有找到对应编码{conditionDeviceNum}的设备");
                 }
                 IList<ControlInfoByTrigger> controlInfos = new List<ControlInfoByTrigger>();
                 foreach (var controlInfoEntity in controlInfoEntities)
                 {
+                    string linkageDeviceNum = controlInfoEntity.LinkageDeviceNum;
+                    if (!deviceNumDict.TryGetValue(linkageDeviceNum, out Device? linkageDevice))
+                    {
+                        throw new InvalidOperationException($"加载手动控制选项{controlInfoEntity.Header} 的值失败，没有找到对应编码{linkageDeviceNum}的设备！");
+                    }
                     Type? valueType = null;
                     object @value;
                     try
                     {
-                        var @var = device.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == controlInfoEntity.VarNum);
+                        var @var = linkageDevice.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == controlInfoEntity.VarNum);
                         valueType = @var.VarType;
                         @value = ObjectToStringConverter.ConvertFromString(controlInfoEntity.Value, valueType);
                     }
@@ -393,8 +407,8 @@ namespace Coffee.DigitalPlatform.ViewModels
                         }
                     }
 
-                    Variable variable = device.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == controlInfoEntity.VarNum);
-                    var targetDevice = DeviceList?.FirstOrDefault(d => !string.IsNullOrWhiteSpace(deviceNum) && d.DeviceNum == deviceNum);
+                    Variable variable = linkageDevice.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == controlInfoEntity.VarNum);
+                    var targetDevice = DeviceList?.FirstOrDefault(d => !string.IsNullOrWhiteSpace(linkageDeviceNum) && d.DeviceNum == linkageDeviceNum);
                     var controlInfo = new ControlInfoByTrigger()
                     {
                         LinkageNum = controlInfoEntity.LinkageNum,
@@ -408,16 +422,16 @@ namespace Coffee.DigitalPlatform.ViewModels
                     if (topConditionEntity != null)
                     {
                         //联控选项信息仅使用顶级条件项作为触发联动控制的条件
-                        ICondition topCondition = createConditionByEntity(topConditionEntity, conditionEntities, device.Variables.ToDictionary(v => v.VarNum, v => v));
+                        ICondition topCondition = createConditionByEntity(topConditionEntity, conditionEntities, conditionDevice.Variables.ToDictionary(v => v.VarNum, v => v));
                         controlInfo.Condition = topCondition;
                     }
                     controlInfos.Add(controlInfo);
                 }
 
-                device.ControlInfosByTrigger.Clear();
+                conditionDevice.ControlInfosByTrigger.Clear();
                 foreach (var controlInfo in controlInfos)
                 {
-                    device.ControlInfosByTrigger.Add(controlInfo);
+                    conditionDevice.ControlInfosByTrigger.Add(controlInfo);
                 }
             }
         }
@@ -619,10 +633,9 @@ namespace Coffee.DigitalPlatform.ViewModels
                         var controlInfoEntity = new ControlInfoByManualEntity
                         {
                             CNum = controlInfo.CNum,
-                            DeviceNum = device.DeviceNum,
+                            DeviceNum = controlInfo.DeviceNum,
                             Header = controlInfo.Header,
-                            Address = controlInfo.Address,
-                            ValueType = controlInfo.ValueType.AssemblyQualifiedName,
+                            VarNum = controlInfo.Variable?.VarNum,
                             Value = ObjectToStringConverter.ConvertToString(controlInfo.Value)
                         };
                         controlInfoEntities.Add(controlInfoEntity);
@@ -658,9 +671,10 @@ namespace Coffee.DigitalPlatform.ViewModels
                         var controlInfoEntity = new ControlInfoByTriggerEntity
                         {
                             LinkageNum = controlInfo.LinkageNum,
-                            DeviceNum = device.DeviceNum,
+                            ConditionDeviceNum = controlInfo.ConditionDevice?.DeviceNum,
                             ConditionNum = controlInfo.Condition?.ConditionNum,
                             Header = controlInfo.Header,
+                            LinkageDeviceNum = controlInfo.Device?.DeviceNum,
                             VarNum = controlInfo.Variable?.VarNum,
                             Value = ObjectToStringConverter.ConvertToString(controlInfo.Value)
                         };

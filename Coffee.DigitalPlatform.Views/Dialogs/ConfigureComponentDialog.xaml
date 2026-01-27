@@ -851,7 +851,7 @@
         <Popup StaysOpen="False" IsOpen="{Binding IsChecked, ElementName=btnManual}"
            AllowsTransparency="True" PlacementTarget="{Binding ElementName=btnManual}"
            Placement="Left">
-            <Border Background="#F7F9FA" Margin="5,5,10,5" Width="260" CornerRadius="5">
+            <Border Background="#F7F9FA" Margin="5,5,10,5" Width="320" CornerRadius="5">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="10" Color="#DDD" ShadowDepth="0" Opacity="0.3"/>
                 </Border.Effect>
@@ -899,16 +899,37 @@
                                     <Grid Height="30">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="1.2*"/>
-                                            <ColumnDefinition/>
+                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition/>
                                             <ColumnDefinition Width="35"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBox Height="28" Margin="2,1,2,1"
                                             Text="{Binding Header, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}" 
                                                  ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
-                                        <TextBox Grid.Column="1" Height="28" Margin="2,1,2,1" TextAlignment="Center"
-                                            Text="{Binding Address, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}" 
-                                            ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
+                                        <ComboBox Grid.Column="1" Width="120" HorizontalContentAlignment="Stretch" Margin="2,1,2,1"
+                                            ItemsSource="{Binding DataContext.CurrentDevice.Variables, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
+                                            SelectedItem="{Binding Variable}"
+                                            Style="{StaticResource VariableComboBoxStyle}">
+                                            <ComboBox.ItemContainerStyle>
+                                                <Style TargetType="ComboBoxItem">
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                    <Setter Property="Padding" Value="0"/>
+                                                    <Setter Property="Margin" Value="0"/>
+                                                </Style>
+                                            </ComboBox.ItemContainerStyle>
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding VarName}" Grid.Column="0" HorizontalAlignment="Left" Margin="3,0,0,0"/>
+                                                        <TextBlock Text="{Binding VarAddress}" Grid.Column="1" HorizontalAlignment="Right" Margin="0,0,3,0"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
                                         <TextBox Grid.Column="2" Height="28" Margin="2,1,2,1" TextAlignment="Center"
                                             Text="{Binding Value, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}" 
                                             ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />

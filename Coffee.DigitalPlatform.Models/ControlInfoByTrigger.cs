@@ -44,6 +44,13 @@ namespace Coffee.DigitalPlatform.Models
             set { SetProperty(ref _formattedCondition, value); }
         }
 
+        private Device _conditionDevice;
+        public Device ConditionDevice
+        {
+            get { return _conditionDevice; }
+            set { SetProperty(ref _conditionDevice, value); }
+        }
+
         // 联动控制设备的编码
         private Device _device;
         public Device Device

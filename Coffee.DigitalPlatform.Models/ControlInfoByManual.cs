@@ -33,11 +33,11 @@ namespace Coffee.DigitalPlatform.Models
             set => SetProperty(ref _header, value);
         }
 
-        private string _address;
-        public string Address
+        private Variable _variable;
+        public Variable Variable
         {
-            get => _address;
-            set => SetProperty(ref _address, value);
+            get => _variable;
+            set => SetProperty(ref _variable, value);
         }
 
         private object _value;
@@ -68,8 +68,8 @@ namespace Coffee.DigitalPlatform.Models
                     case nameof(Header):
                         err = verifyHeader();
                         break;
-                    case nameof(Address):
-                        err = verifyAddress();
+                    case nameof(Variable):
+                        err = verifyVariable();
                         break;
                     case nameof(Value):
                         err = verifyValue();
@@ -103,9 +103,9 @@ namespace Coffee.DigitalPlatform.Models
             return string.Empty;
         }
 
-        private string verifyAddress()
+        private string verifyVariable()
         {
-            if (string.IsNullOrWhiteSpace(Address))
+            if (Variable == null || string.IsNullOrWhiteSpace(Variable.VarName))
             {
                 return "点位地址不能为空";
             }

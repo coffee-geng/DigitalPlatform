@@ -125,13 +125,9 @@
                                                     Text="{Binding FormattedCondition}" TextWrapping="Wrap"/>
                                                 <TextBlock Grid.Column="2" HorizontalAlignment="Left"
                                                     Text="{Binding Header}" TextWrapping="Wrap"/>
-                                                <TextBlock Grid.Column="3" HorizontalAlignment="Left" TextWrapping="Wrap">
-                                                    <TextBlock.Text>
-                                                        <MultiBinding Converter="{x:Static local:DeviceNumToNameConverter.Instance}">
-                                                            <Binding Path="DeviceNum"/>
-                                                            <Binding Path="DataContext.DeviceCollection" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}"/>
-                                                        </MultiBinding>
-                                                    </TextBlock.Text>
+                                                <TextBlock Grid.Column="3" HorizontalAlignment="Left" TextWrapping="Wrap"
+                                                           Text="{Binding Device.Name}">
+                                                    
                                                 </TextBlock>
                                                 <StackPanel Orientation="Horizontal" Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding IsEditing, Converter={x:Static wpf:BoolToVisibilityConverter.Instance}, ConverterParameter=Not}">
                                                     <TextBlock Margin="0,0,5,0">

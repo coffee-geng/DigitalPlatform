@@ -92,10 +92,9 @@
                 <ControlTemplate TargetType="{x:Type ComboBox}">
                     <Grid>
                         <ToggleButton x:Name="ToggleButton" Template="{StaticResource ComboBoxToggleButton}"
-                Focusable="false"
-                ClickMode="Press"
-                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, 
-      RelativeSource={RelativeSource TemplatedParent}}"/>
+                            Focusable="false" ClickMode="Press"
+                            IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, 
+                            RelativeSource={RelativeSource TemplatedParent}}"/>
                         <ContentPresenter x:Name="ContentSite"
                             IsHitTestVisible="False"
                             Content="{TemplateBinding SelectionBoxItem}"
@@ -106,9 +105,9 @@
                             HorizontalAlignment="Stretch">
                         </ContentPresenter>
                         <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
-                       AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                            AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
                             <Grid x:Name="DropDown" SnapsToDevicePixels="True" MinWidth="{TemplateBinding ActualWidth}"
-                          MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <Border x:Name="DropDownBorder" BorderThickness="1" BorderBrush="#FF888888" Background="White">
                                 </Border>
                                 <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">

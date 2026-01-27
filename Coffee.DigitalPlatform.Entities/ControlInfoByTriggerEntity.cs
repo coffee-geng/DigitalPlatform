@@ -13,14 +13,17 @@ namespace Coffee.DigitalPlatform.Entities
         [Column(name: "u_num")]
         public string LinkageNum { get; set; }
 
-        [Column(name: "d_num")]
-        public string DeviceNum { get; set; }
+        [Column(name: "c_d_num")]
+        public string ConditionDeviceNum { get; set; }
 
         [Column(name: "c_num")]
         public string ConditionNum { get; set; }
 
         [Column(name: "c_header")]
         public string Header { get; set; }
+
+        [Column(name: "u_d_num")]
+        public string LinkageDeviceNum { get; set; }
 
         //点位信息的变量编码
         [Column(name: "v_num")]

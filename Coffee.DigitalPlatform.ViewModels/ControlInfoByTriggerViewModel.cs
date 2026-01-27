@@ -214,6 +214,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             var device = DeviceCollection?.FirstOrDefault(d => controlInfo.NewDevice != null && !string.IsNullOrWhiteSpace(controlInfo.NewDevice.DeviceNum) && d.DeviceNum == controlInfo.NewDevice.DeviceNum);
 
             controlInfo.LinkageNum = "lk_" + DateTime.Now.ToString("yyyyMMddHHmmssFFF");
+            controlInfo.ConditionDevice = CurrentDevice;
             controlInfo.Header = controlInfo.NewHeader;
             controlInfo.Variable = controlInfo.NewVariable;
             controlInfo.Value = controlInfo.NewValue;
@@ -245,6 +246,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                 return;
             var conditionChain = ConditionFactory.CreateCondition(controlInfo.ConditionTemplate.FilterScheme);
             var newDevice = DeviceCollection?.FirstOrDefault(d => controlInfo.NewDevice != null && !string.IsNullOrWhiteSpace(controlInfo.NewDevice.DeviceNum) && d.DeviceNum == controlInfo.NewDevice.DeviceNum);
+            controlInfo.ConditionDevice = CurrentDevice;
             controlInfo.Header = controlInfo.NewHeader;
             controlInfo.Device = newDevice;
             controlInfo.Variable = controlInfo.NewVariable;

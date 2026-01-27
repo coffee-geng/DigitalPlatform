@@ -18,14 +18,11 @@ namespace Coffee.DigitalPlatform.Entities
         [Column(name: "c_header")]
         public string Header { get; set; }
 
-        [Column(name: "c_address")]
-        public string Address { get; set; }
+        [Column(name: "v_num")]
+        public string VarNum { get; set; }
 
         [Column(name: "c_value")]
         public string Value { get; set; }
-
-        [Column(name: "c_value_type")]
-        public string ValueType { get; set; }
 
         [Column(name: "d_num")]
         public string DeviceNum { get; set; }
