@@ -889,8 +889,6 @@
                             <TextBlock Text="写入数据" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             <TextBlock Text="操作" Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                         </Grid>
-
-
                         <ItemsControl Grid.Row="1" 
                                   ItemsSource="{Binding CurrentDevice.ControlInfosByManual}" Margin="0,0,0,10"
                                   Name="ic1">

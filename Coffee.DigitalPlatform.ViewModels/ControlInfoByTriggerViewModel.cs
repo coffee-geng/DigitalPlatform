@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel;
+using shortid;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
@@ -158,9 +159,12 @@ namespace Coffee.DigitalPlatform.ViewModels
             if (controlInfo == null)
                 return;
             controlInfo.NewHeader = controlInfo.Header;
-            controlInfo.NewDevice = controlInfo.Device;
-            controlInfo.NewVariable = controlInfo.Variable;
-            controlInfo.NewValue = controlInfo.Value;
+            controlInfo.NewDevice = controlInfo.LinkageDevice;
+            controlInfo.NewLinkageActions.Clear();
+            foreach(var action in controlInfo.LinkageActions)
+            {
+                controlInfo.NewLinkageActions.Add((LinkageAction)action.Clone());
+            }
             controlInfo.IsFirstEditing = false;
 
             var instance = createControlInfoByTriggerConditionFilter();
@@ -213,12 +217,15 @@ namespace Coffee.DigitalPlatform.ViewModels
             var conditionChain = ConditionFactory.CreateCondition(controlInfo.ConditionTemplate.FilterScheme);
             var device = DeviceCollection?.FirstOrDefault(d => controlInfo.NewDevice != null && !string.IsNullOrWhiteSpace(controlInfo.NewDevice.DeviceNum) && d.DeviceNum == controlInfo.NewDevice.DeviceNum);
 
-            controlInfo.LinkageNum = "lk_" + DateTime.Now.ToString("yyyyMMddHHmmssFFF");
+            controlInfo.LinkageNum = "lk_" + shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
             controlInfo.ConditionDevice = CurrentDevice;
             controlInfo.Header = controlInfo.NewHeader;
-            controlInfo.Variable = controlInfo.NewVariable;
-            controlInfo.Value = controlInfo.NewValue;
-            controlInfo.Device = device;
+            controlInfo.LinkageDevice = device;
+            controlInfo.LinkageActions.Clear();
+            foreach (var action in controlInfo.NewLinkageActions)
+            {
+                controlInfo.LinkageActions.Add((LinkageAction)action.Clone());
+            }
             controlInfo.Condition = conditionChain;
             controlInfo.FormattedCondition = conditionChain.ToString();
             controlInfo.IsFirstEditing = false;
@@ -248,9 +255,12 @@ namespace Coffee.DigitalPlatform.ViewModels
             var newDevice = DeviceCollection?.FirstOrDefault(d => controlInfo.NewDevice != null && !string.IsNullOrWhiteSpace(controlInfo.NewDevice.DeviceNum) && d.DeviceNum == controlInfo.NewDevice.DeviceNum);
             controlInfo.ConditionDevice = CurrentDevice;
             controlInfo.Header = controlInfo.NewHeader;
-            controlInfo.Device = newDevice;
-            controlInfo.Variable = controlInfo.NewVariable;
-            controlInfo.Value = controlInfo.NewValue;
+            controlInfo.LinkageDevice = newDevice;
+            controlInfo.LinkageActions.Clear();
+            foreach (var action in controlInfo.NewLinkageActions)
+            {
+                controlInfo.LinkageActions.Add((LinkageAction)action.Clone());
+            }
             controlInfo.Condition = conditionChain;
             controlInfo.FormattedCondition = conditionChain.ToString();
             controlInfo.IsFirstEditing = false;
@@ -276,9 +286,8 @@ namespace Coffee.DigitalPlatform.ViewModels
             if (controlInfo == null)
                 return;
             controlInfo.NewHeader = null;
-            controlInfo.NewVariable = null;
-            controlInfo.NewValue = null;
             controlInfo.NewDevice = null;
+            controlInfo.NewLinkageActions.Clear();
             controlInfo.IsEditing = false;
 
             this.IsEditingControlInfo = false;

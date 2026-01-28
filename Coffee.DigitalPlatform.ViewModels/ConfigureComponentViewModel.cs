@@ -409,23 +409,50 @@ namespace Coffee.DigitalPlatform.ViewModels
 
                     Variable variable = linkageDevice.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == controlInfoEntity.VarNum);
                     var targetDevice = DeviceList?.FirstOrDefault(d => !string.IsNullOrWhiteSpace(linkageDeviceNum) && d.DeviceNum == linkageDeviceNum);
-                    var controlInfo = new ControlInfoByTrigger()
-                    {
-                        LinkageNum = controlInfoEntity.LinkageNum,
-                        Device = targetDevice,
-                        Header = controlInfoEntity.Header,
-                        Variable = variable,
-                        Value = value
-                    };
 
-                    var topConditionEntity = topConditionEntities?.FirstOrDefault(c => string.Equals(c.CNum, controlInfoEntity.ConditionNum));
-                    if (topConditionEntity != null)
+                    //在当前联控条件触发下，可以对同一个联控设备操控多个点位信息
+                    var controlInfo = controlInfos.FirstOrDefault(p => !string.IsNullOrWhiteSpace(linkageDeviceNum) && p.LinkageDevice != null && p.LinkageDevice.DeviceNum == linkageDeviceNum);
+                    if (controlInfo == null)
                     {
-                        //联控选项信息仅使用顶级条件项作为触发联动控制的条件
-                        ICondition topCondition = createConditionByEntity(topConditionEntity, conditionEntities, conditionDevice.Variables.ToDictionary(v => v.VarNum, v => v));
-                        controlInfo.Condition = topCondition;
+                        //因为ControlInfoByTrigger对象表示一个联动控制选项实体，但该实体可以对同一个联动设备操控多个点位信息
+                        //而数据表trigger_controls的每一条记录表示对联动设备的一个点位信息的控制，即多个记录对应同一个ControlInfoByTrigger对象
+                        //所以这里需要将ControlInfoByTrigger对象的属性LinkageNum从实体对象ControlInfoByTriggerEntity的属性LinkageNum提取出来
+                        //转换规则是：ControlInfoByTriggerEntity.LinkageNum = ControlInfoByTrigger.LinkageNum + "_" + 数字XXX
+                        string linkageNum = controlInfoEntity.LinkageNum;
+                        if (controlInfoEntity.LinkageNum.LastIndexOf('_') > 0)
+                        {
+                           linkageNum = controlInfoEntity.LinkageNum.Substring(0, controlInfoEntity.LinkageNum.LastIndexOf('_'));
+                        }
+                        controlInfo = new ControlInfoByTrigger()
+                        {
+                            ConditionDevice = conditionDevice,
+                            LinkageNum = linkageNum,
+                            LinkageDevice = targetDevice,
+                            Header = controlInfoEntity.Header,
+                        };
+                        controlInfo.LinkageActions.Add(new LinkageAction()
+                        {
+                            Variable = variable,
+                            Value = @value
+                        });
+                        var topConditionEntity = topConditionEntities?.FirstOrDefault(c => string.Equals(c.CNum, controlInfoEntity.ConditionNum));
+                        if (topConditionEntity != null)
+                        {
+                            //联控选项信息仅使用顶级条件项作为触发联动控制的条件
+                            ICondition topCondition = createConditionByEntity(topConditionEntity, conditionEntities, conditionDevice.Variables.ToDictionary(v => v.VarNum, v => v));
+                            controlInfo.Condition = topCondition;
+                        }
+                        controlInfos.Add(controlInfo);
                     }
-                    controlInfos.Add(controlInfo);
+                    else
+                    {
+                        var action = new LinkageAction()
+                        {
+                            Variable = variable,
+                            Value = value
+                        };
+                        controlInfo.LinkageActions.Add(action);
+                    }
                 }
 
                 conditionDevice.ControlInfosByTrigger.Clear();
@@ -668,17 +695,42 @@ namespace Coffee.DigitalPlatform.ViewModels
                             conditionDict.Add(topCondition.CNum, conditionEntities);
                         }
 
-                        var controlInfoEntity = new ControlInfoByTriggerEntity
+                        int digitalSuffixIdx = 1;
+                        foreach(var action in controlInfo.LinkageActions)
                         {
-                            LinkageNum = controlInfo.LinkageNum,
-                            ConditionDeviceNum = controlInfo.ConditionDevice?.DeviceNum,
-                            ConditionNum = controlInfo.Condition?.ConditionNum,
-                            Header = controlInfo.Header,
-                            LinkageDeviceNum = controlInfo.Device?.DeviceNum,
-                            VarNum = controlInfo.Variable?.VarNum,
-                            Value = ObjectToStringConverter.ConvertToString(controlInfo.Value)
-                        };
-                        controlInfoEntities.Add(controlInfoEntity);
+                            //因为ControlInfoByTrigger对象表示一个联动控制选项实体，但该实体可以对同一个联动设备操控多个点位信息
+                            //而数据表trigger_controls的每一条记录表示对联动设备的一个点位信息的控制，即多个记录对应同一个ControlInfoByTrigger对象
+                            //换句话说，ControlInfoByTriggerEntity实体中的属性LinkageNum仅表示一个联动控制选项中某一个点位操作的编号；而ControlInfoByTrigger对象的属性LinkageNum表示整个联动控制选项（多个操作点位）的编号
+                            //所以这里需要将ControlInfoByTriggerEntity中的属性LinkageNum与ControlInfoByTrigger对象的属性LinkageNum进行转换
+                            //ControlInfoByTriggerEntity.LinkageNum = ControlInfoByTrigger.LinkageNum + "_" + 数字XXX
+                            string linkageNum = controlInfo.LinkageNum;
+                            if (linkageNum.LastIndexOf('_') >= 0)
+                            {
+                                string suffix = linkageNum.Substring(linkageNum.LastIndexOf('-') + 1);
+                                if (suffix.Length == 3 && int.TryParse(suffix, out int digitalSuffix))
+                                {
+                                    //如果后缀是数字XXX格式，则说明这个是数据库已经存在的记录，不做处理
+                                }
+                                else
+                                {
+                                    //否则在ControlInfoByTrigger对象的属性LinkageNum的基础上添加后缀数字格式XXX，在同一个ControlInfoByTrigger对象中后缀数字递增
+                                    linkageNum += "_" + digitalSuffixIdx;
+                                    digitalSuffixIdx++;
+                                }
+                            }
+                            
+                            var controlInfoEntity = new ControlInfoByTriggerEntity
+                            {
+                                LinkageNum = linkageNum,
+                                ConditionDeviceNum = controlInfo.ConditionDevice?.DeviceNum,
+                                ConditionNum = controlInfo.Condition?.ConditionNum,
+                                Header = controlInfo.Header,
+                                LinkageDeviceNum = controlInfo.LinkageDevice?.DeviceNum,
+                                VarNum = action.Variable?.VarNum,
+                                Value = ObjectToStringConverter.ConvertToString(action.Value)
+                            };
+                            controlInfoEntities.Add(controlInfoEntity);
+                        }
                     }
                     if (controlInfoEntities.Any())
                     {

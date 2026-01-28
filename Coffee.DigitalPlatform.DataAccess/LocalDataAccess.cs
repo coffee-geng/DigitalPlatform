@@ -1231,7 +1231,7 @@ namespace Coffee.DigitalPlatform.DataAccess
 
             SqlCommand cmd = new SqlCommand(@"INSERT INTO trigger_controls(u_num, c_num, c_d_num, c_header, u_d_num, v_num, c_value) 
                                                 VALUES (@LinkageNum, @ConditionNum, @ConditionDeviceNum, @Header, @LinkageDeviceNum, @VarNum, @Value)
-                                                ON CONFLICT(u_num, c_d_num) DO UPDATE
+                                                ON CONFLICT(c_d_num, u_num, u_d_num) DO UPDATE
                                                 SET c_num=@ConditionNum, c_header=@Header, u_d_num=@LinkageDeviceNum, v_num=@VarNum, c_value=@Value", new Dictionary<string, object>()
                                                 {
                                                     { "@LinkageNum", controlInfo.LinkageNum },
@@ -1247,13 +1247,13 @@ namespace Coffee.DigitalPlatform.DataAccess
             return sqlCommands;
         }
 
-        public void DeleteControlInfoByTriggerFromDevice(DeviceEntity device, string linkageNum)
+        public void DeleteControlInfoByTriggerFromDevice(DeviceEntity device, string linkageNum, string conditionDeviceNum)
         {
-            var sqlCommands = CreateSqlCommandsForDeleteControlInfoByTrigger(device, linkageNum);
+            var sqlCommands = CreateSqlCommandsForDeleteControlInfoByTrigger(device, linkageNum, conditionDeviceNum);
             SqlExecute(sqlCommands);
         }
 
-        public IList<SqlCommand> CreateSqlCommandsForDeleteControlInfoByTrigger(DeviceEntity device, string linkageNum)
+        public IList<SqlCommand> CreateSqlCommandsForDeleteControlInfoByTrigger(DeviceEntity device, string linkageNum, string conditionDeviceNum)
         {
             if (device == null)
                 return Enumerable.Empty<SqlCommand>().ToList();
@@ -1261,8 +1261,9 @@ namespace Coffee.DigitalPlatform.DataAccess
                 return Enumerable.Empty<SqlCommand>().ToList();
 
             IList<SqlCommand> sqlCommands = new List<SqlCommand>();
-            var cmd = new SqlCommand("DELETE FROM trigger_controls WHERE u_num = @LinkageNum AND u_d_num", new Dictionary<string, object>()
+            var cmd = new SqlCommand("DELETE FROM trigger_controls WHERE c_d_num=@ConditionDeviceNum AND u_num=@LinkageNum AND u_d_num=@LinkageDeviceNum", new Dictionary<string, object>()
                 {
+                    { "@ConditionDeviceNum", conditionDeviceNum },
                     { "@LinkageNum", linkageNum },
                     { "@LinkageDeviceNum", device.DeviceNum }
                 });
@@ -1280,14 +1281,15 @@ namespace Coffee.DigitalPlatform.DataAccess
             }).ToList();
         }
 
-        public ControlInfoByTriggerEntity GetControlInfoByTriggerByNum(string linkageNum, DeviceEntity device)
+        public ControlInfoByTriggerEntity GetControlInfoByTriggerByNum(string linkageNum, DeviceEntity device, string conditionDeviceNum)
         {
             if (string.IsNullOrWhiteSpace(linkageNum))
                 return null;
             if (device == null)
                 return null;
-            return SqlQueryFirst<ControlInfoByTriggerEntity>("SELECT * FROM trigger_controls WHERE u_num = @LinkageNum", new Dictionary<string, object>()
+            return SqlQueryFirst<ControlInfoByTriggerEntity>("SELECT * FROM trigger_controls WHERE c_d_num=@ConditionDeviceNum AND u_num=@LinkageNum AND u_d_num=@LinkageDeviceNum", new Dictionary<string, object>()
             {
+                { "@ConditionDeviceNum", conditionDeviceNum },
                 { "@LinkageNum", linkageNum },
                 { "@LinkageDeviceNum", device.DeviceNum }
             });
@@ -1353,14 +1355,14 @@ namespace Coffee.DigitalPlatform.DataAccess
                     else
                     {
                         //如果没有找到对应的一级联控条件，则当前联控选项信息无效，需将其从数据库中剔除
-                        var sqlCommandsForDelete = CreateSqlCommandsForDeleteControlInfoByTrigger(new DeviceEntity { DeviceNum = controlInfo.ConditionDeviceNum }, controlInfo.LinkageNum);
+                        var sqlCommandsForDelete = CreateSqlCommandsForDeleteControlInfoByTrigger(new DeviceEntity { DeviceNum = controlInfo.ConditionDeviceNum }, controlInfo.LinkageNum, controlInfo.ConditionDeviceNum);
                         sqlCommands.AddRange(sqlCommandsForDelete);
                     }
                 }
                 else if (pair.Value == ItemUpdateStates.Deleted)
                 {
                     var controlInfo = pair.Key;
-                    var sqlCommandsForDelete = CreateSqlCommandsForDeleteControlInfoByTrigger(new DeviceEntity { DeviceNum = controlInfo.ConditionDeviceNum }, controlInfo.LinkageNum);
+                    var sqlCommandsForDelete = CreateSqlCommandsForDeleteControlInfoByTrigger(new DeviceEntity { DeviceNum = controlInfo.ConditionDeviceNum }, controlInfo.LinkageNum, controlInfo.ConditionDeviceNum);
                     sqlCommands.AddRange(sqlCommandsForDelete);
                 }
             }
@@ -1383,9 +1385,9 @@ namespace Coffee.DigitalPlatform.DataAccess
             Dictionary<ControlInfoByTriggerEntity, ItemUpdateStates> itemUpdateStateDict = new Dictionary<ControlInfoByTriggerEntity, ItemUpdateStates>();
             foreach (var targetKvp in targetControlInfoDict)
             {
-                var deviceNum = targetKvp.Key;
+                var conditionDeviceNum = targetKvp.Key;
                 var targetControlInfos = targetKvp.Value;
-                if (!sourceControlInfoDict.ContainsKey(deviceNum))
+                if (!sourceControlInfoDict.ContainsKey(conditionDeviceNum))
                 {
                     //源集合中不存在该设备，则该设备的所有手动控制信息均为新增状态
                     foreach (var controlInfo in targetControlInfos)
@@ -1397,9 +1399,9 @@ namespace Coffee.DigitalPlatform.DataAccess
             //先判断每个设备的更新状态，即它是新添加或被删除的，还是需要进一步比较
             foreach (var sourceKvp in sourceControlInfoDict)
             {
-                var deviceNum = sourceKvp.Key;
+                var conditionDeviceNum = sourceKvp.Key;
                 var sourceControlInfos = sourceKvp.Value;
-                if (!targetControlInfoDict.ContainsKey(deviceNum))
+                if (!targetControlInfoDict.ContainsKey(conditionDeviceNum))
                 {
                     //目标集合中不存在该设备，则该设备的所有报警信息均为删除状态
                     foreach (var controlInfo in sourceControlInfos)
@@ -1409,7 +1411,9 @@ namespace Coffee.DigitalPlatform.DataAccess
                 }
                 else
                 {
-                    var targetControlInfos = targetControlInfoDict[deviceNum];
+                    //当ConditionDeviceNum相同，即是同一个设备触发的条件，则需进一步根据ConditionDeviceNum，LinkageDeviceNum，LinkageNum来判断是否是trigger_controls表的同一条记录
+                    //因为trigger_controls表的记录主键是由ConditionDeviceNum，LinkageNum，LinkageDeviceNum三个字段共同组成的
+                    var targetControlInfos = targetControlInfoDict[conditionDeviceNum];
                     var controlInfosForRemove = sourceControlInfos.Except(targetControlInfos, new ControlInfoByTriggerByNumComparer()).ToList();
                     controlInfosForRemove.ForEach(a => itemUpdateStateDict.Add(a, ItemUpdateStates.Deleted));
                     var controlInfosForAdd = targetControlInfos.Except(sourceControlInfos, new ControlInfoByTriggerByNumComparer()).ToList();
@@ -1511,7 +1515,7 @@ namespace Coffee.DigitalPlatform.DataAccess
                     return true;
                 if (x == null || y == null)
                     return false;
-                return string.Equals(x.LinkageNum, y.LinkageNum, StringComparison.OrdinalIgnoreCase) && string.Equals(x.ConditionDeviceNum, y.ConditionDeviceNum, StringComparison.OrdinalIgnoreCase);
+                return string.Equals(x.ConditionDeviceNum, y.ConditionDeviceNum, StringComparison.OrdinalIgnoreCase) && string.Equals(x.LinkageNum, y.LinkageNum, StringComparison.OrdinalIgnoreCase) && string.Equals(x.LinkageDeviceNum, y.LinkageDeviceNum, StringComparison.OrdinalIgnoreCase);
             }
 
             public int GetHashCode([DisallowNull] ControlInfoByTriggerEntity obj)
@@ -1521,8 +1525,9 @@ namespace Coffee.DigitalPlatform.DataAccess
                 unchecked // 允许溢出
                 {
                     int hash = 17;
-                    hash = hash * 23 + (obj.LinkageNum?.GetHashCode() ?? 0);
                     hash = hash * 23 + (obj.ConditionDeviceNum?.GetHashCode() ?? 0);
+                    hash = hash * 23 + (obj.LinkageNum?.GetHashCode() ?? 0);
+                    hash = hash * 23 + (obj.LinkageDeviceNum?.GetHashCode() ?? 0);
                     return hash;
                 }
             }

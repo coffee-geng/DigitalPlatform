@@ -1,8 +1,10 @@
-﻿using Coffee.DigitalPlatform.Controls.FilterBuilder;
+﻿using Coffee.DigitalPlatform.Common;
+using Coffee.DigitalPlatform.Controls.FilterBuilder;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,6 +16,24 @@ namespace Coffee.DigitalPlatform.Models
         public ControlInfoByTrigger()
         {
             SelectDeviceCommand = new RelayCommand<Device>(doSelectDeviceCommand);
+            AddLinkageActionCommand = new RelayCommand<LinkageAction>((action) =>
+            {
+                if (action != null)
+                {
+                    NewLinkageActions.Add(action);
+                }
+                else
+                {
+                    NewLinkageActions.Add(new LinkageAction());
+                }
+            });
+            RemoveLinkageActionCommand = new RelayCommand<LinkageAction>((action) =>
+            {
+                if (action != null)
+                {
+                    NewLinkageActions.Remove(action);
+                }
+            });
         }
 
         public int Index { get; set; }
@@ -52,11 +72,11 @@ namespace Coffee.DigitalPlatform.Models
         }
 
         // 联动控制设备的编码
-        private Device _device;
-        public Device Device
+        private Device _linkageDevice;
+        public Device LinkageDevice
         {
-            get { return _device; }
-            set { SetProperty(ref _device, value); }
+            get { return _linkageDevice; }
+            set { SetProperty(ref _linkageDevice, value); }
         }
 
         private string _header;
@@ -66,18 +86,12 @@ namespace Coffee.DigitalPlatform.Models
             set => SetProperty(ref _header, value);
         }
 
-        private Variable _variable;
-        public Variable Variable
+        // 定义了当满足联控条件时，如何控制属性Device指定的设备
+        private ObservableCollection<LinkageAction> _linkageActions = new ObservableCollection<LinkageAction>();
+        public ObservableCollection<LinkageAction> LinkageActions
         {
-            get => _variable;
-            set => SetProperty(ref _variable, value);
-        }
-
-        private object _value;
-        public object Value
-        {
-            get => _value;
-            set => SetProperty(ref _value, value);
+            get => _linkageActions;
+            private set => SetProperty(ref _linkageActions, value);
         }
 
         #region 联动控制选项的编辑状态的属性
@@ -115,18 +129,11 @@ namespace Coffee.DigitalPlatform.Models
             set => SetProperty(ref _newHeader, value);
         }
 
-        private Variable _newVariable;
-        public Variable NewVariable
+        private ObservableCollection<LinkageAction> _newLinkageActions = new ObservableCollection<LinkageAction>();
+        public ObservableCollection<LinkageAction> NewLinkageActions
         {
-            get => _newVariable;
-            set => SetProperty(ref _newVariable, value);
-        }
-
-        private object _newValue;
-        public object NewValue
-        {
-            get => _newValue;
-            set => SetProperty(ref _newValue, value);
+            get => _newLinkageActions;
+            private set => SetProperty(ref _newLinkageActions, value);
         }
 
         public RelayCommand<Device> SelectDeviceCommand { get; set; }
@@ -138,5 +145,35 @@ namespace Coffee.DigitalPlatform.Models
             this.NewDevice = device;
         }
         #endregion
+
+        public RelayCommand<LinkageAction> AddLinkageActionCommand { get; private set; }
+
+        public RelayCommand<LinkageAction> RemoveLinkageActionCommand { get; private set; }
+    }
+
+    public class LinkageAction : ObservableObject, ICloneable
+    {
+        private Variable _variable;
+        public Variable Variable
+        {
+            get => _variable;
+            set => SetProperty(ref _variable, value);
+        }
+
+        private object _value;
+        public object Value
+        {
+            get => _value;
+            set => SetProperty(ref _value, value);
+        }
+
+        public object Clone()
+        {
+            return new LinkageAction()
+            {
+                Variable = this.Variable,
+                Value = this.Value
+            };
+        }
     }
 }

@@ -25,6 +25,29 @@
             </ResourceDictionary.MergedDictionaries>
 
             <BooleanToVisibilityConverter x:Key="b2v"/>
+
+            <Style TargetType="Button" x:Key="ControlButtonStyle">
+                <Setter Property="Foreground" Value="#888"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent" Name="back">
+                                <Border CornerRadius="{Binding Tag,RelativeSource={RelativeSource Mode=TemplatedParent}}" Name="border">
+                                    <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                </Border>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#09000000"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#11000000"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
     <Grid Background="#F7F9FA">
@@ -57,7 +80,7 @@
             <RowDefinition Height="40"/>
         </Grid.RowDefinitions>
         <Border Background="#AA409EFE" Grid.ColumnSpan="2"/>
-        <TextBlock Text="{Binding Header,StringFormat={}{0}-联动控制报警条件配置}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Foreground="#BBB" Margin="10,0"/>
+        <TextBlock Text="{Binding CurrentDevice.Name,StringFormat={}{0}-联动控制报警条件配置}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Foreground="#BBB" Margin="10,0"/>
 
         <Border Height="24" Background="#99FFFFFF" CornerRadius="12" Margin="10,0" WindowChrome.IsHitTestVisibleInChrome="True">
             <TextBox Text="条件名" Background="Transparent" BorderThickness="0" VerticalContentAlignment="Center"
@@ -121,14 +144,12 @@
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="{Binding Path=(ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=ContentPresenter,AncestorLevel=2}, Converter={x:Static wpf:RowNumberConverter.Instance}, StringFormat={}{0:00}}"
                                                     VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#888"/>
-                                                <TextBlock Grid.Column="1" HorizontalAlignment="Left" Margin="3,0,5,0"
+                                                <TextBlock Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="3,0,5,0"
                                                     Text="{Binding FormattedCondition}" TextWrapping="Wrap"/>
-                                                <TextBlock Grid.Column="2" HorizontalAlignment="Left"
+                                                <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Left"
                                                     Text="{Binding Header}" TextWrapping="Wrap"/>
-                                                <TextBlock Grid.Column="3" HorizontalAlignment="Left" TextWrapping="Wrap"
-                                                           Text="{Binding Device.Name}">
-                                                    
-                                                </TextBlock>
+                                                <TextBlock Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Left" TextWrapping="Wrap"
+                                                           Text="{Binding LinkageDevice.Name}"/>
                                                 <StackPanel Orientation="Horizontal" Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding IsEditing, Converter={x:Static wpf:BoolToVisibilityConverter.Instance}, ConverterParameter=Not}">
                                                     <TextBlock Margin="0,0,5,0">
                                                     <Hyperlink TextDecorations="None" IsEnabled="{Binding DataContext.IsEditingControlInfo, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}, Converter={x:Static wpf:NotBooleanConverter.Instance}}"
@@ -156,12 +177,13 @@
                                                     <TextBlock Grid.ColumnSpan="2" Text="编辑联动控制选项信息" FontWeight="Bold" />
                                                     <StackPanel Grid.Row="1">
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="联控动作标题" Width="80"/>
-                                                            <TextBox Width="400" Text="{Binding NewHeader}" />
+                                                            <TextBlock Text="联控动作标题" Width="80" VerticalAlignment="Center"/>
+                                                            <TextBox Width="400" VerticalAlignment="Center"
+                                                                     Text="{Binding NewHeader}" />
                                                         </StackPanel>
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="联控设备" Width="80"/>
-                                                            <ComboBox Name="cb_device" Width="400"
+                                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+                                                            <TextBlock Text="联控设备" Width="80" VerticalAlignment="Center"/>
+                                                            <ComboBox Name="cb_device" Width="400" VerticalAlignment="Center"
                                                                 ItemsSource="{Binding DataContext.DeviceCollection, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}" DisplayMemberPath="Name"
                                                                 SelectedItem="{Binding NewDevice}"
                                                                 Style="{StaticResource PropComboBoxStyle}">
@@ -172,43 +194,83 @@
                                                                 </i:Interaction.Triggers>
                                                             </ComboBox>
                                                         </StackPanel>
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="联控访问变量" Width="80"/>
-                                                            <ComboBox Name="cb_variable" Width="400" HorizontalContentAlignment="Stretch"
-                                                                ItemsSource="{Binding SelectedItem.Variables, ElementName=cb_device}"
-                                                                SelectedItem="{Binding NewVariable}"
-                                                                Style="{StaticResource VariableComboBoxStyle}">
-                                                                <i:Interaction.Triggers>
-                                                                    <i:EventTrigger EventName="SelectionChanged">
-                                                                        <i:InvokeCommandAction Command="{Binding SelectVariableCommand}" CommandParameter="{Binding SelectedValue, ElementName=cb_variable}"/>
-                                                                    </i:EventTrigger>
-                                                                </i:Interaction.Triggers>
-                                                                <ComboBox.ItemContainerStyle>
-                                                                    <Style TargetType="ComboBoxItem">
-                                                                        <!-- 让ComboBoxItem撑满容器 -->
-                                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                                                        <Setter Property="Padding" Value="0"/>
-                                                                        <Setter Property="Margin" Value="0"/>
-                                                                    </Style>
-                                                                </ComboBox.ItemContainerStyle>
-                                                                <ComboBox.ItemTemplate>
-                                                                    <DataTemplate>
-                                                                        <Grid>
-                                                                            <Grid.ColumnDefinitions>
-                                                                                <ColumnDefinition Width="*"/>
-                                                                                <ColumnDefinition Width="*"/>
-                                                                            </Grid.ColumnDefinitions>
-                                                                            <TextBlock Text="{Binding VarName}" Grid.Column="0" HorizontalAlignment="Left"/>
-                                                                            <TextBlock Text="{Binding VarAddress}" Grid.Column="1" HorizontalAlignment="Right"/>
-                                                                        </Grid>
-                                                                    </DataTemplate>
-                                                                </ComboBox.ItemTemplate>
-                                                            </ComboBox>
-                                                        </StackPanel>
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="联控访问值" Width="80"/>
-                                                            <TextBox Width="400" Text="{Binding NewValue}" />
-                                                        </StackPanel>
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="30"/>
+                                                                <RowDefinition/>
+                                                            </Grid.RowDefinitions>
+                                                            <Canvas>
+                                                                <Path Data="M0 0 8 5 0 10" Fill="#F7F9FA" Canvas.Top="0" Canvas.Right="0" Margin="0,9,-10,0"/>
+                                                            </Canvas>
+                                                            <Border Height="1" Background="#EEE" VerticalAlignment="Bottom"/>
+                                                            <Border Background="White" Grid.Row="1" CornerRadius="0,0,5,5"/>
+
+                                                            <TextBlock Text="手动控制选项" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold" Foreground="#777"/>
+                                                            <Button Style="{StaticResource ControlButtonStyle}" Content="&#xe8fe;" FontFamily="{StaticResource Iconfont}"
+                                                                Width="20" Height="20" HorizontalAlignment="Right" Margin="10,0" Tag="3"
+                                                                Command="{Binding AddLinkageActionCommand}"/>
+                                                            <Grid Grid.Row="1">
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="28"/>
+                                                                    <RowDefinition/>
+                                                                </Grid.RowDefinitions>
+                                                                <Grid TextBlock.Foreground="#999">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition/>
+                                                                        <ColumnDefinition/>
+                                                                        <ColumnDefinition Width="35"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="控制地址" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                                    <TextBlock Text="写入数据" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                                    <TextBlock Text="操作" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                                </Grid>
+                                                                <ItemsControl Grid.Row="1" Name="ic1"
+                                                                    ItemsSource="{Binding NewLinkageActions}" Margin="0,0,0,10">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Grid Height="30">
+                                                                                <Grid.ColumnDefinitions>
+                                                                                    <ColumnDefinition Width="*"/>
+                                                                                    <ColumnDefinition/>
+                                                                                    <ColumnDefinition Width="35"/>
+                                                                                </Grid.ColumnDefinitions>
+                                                                                <ComboBox Grid.Column="0" HorizontalContentAlignment="Stretch" Margin="2,1,2,1"
+                                                                                    ItemsSource="{Binding DataContext.NewDevice.Variables, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
+                                                                                    SelectedItem="{Binding Variable}"
+                                                                                    Style="{StaticResource VariableComboBoxStyle}">
+                                                                                    <ComboBox.ItemContainerStyle>
+                                                                                        <Style TargetType="ComboBoxItem">
+                                                                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                                                            <Setter Property="Padding" Value="0"/>
+                                                                                            <Setter Property="Margin" Value="0"/>
+                                                                                        </Style>
+                                                                                    </ComboBox.ItemContainerStyle>
+                                                                                    <ComboBox.ItemTemplate>
+                                                                                        <DataTemplate>
+                                                                                            <Grid>
+                                                                                                <Grid.ColumnDefinitions>
+                                                                                                    <ColumnDefinition Width="*"/>
+                                                                                                    <ColumnDefinition Width="*"/>
+                                                                                                </Grid.ColumnDefinitions>
+                                                                                                <TextBlock Text="{Binding VarName}" Grid.Column="0" HorizontalAlignment="Left" Margin="3,0,0,0"/>
+                                                                                                <TextBlock Text="{Binding VarAddress}" Grid.Column="1" HorizontalAlignment="Right" Margin="0,0,3,0"/>
+                                                                                            </Grid>
+                                                                                        </DataTemplate>
+                                                                                    </ComboBox.ItemTemplate>
+                                                                                </ComboBox>
+                                                                                <TextBox Grid.Column="1" Height="28" Margin="2,1,2,1" TextAlignment="Center"
+                                                                                    Text="{Binding Value, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}" 
+                                                                                    ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
+                                                                                <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                                                    <Hyperlink Command="{Binding DataContext.RemoveLinkageActionCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
+                                                                                        CommandParameter="{Binding}">删除</Hyperlink>
+                                                                                </TextBlock>
+                                                                            </Grid>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                            </Grid>
+                                                        </Grid>
                                                     </StackPanel>
                                                 </Grid>
                                                 <Grid Grid.Row="1" Margin="0,5,0,5">
@@ -282,12 +344,13 @@
                                             <TextBlock Grid.ColumnSpan="2" Text="添加联动控制选项信息" FontWeight="Bold" />
                                             <StackPanel Grid.Row="1">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="联控动作标题" Width="80"/>
-                                                    <TextBox Width="400" Text="{Binding NewHeader}" />
+                                                    <TextBlock Text="联控动作标题" Width="80" VerticalAlignment="Center"/>
+                                                    <TextBox Width="400" VerticalAlignment="Center"
+                                                             Text="{Binding NewHeader}" />
                                                 </StackPanel>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="联控设备" Width="80"/>
-                                                    <ComboBox Name="cb_device" Width="390" Margin="0,0,2,0"
+                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+                                                    <TextBlock Text="联控设备" Width="80" VerticalAlignment="Center"/>
+                                                    <ComboBox Name="cb_device" Width="400" Margin="0,0,2,0" VerticalAlignment="Center"
                                                         ItemsSource="{Binding DataContext.DeviceCollection, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}" DisplayMemberPath="Name"
                                                         Style="{StaticResource PropComboBoxStyle}">
                                                         <i:Interaction.Triggers>
@@ -297,43 +360,83 @@
                                                         </i:Interaction.Triggers>
                                                     </ComboBox>
                                                 </StackPanel>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="联控访问地址" Width="80"/>
-                                                    <ComboBox Name="cb_variable" Width="400" HorizontalContentAlignment="Stretch"
-                                                        ItemsSource="{Binding SelectedItem.Variables, ElementName=cb_device}"
-                                                        SelectedItem="{Binding NewVariable}"
-                                                        Style="{StaticResource VariableComboBoxStyle}">
-                                                        <i:Interaction.Triggers>
-                                                            <i:EventTrigger EventName="SelectionChanged">
-                                                                <i:InvokeCommandAction Command="{Binding SelectVariableCommand}" CommandParameter="{Binding SelectedValue, ElementName=cb_variable}"/>
-                                                            </i:EventTrigger>
-                                                        </i:Interaction.Triggers>
-                                                        <ComboBox.ItemContainerStyle>
-                                                            <Style TargetType="ComboBoxItem">
-                                                                <!-- 让ComboBoxItem撑满容器 -->
-                                                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                                                <Setter Property="Padding" Value="0"/>
-                                                                <Setter Property="Margin" Value="0"/>
-                                                            </Style>
-                                                        </ComboBox.ItemContainerStyle>
-                                                        <ComboBox.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Grid>
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <TextBlock Text="{Binding VarName}" Grid.Column="0" HorizontalAlignment="Left"/>
-                                                                    <TextBlock Text="{Binding VarAddress}" Grid.Column="1" HorizontalAlignment="Right"/>
-                                                                </Grid>
-                                                            </DataTemplate>
-                                                        </ComboBox.ItemTemplate>
-                                                    </ComboBox>
-                                                </StackPanel>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="联控访问值" Width="80"/>
-                                                    <TextBox Width="400" Text="{Binding NewValue}" />
-                                                </StackPanel>
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="30"/>
+                                                        <RowDefinition/>
+                                                    </Grid.RowDefinitions>
+                                                    <Canvas>
+                                                        <Path Data="M0 0 8 5 0 10" Fill="#F7F9FA" Canvas.Top="0" Canvas.Right="0" Margin="0,9,-10,0"/>
+                                                    </Canvas>
+                                                    <Border Height="1" Background="#EEE" VerticalAlignment="Bottom"/>
+                                                    <Border Background="White" Grid.Row="1" CornerRadius="0,0,5,5"/>
+
+                                                    <TextBlock Text="联动控制选项" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold" Foreground="#777"/>
+                                                    <Button Style="{StaticResource ControlButtonStyle}" Content="&#xe8fe;" FontFamily="{StaticResource Iconfont}"
+                                                        Width="20" Height="20" HorizontalAlignment="Right" Margin="10,0" Tag="3"
+                                                        Command="{Binding AddLinkageActionCommand}"/>
+                                                    <Grid Grid.Row="1">
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="28"/>
+                                                            <RowDefinition/>
+                                                        </Grid.RowDefinitions>
+                                                        <Grid TextBlock.Foreground="#999">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition/>
+                                                                <ColumnDefinition/>
+                                                                <ColumnDefinition Width="35"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="控制地址" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="写入数据" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="操作" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                        </Grid>
+                                                        <ItemsControl Grid.Row="1" Name="ic1"
+                                                        ItemsSource="{Binding NewLinkageActions}" Margin="0,0,0,10">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Grid Height="30">
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition/>
+                                                                            <ColumnDefinition Width="35"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <ComboBox Grid.Column="0" HorizontalContentAlignment="Stretch" Margin="2,1,2,1"
+                                                                        ItemsSource="{Binding DataContext.NewDevice.Variables, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
+                                                                        SelectedItem="{Binding Variable}"
+                                                                        Style="{StaticResource VariableComboBoxStyle}">
+                                                                            <ComboBox.ItemContainerStyle>
+                                                                                <Style TargetType="ComboBoxItem">
+                                                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                                                    <Setter Property="Padding" Value="0"/>
+                                                                                    <Setter Property="Margin" Value="0"/>
+                                                                                </Style>
+                                                                            </ComboBox.ItemContainerStyle>
+                                                                            <ComboBox.ItemTemplate>
+                                                                                <DataTemplate>
+                                                                                    <Grid>
+                                                                                        <Grid.ColumnDefinitions>
+                                                                                            <ColumnDefinition Width="*"/>
+                                                                                            <ColumnDefinition Width="*"/>
+                                                                                        </Grid.ColumnDefinitions>
+                                                                                        <TextBlock Text="{Binding VarName}" Grid.Column="0" HorizontalAlignment="Left" Margin="3,0,0,0"/>
+                                                                                        <TextBlock Text="{Binding VarAddress}" Grid.Column="1" HorizontalAlignment="Right" Margin="0,0,3,0"/>
+                                                                                    </Grid>
+                                                                                </DataTemplate>
+                                                                            </ComboBox.ItemTemplate>
+                                                                        </ComboBox>
+                                                                        <TextBox Grid.Column="1" Height="28" Margin="2,1,2,1" TextAlignment="Center"
+                                                                        Text="{Binding Value, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}" 
+                                                                        ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
+                                                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                                        <Hyperlink Command="{Binding DataContext.RemoveLinkageActionCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
+                                                                            CommandParameter="{Binding}">删除</Hyperlink>
+                                                                        </TextBlock>
+                                                                    </Grid>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </Grid>
+                                                </Grid>
                                             </StackPanel>
                                         </Grid>
                                         <Grid Grid.Row="1" Margin="0,5,0,5">
