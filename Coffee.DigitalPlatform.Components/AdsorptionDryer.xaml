@@ -134,8 +134,16 @@
                 </Border>
             </Grid>
 
-            <!--Anchor-->
+            <!--锚点-->
             <local:ComponentAnchor x:Name="anchor" Canvas="{Binding Canvas, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}" />
+            
+            <!--点位信息变量列表-->
+            <local:VariableListView x:Name="variableListView" IsShowingPopup="{Binding IsShowingVariableListPopup, ElementName=root, Mode=TwoWay}"
+                                    IsShowingPopupChanged="variableListView_IsShowingPopupChanged"/>
+            
+            <!--手动控制选项列表-->
+            <local:ManualListView x:Name="manualListView" IsShowingPopup="{Binding IsShowingManualListPopup, ElementName=root, Mode=TwoWay}"
+                                  IsShowingPopupChanged="manualListView_IsShowingPopupChanged"/>
         </Grid>
     </Border>
 </wpf:ComponentBase>

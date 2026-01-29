@@ -24,5 +24,46 @@ namespace Coffee.DigitalPlatform.Components
         {
             InitializeComponent();
         }
+
+        public bool IsShowingPopup
+        {
+            get { return (bool)GetValue(IsShowingPopupProperty); }
+            set { SetValue(IsShowingPopupProperty, value); }
+        }
+        public static readonly DependencyProperty IsShowingPopupProperty =
+            DependencyProperty.Register("IsShowingPopup", typeof(bool), typeof(VariableListView), new PropertyMetadata(false, OnIsShowingPopupChanged));
+        private static void OnIsShowingPopupChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            VariableListView control = d as VariableListView;
+            if (control != null)
+            {
+                bool newValue = (bool)e.NewValue;
+                if (!newValue)
+                {
+                    control.btnInfo.IsChecked = false;
+                }
+            }
+        }
+
+        public void ResetToggleButtonState(bool state)
+        {
+            this.btnInfo.IsChecked = state;
+        }
+
+        private void btnInfo_Checked(object sender, RoutedEventArgs e)
+        {
+            this.IsShowingPopup = true;
+            if (this.IsShowingPopupChanged != null)
+            {
+                this.IsShowingPopupChanged(this, new RoutedPropertyChangedEventArgs<bool>(false, true));
+            }
+        }
+
+        private void btnInfo_Unchecked(object sender, RoutedEventArgs e)
+        {
+            this.IsShowingPopup = false;
+        }
+
+        public event RoutedPropertyChangedEventHandler<bool> IsShowingPopupChanged;
     }
 }

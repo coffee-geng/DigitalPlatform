@@ -15,6 +15,7 @@ namespace Coffee.DigitalPlatform.Components
         {
             try
             {
+                //是否是监控模式
                 bool stateBool = bool.TryParse(values[0].ToString(), out bool s1);
                 bool stateInt = int.TryParse(values[1].ToString(), out int s2);
                 if (stateBool && stateInt && s1 && s2 > 0)

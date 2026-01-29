@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
              xmlns:local="clr-namespace:Coffee.DigitalPlatform.Components"
-             mc:Ignorable="d" 
+             mc:Ignorable="d" x:Name="root"
              d:DesignHeight="450" d:DesignWidth="800">
     <wpf:ComponentBase.Resources>
         <BooleanToVisibilityConverter x:Key="b2v"/>
@@ -103,33 +103,15 @@
             </Grid>
         </Grid>
 
-        <!--Anchor-->
+        <!--锚点-->
         <local:ComponentAnchor x:Name="anchor" Canvas="{Binding Canvas, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}" />
 
-        <Line X1="0" Y1="15" X2="10" Y2="0" Stroke="Red" StrokeThickness="1" Margin="20,-5"
-          Visibility="{Binding IsWarning,RelativeSource={RelativeSource AncestorType=UserControl},Converter={StaticResource b2v}}"/>
+        <!--点位信息变量列表-->
+        <local:VariableListView x:Name="variableListView" IsShowingPopup="{Binding IsShowingVariableListPopup, ElementName=root, Mode=TwoWay}"
+                        IsShowingPopupChanged="variableListView_IsShowingPopupChanged"/>
 
-        <Canvas>
-            <!--报警消息-->
-            <Border MinWidth="100" MaxWidth="250" MaxHeight="50" 
-                Canvas.Bottom="{Binding RelativeSource={RelativeSource AncestorType=UserControl},Path=ActualHeight}"
-                Margin="0,0,0,5" Background="#6F00" CornerRadius="5" BorderThickness="1" BorderBrush="#8F00"
-                Visibility="{Binding IsWarning,RelativeSource={RelativeSource AncestorType=UserControl},Converter={StaticResource b2v}}">
-                <TextBlock TextWrapping="Wrap" TextTrimming="WordEllipsis" LineHeight="20" Margin="5,5,5,0" Foreground="White">
-                <Hyperlink TextDecorations="None" 
-                           Command="{Binding AlarmDetailCommand,RelativeSource={RelativeSource AncestorType=UserControl}}">[详情]</Hyperlink>
-                <Run Text="{Binding Header}"/>
-                <Run Text="-"/>
-                <Run Text="{Binding WarningMessage,RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                </TextBlock>
-            </Border>
-
-
-            <!--变量列表-->
-            
-
-            <!--手动控制列表-->
-            
-        </Canvas>
+        <!--手动控制选项列表-->
+        <local:ManualListView x:Name="manualListView" IsShowingPopup="{Binding IsShowingManualListPopup, ElementName=root, Mode=TwoWay}"
+                        IsShowingPopupChanged="manualListView_IsShowingPopupChanged"/>
     </Grid>
 </wpf:ComponentBase>

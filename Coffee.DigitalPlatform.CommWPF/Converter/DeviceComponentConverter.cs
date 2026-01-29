@@ -79,7 +79,7 @@ namespace Coffee.DigitalPlatform.CommWPF
             c.SetBinding(ComponentBase.VariableListProperty, binding);
 
             binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("ManualList");
+            binding.Path = new System.Windows.PropertyPath("ControlInfosByManual");
             c.SetBinding(ComponentBase.ManualListProperty, binding);
 
             #region Command Binding
@@ -99,6 +99,16 @@ namespace Coffee.DigitalPlatform.CommWPF
             binding = new Binding();
             binding.Path = new System.Windows.PropertyPath("ManualControlCommand");
             c.SetBinding(ComponentBase.ManualControlCommandProperty, binding);
+
+            binding = new Binding();
+            binding.Path = new PropertyPath("IsShowingManualListPopup");
+            binding.Mode = BindingMode.TwoWay;
+            c.SetBinding(ComponentBase.IsShowingManualListPopupProperty, binding);
+
+            binding = new Binding();
+            binding.Path = new PropertyPath("IsShowingVariableListPopup");
+            binding.Mode = BindingMode.TwoWay;
+            c.SetBinding(ComponentBase.IsShowingVariableListPopupProperty, binding);
             #endregion
 
             return c;

@@ -153,6 +153,22 @@ namespace Coffee.DigitalPlatform.CommWPF
         public static readonly DependencyProperty ManualListProperty =
             DependencyProperty.Register("ManualList", typeof(object), typeof(ComponentBase), new PropertyMetadata(null));
 
+        public bool IsShowingManualListPopup
+        {
+            get { return (bool)GetValue(IsShowingManualListPopupProperty); }
+            set { SetValue(IsShowingManualListPopupProperty, value); }
+        }
+        public static readonly DependencyProperty IsShowingManualListPopupProperty =
+            DependencyProperty.Register("IsShowingManualListPopup", typeof(bool), typeof(ComponentBase), new PropertyMetadata(false));
+
+        public bool IsShowingVariableListPopup
+        {
+            get { return (bool)GetValue(IsShowingVariableListPopupProperty); }
+            set { SetValue(IsShowingVariableListPopupProperty, value); }
+        }
+        public static readonly DependencyProperty IsShowingVariableListPopupProperty =
+            DependencyProperty.Register("IsShowingVariableListPopup", typeof(bool), typeof(ComponentBase), new PropertyMetadata(false));
+
         public ICommand ManualControlCommand
         {
             get { return (ICommand)GetValue(ManualControlCommandProperty); }

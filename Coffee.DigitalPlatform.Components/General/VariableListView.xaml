@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Coffee.DigitalPlatform.Components"
              xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
-             mc:Ignorable="d" 
+             mc:Ignorable="d" x:Name="root"
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="b2v"/>
@@ -27,6 +27,7 @@
     <Canvas>
         <!--变量列表开关-->
         <ToggleButton Width="18" Height="18" Name="btnInfo" Content="i"
+          Checked="btnInfo_Checked" Unchecked="btnInfo_Unchecked"
           Canvas.Left="{Binding RelativeSource={RelativeSource AncestorType={x:Type wpf:ComponentBase}},Path=ActualWidth}"
           Canvas.Bottom="0"
           Template="{StaticResource InfoButtonTemplate}">
@@ -41,7 +42,8 @@
         <Border Width="120" CornerRadius="5" BorderThickness="1" BorderBrush="#EEE" 
             Canvas.Left="{Binding RelativeSource={RelativeSource AncestorType={x:Type wpf:ComponentBase}},Path=ActualWidth}"
             Canvas.Top="{Binding RelativeSource={RelativeSource AncestorType={x:Type wpf:ComponentBase}},Path=ActualHeight}"
-            Visibility="{Binding ElementName=btnInfo,Path=IsChecked,Converter={StaticResource b2v}}">
+            Margin="20,-25,0,0"
+            Visibility="{Binding ElementName=root,Path=IsShowingPopup,Converter={StaticResource b2v}}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="22"/>

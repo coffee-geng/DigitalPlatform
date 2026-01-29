@@ -46,5 +46,21 @@ namespace Coffee.DigitalPlatform.Components
         {
             doResizeEnd(delta, resizeDirection, isAlign, isProportional);
         }
+
+        private void variableListView_IsShowingPopupChanged(object sender, RoutedPropertyChangedEventArgs<bool> e)
+        {
+            if (e.NewValue == true)
+            {
+                manualListView.ResetToggleButtonState(false);
+            }
+        }
+
+        private void manualListView_IsShowingPopupChanged(object sender, RoutedPropertyChangedEventArgs<bool> e)
+        {
+            if (e.NewValue == true)
+            {
+                variableListView.ResetToggleButtonState(false);
+            }
+        }
     }
 }

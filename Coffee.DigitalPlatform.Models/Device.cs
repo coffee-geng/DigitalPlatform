@@ -71,6 +71,7 @@ namespace Coffee.DigitalPlatform.Models
             }
         }
 
+        //监控模式还是设计模式，默认为false表示设计模式
         private bool _isMonitor = false;
         public bool IsMonitor
         {
@@ -548,6 +549,22 @@ namespace Coffee.DigitalPlatform.Models
         #region 联动控制设备
         public ObservableCollection<ControlInfoByTrigger> ControlInfosByTrigger { get; private set; } = new ObservableCollection<ControlInfoByTrigger>();
 
+        #endregion
+
+        #region 运行时态（即监控模式下）
+        private bool _isShowingManualListPopup;
+        public bool IsShowingManualListPopup
+        {
+            get { return _isShowingManualListPopup; }
+            set { SetProperty(ref _isShowingManualListPopup, value); }
+        }
+
+        private bool _isShowingVariableListPopup;
+        public bool IsShowingVariableListPopup
+        {
+            get { return _isShowingVariableListPopup; }
+            set { SetProperty(ref _isShowingVariableListPopup, value); }
+        }
         #endregion
     }
 

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
              xmlns:local="clr-namespace:Coffee.DigitalPlatform.Components"
-             mc:Ignorable="d" 
+             mc:Ignorable="d" x:Name="root"
              d:DesignHeight="450" d:DesignWidth="800">
     <wpf:ComponentBase.Resources>
         <BooleanToVisibilityConverter x:Key="b2v"/>
@@ -86,7 +86,15 @@
             </Border>
         </Grid>
 
-        <!--Anchor-->
+        <!--锚点-->
         <local:ComponentAnchor x:Name="anchor" Canvas="{Binding Canvas, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}" />
+
+        <!--点位信息变量列表-->
+        <local:VariableListView x:Name="variableListView" IsShowingPopup="{Binding IsShowingVariableListPopup, ElementName=root, Mode=TwoWay}"
+                        IsShowingPopupChanged="variableListView_IsShowingPopupChanged"/>
+
+        <!--手动控制选项列表-->
+        <local:ManualListView x:Name="manualListView" IsShowingPopup="{Binding IsShowingManualListPopup, ElementName=root, Mode=TwoWay}"
+                        IsShowingPopupChanged="manualListView_IsShowingPopupChanged"/>
     </Grid>
 </wpf:ComponentBase>

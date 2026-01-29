@@ -26,6 +26,9 @@ namespace Coffee.DigitalPlatform.Models
                 {
                     NewLinkageActions.Add(new LinkageAction());
                 }
+            }, (action) =>
+            {
+                return NewDevice != null;
             });
             RemoveLinkageActionCommand = new RelayCommand<LinkageAction>((action) =>
             {
@@ -119,7 +122,14 @@ namespace Coffee.DigitalPlatform.Models
         public Device NewDevice
         {
             get { return _newDevice; }
-            set { SetProperty(ref _newDevice, value); }
+            set 
+            { 
+                if (SetProperty(ref _newDevice, value))
+                {
+                    if (AddLinkageActionCommand != null)
+                        AddLinkageActionCommand.NotifyCanExecuteChanged();
+                }
+            }
         }
 
         private string _newHeader;
