@@ -738,7 +738,7 @@
         </Grid>
 
         <!--控制按钮-->
-        <Border Grid.Column="1" VerticalAlignment="Bottom" 
+        <Border VerticalAlignment="Bottom" 
             HorizontalAlignment="Center" Height="42" CornerRadius="10"
                 Margin="0,0,0,20">
             <Border.Background>
@@ -803,6 +803,38 @@
                     </StackPanel>
                 </Button>
             </Grid>
+        </Border>
+        
+        <!--存盘状态栏-->
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,20,20">
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="15" Height="15" VerticalAlignment="Center">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="Green"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsDirtyForBinding}" Value="True">
+                                    <Setter Property="Fill" Value="OrangeRed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <TextBlock Margin="5,0,0,0" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="组态数据已保存"/>
+                            <Setter Property="Foreground" Value="Green"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsDirtyForBinding}" Value="True">
+                                    <Setter Property="Text" Value="组态数据已修改，未保存"/>
+                                    <Setter Property="Foreground" Value="OrangeRed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
         </Border>
 
         <!--消息提示-->

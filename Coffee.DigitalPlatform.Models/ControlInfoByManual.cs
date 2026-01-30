@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Coffee.DigitalPlatform.CommWPF;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Coffee.DigitalPlatform.Models
 {
-    public class ControlInfoByManual : ObservableObject, IDataErrorInfo
+    public class ControlInfoByManual : ObservableObject, IDataErrorInfo, ISaveState
     {
         //手动控制信息的编码
         private string _cNum;
@@ -23,35 +24,65 @@ namespace Coffee.DigitalPlatform.Models
         public string DeviceNum
         {
             get { return _deviceNum; }
-            set { SetProperty(ref _deviceNum, value); }
+            set
+            {
+                if (SetProperty(ref _deviceNum, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private string _header;
         public string Header
         {
             get => _header;
-            set => SetProperty(ref _header, value);
+            set
+            {
+                if (SetProperty(ref _header, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private Variable _variable;
         public Variable Variable
         {
             get => _variable;
-            set => SetProperty(ref _variable, value);
+            set
+            {
+                if (SetProperty(ref _variable, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private object _value;
         public object Value
         {
             get => _value;
-            set => SetProperty(ref _value, value);
+            set
+            {
+                if (SetProperty(ref _value, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private Type _valueType = typeof(string);
         public Type ValueType
         {
             get => _valueType;
-            set => SetProperty(ref _valueType, value);
+            set
+            {
+                if (SetProperty(ref _valueType, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private Dictionary<string, string> _errorDict = new Dictionary<string, string>();
@@ -120,5 +151,18 @@ namespace Coffee.DigitalPlatform.Models
             }
             return string.Empty;
         }
+
+        #region ISaveState 接口实现
+        private bool _isDirty = false;
+        public bool IsDirty
+        {
+            get { return _isDirty; }
+        }
+
+        public void Save()
+        {
+            _isDirty = false;
+        }
+        #endregion
     }
 }

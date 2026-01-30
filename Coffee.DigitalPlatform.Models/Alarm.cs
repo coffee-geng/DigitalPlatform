@@ -1,4 +1,5 @@
-﻿using Coffee.DigitalPlatform.Controls.FilterBuilder;
+﻿using Coffee.DigitalPlatform.CommWPF;
+using Coffee.DigitalPlatform.Controls.FilterBuilder;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Coffee.DigitalPlatform.Models
 {
-    public class Alarm : ObservableObject, IReceiveFilterScheme
+    public class Alarm : ObservableObject, IReceiveFilterScheme, ISaveState
     {
         public int Index { get; set; }
 
@@ -20,7 +21,13 @@ namespace Coffee.DigitalPlatform.Models
         public ICondition Condition
         {
             get { return _condition; }
-            set { SetProperty(ref _condition, value); }
+            set
+            {
+                if (SetProperty(ref _condition, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         //预警信息
@@ -28,7 +35,13 @@ namespace Coffee.DigitalPlatform.Models
         public string AlarmMessage
         {
             get { return _alarmMessage; }
-            set { SetProperty(ref _alarmMessage, value); }
+            set
+            {
+                if (SetProperty(ref _alarmMessage, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         //是否处理过这个预警信息
@@ -52,21 +65,39 @@ namespace Coffee.DigitalPlatform.Models
         public int AlarmLevel
         {
             get { return _alarmLevel; }
-            set { SetProperty(ref _alarmLevel, value); }
+            set
+            {
+                if (SetProperty(ref _alarmLevel, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private string _alarmTag;
         public string AlarmTag
         {
             get { return _alarmTag; }
-            set { SetProperty(ref _alarmTag, value); }
+            set
+            {
+                if (SetProperty(ref _alarmTag, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private string _formattedCondition;
         public string FormattedCondition
         {
             get { return _formattedCondition; }
-            set { SetProperty(ref _formattedCondition, value); }
+            set
+            {
+                if (SetProperty(ref _formattedCondition, value))
+                {
+                    _isDirty = true; //不需要跟踪Condition对象的变化，只要FormattedCondition变化，就认为是脏数据
+                }
+            }
         }
 
         #region Alarm 编辑状态的属性
@@ -102,6 +133,19 @@ namespace Coffee.DigitalPlatform.Models
         {
             get { return _newAlarmTag; }
             set { SetProperty(ref _newAlarmTag, value); }
+        }
+        #endregion
+
+        #region ISaveState 接口实现
+        private bool _isDirty = false;
+        public bool IsDirty 
+        {
+            get { return _isDirty; }
+        }
+
+        public void Save()
+        {
+            _isDirty = false;
         }
         #endregion
     }

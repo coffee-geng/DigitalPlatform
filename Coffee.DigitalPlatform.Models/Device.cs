@@ -14,14 +14,13 @@ using Coffee.DigitalPlatform.Common;
 
 namespace Coffee.DigitalPlatform.Models
 {
-    public class Device : ObservableObject, IComponentContext
+    public class Device : ObservableObject, IComponentContext, ISaveState
     {
         ILocalDataAccess _localDataAccess;
 
         public Device(ILocalDataAccess localDataAccess)
         {
             _localDataAccess = localDataAccess;
-
 
             CommunicationParameters.CollectionChanged += CommunicationParameters_CollectionChanged;
 
@@ -35,6 +34,19 @@ namespace Coffee.DigitalPlatform.Models
 
             AddControlInfoByManualCommand = new RelayCommand<ControlInfoByManual>(doAddControlInfoByManual);
             DeleteControlInfoByManualCommand = new RelayCommand<ControlInfoByManual>(doDeleteControlInfoByManualCommand, canDeleteControlInfoByManualCommand);
+
+            Alarms.CollectionChanged += (s, e) =>
+            {
+                _isDirty = true;
+            };
+            ControlInfosByManual.CollectionChanged += (s, e) =>
+            {
+                _isDirty = true;
+            };
+            ControlInfosByTrigger.CollectionChanged += (s, e) =>
+            {
+                _isDirty = true;
+            };
         }
 
         // 设备编号
@@ -84,14 +96,26 @@ namespace Coffee.DigitalPlatform.Models
         public double X
         {
             get { return _x; }
-            set { SetProperty(ref _x, value); }
+            set
+            {
+                if (SetProperty(ref _x, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private double _y;
         public double Y
         {
             get { return _y; }
-            set { SetProperty(ref _y, value); }
+            set
+            {
+                if (SetProperty(ref _y, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private int z = 0;
@@ -100,28 +124,52 @@ namespace Coffee.DigitalPlatform.Models
         public int Z
         {
             get { return z; }
-            set { SetProperty(ref z, value); }
+            set
+            {
+                if (SetProperty(ref z, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private double _width;
         public double Width
         {
             get { return _width; }
-            set { SetProperty(ref _width, value); }
+            set
+            {
+                if (SetProperty(ref _width, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private double _height;
         public double Height
         {
             get { return _height; }
-            set { SetProperty(ref _height, value); }
+            set
+            {
+                if (SetProperty(ref _height, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private double _rotate;
         public double Rotate
         {
             get { return _rotate; }
-            set { SetProperty(ref _rotate, value); }
+            set
+            {
+                if (SetProperty(ref _rotate, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
         #endregion
 
@@ -130,7 +178,13 @@ namespace Coffee.DigitalPlatform.Models
         public FlowDirections FlowDirection
         {
             get { return _flowDirection; }
-            set { SetProperty(ref _flowDirection, value); }
+            set
+            {
+                if (SetProperty(ref _flowDirection, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         // 根据这个名称动态创建一个组件实例
@@ -299,6 +353,8 @@ namespace Coffee.DigitalPlatform.Models
         private void CommunicationParameters_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             CommunicationParameterCollectionRefreshing = !CommunicationParameterCollectionRefreshing;
+
+            _isDirty = true;
         }
 
         private void doAddCommunicationParameter(CommunicationParameter commParam)
@@ -502,6 +558,13 @@ namespace Coffee.DigitalPlatform.Models
         #region 预警信息
         public ObservableCollection<Alarm> Alarms { get; private set; } = new ObservableCollection<Alarm>();
 
+        private bool _isWarning;
+        public bool IsWarning
+        {
+            get { return _isWarning; }
+            set { SetProperty(ref _isWarning, value); }
+        }
+
         #endregion
 
         #region 手动控制设备
@@ -564,6 +627,69 @@ namespace Coffee.DigitalPlatform.Models
         {
             get { return _isShowingVariableListPopup; }
             set { SetProperty(ref _isShowingVariableListPopup, value); }
+        }
+        #endregion
+
+        #region ISaveState 接口实现
+        private bool _isDirty = false;
+        public bool IsDirty 
+        {
+            get
+            {
+                if (_isDirty)
+                    return true;
+                foreach(var commParam in CommunicationParameters)
+                {
+                    if (commParam.IsDirty)
+                        return true;
+                }
+                foreach(var variable in Variables)
+                {
+                    if (variable.IsDirty)
+                        return true;
+                }
+                foreach (var alarm in Alarms)
+                {
+                    if (alarm.IsDirty)
+                        return true;
+                }
+                foreach(var manualOption in ControlInfosByManual)
+                {
+                    if (manualOption.IsDirty)
+                        return true;
+                }
+                foreach(var linkageOption in ControlInfosByTrigger)
+                {
+                    if (linkageOption.IsDirty)
+                        return true;
+                }
+                return false;
+            }
+        }
+
+        public void Save()
+        {
+            _isDirty = false;
+            foreach (var commParam in CommunicationParameters)
+            {
+                commParam.Save();
+            }
+            foreach (var variable in Variables)
+            {
+                variable.Save();
+            }
+            foreach (var alarm in Alarms)
+            {
+                alarm.Save();
+            }
+            foreach (var manualOption in ControlInfosByManual)
+            {
+                manualOption.Save();
+            }
+            foreach (var linkageOption in ControlInfosByTrigger)
+            {
+                linkageOption.Save();
+            }
         }
         #endregion
     }

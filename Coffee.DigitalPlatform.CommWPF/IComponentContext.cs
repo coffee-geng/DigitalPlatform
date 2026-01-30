@@ -44,6 +44,13 @@ namespace Coffee.DigitalPlatform.CommWPF
         double Height { get; set; }
     }
 
+    public interface ISaveState
+    {
+        bool IsDirty { get; }
+
+        void Save();
+    }
+
     public enum AuxiliaryLineTypes
     {
         HorizontalLine,

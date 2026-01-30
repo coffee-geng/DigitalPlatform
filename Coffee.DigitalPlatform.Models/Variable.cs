@@ -1,4 +1,5 @@
 ﻿using Coffee.DigitalPlatform.Common;
+using Coffee.DigitalPlatform.CommWPF;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
@@ -12,14 +13,20 @@ using System.Xml.Linq;
 
 namespace Coffee.DigitalPlatform.Models
 {
-    public class Variable : ObservableObject, IDataErrorInfo
+    public class Variable : ObservableObject, IDataErrorInfo, ISaveState
     {
         // 设备编码
         private string _deviceNum;
         public string DeviceNum
         {
             get { return _deviceNum; }
-            set { SetProperty(ref _deviceNum, value); }
+            set
+            {
+                if (SetProperty(ref _deviceNum, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         // 变量编码
@@ -27,7 +34,13 @@ namespace Coffee.DigitalPlatform.Models
         public string VarNum
         {
             get { return _varNum; }
-            set { SetProperty(ref _varNum, value); }
+            set
+            {
+                if (SetProperty(ref _varNum, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         // 变量名称
@@ -39,6 +52,7 @@ namespace Coffee.DigitalPlatform.Models
             { 
                 if (SetProperty(ref _varName, value))
                 {
+                    _isDirty = true;
                     //当调用Condition的RawToWrapper方法生成包装类时，因为上下文没有提供DeviceNum，而那个时候VarNum已经确定了，不需要在这里重新生成
                     if (!string.IsNullOrWhiteSpace(DeviceNum) && VariableNameGenerator.IsDefaultFormat(VarNum))
                     {
@@ -53,7 +67,13 @@ namespace Coffee.DigitalPlatform.Models
         public string VarAddress
         {
             get { return _varAddress; }
-            set { SetProperty(ref _varAddress, value); }
+            set
+            {
+                if (SetProperty(ref _varAddress, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         // 变量类型
@@ -61,7 +81,13 @@ namespace Coffee.DigitalPlatform.Models
         public Type VarType
         {
             get { return _varType; }
-            set { SetProperty(ref _varType, value); }
+            set
+            {
+                if (SetProperty(ref _varType, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         // 变量是否可空类型
@@ -69,7 +95,13 @@ namespace Coffee.DigitalPlatform.Models
         public bool IsNullableVar
         {
             get { return _isNullableVar; }
-            set { SetProperty(ref _isNullableVar, value); }
+            set
+            {
+                if (SetProperty(ref _isNullableVar, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         // 偏移量
@@ -77,7 +109,13 @@ namespace Coffee.DigitalPlatform.Models
         public double Offset
         {
             get { return _offset; }
-            set { SetProperty(ref _offset, value); }
+            set
+            {
+                if (SetProperty(ref _offset, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         // 系数
@@ -85,7 +123,13 @@ namespace Coffee.DigitalPlatform.Models
         public double Factor
         {
             get { return _factor; }
-            set { SetProperty(ref _factor, value); }
+            set
+            {
+                if (SetProperty(ref _factor, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         // 变量值，即从设备指定点位中读取或写入的值
@@ -165,5 +209,18 @@ namespace Coffee.DigitalPlatform.Models
 
         //验证属性值是否有重复，返回true表示不重复，false表示重复
         public Func<Variable, string, bool> ValidateDuplication { get; set; }
+
+        #region ISaveState 接口实现
+        private bool _isDirty = false;
+        public bool IsDirty 
+        {
+            get { return _isDirty; } 
+        }
+
+        public void Save()
+        {
+            _isDirty = false;
+        }
+        #endregion
     }
 }

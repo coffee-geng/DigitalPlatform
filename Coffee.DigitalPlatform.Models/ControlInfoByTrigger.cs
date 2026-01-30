@@ -1,4 +1,5 @@
 ﻿using Coffee.DigitalPlatform.Common;
+using Coffee.DigitalPlatform.CommWPF;
 using Coffee.DigitalPlatform.Controls.FilterBuilder;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Coffee.DigitalPlatform.Models
 {
-    public class ControlInfoByTrigger : ObservableObject, IReceiveFilterScheme
+    public class ControlInfoByTrigger : ObservableObject, IReceiveFilterScheme, ISaveState
     {
         public ControlInfoByTrigger()
         {
@@ -37,6 +38,11 @@ namespace Coffee.DigitalPlatform.Models
                     NewLinkageActions.Remove(action);
                 }
             });
+
+            LinkageActions.CollectionChanged += (s, e) =>
+            {
+                _isDirty = true;
+            };
         }
 
         public int Index { get; set; }
@@ -49,7 +55,13 @@ namespace Coffee.DigitalPlatform.Models
         public ICondition Condition
         {
             get { return _condition; }
-            set { SetProperty(ref _condition, value); }
+            set
+            {
+                if (SetProperty(ref _condition, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         //联动触发时间
@@ -64,14 +76,26 @@ namespace Coffee.DigitalPlatform.Models
         public string FormattedCondition
         {
             get { return _formattedCondition; }
-            set { SetProperty(ref _formattedCondition, value); }
+            set
+            {
+                if (SetProperty(ref _formattedCondition, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private Device _conditionDevice;
         public Device ConditionDevice
         {
             get { return _conditionDevice; }
-            set { SetProperty(ref _conditionDevice, value); }
+            set
+            {
+                if (SetProperty(ref _conditionDevice, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         // 联动控制设备的编码
@@ -79,14 +103,26 @@ namespace Coffee.DigitalPlatform.Models
         public Device LinkageDevice
         {
             get { return _linkageDevice; }
-            set { SetProperty(ref _linkageDevice, value); }
+            set
+            {
+                if (SetProperty(ref _linkageDevice, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private string _header;
         public string Header
         {
             get => _header;
-            set => SetProperty(ref _header, value);
+            set
+            {
+                if (SetProperty(ref _header, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         // 定义了当满足联控条件时，如何控制属性Device指定的设备
@@ -159,22 +195,61 @@ namespace Coffee.DigitalPlatform.Models
         public RelayCommand<LinkageAction> AddLinkageActionCommand { get; private set; }
 
         public RelayCommand<LinkageAction> RemoveLinkageActionCommand { get; private set; }
+
+        #region ISaveState 接口实现
+        private bool _isDirty = false;
+        public bool IsDirty
+        {
+            get
+            {
+                if (_isDirty)
+                    return true;
+                foreach (var action in LinkageActions)
+                {
+                    if (action.IsDirty)
+                        return true;
+                }
+                return false;
+            }
+        }
+
+        public void Save()
+        {
+            _isDirty = false;
+            foreach (var action in LinkageActions)
+            {
+                action.Save();
+            }
+        }
+        #endregion
     }
 
-    public class LinkageAction : ObservableObject, ICloneable
+    public class LinkageAction : ObservableObject, ICloneable, ISaveState
     {
         private Variable _variable;
         public Variable Variable
         {
             get => _variable;
-            set => SetProperty(ref _variable, value);
+            set
+            {
+                if (SetProperty(ref _variable, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         private object _value;
         public object Value
         {
             get => _value;
-            set => SetProperty(ref _value, value);
+            set
+            {
+                if (SetProperty(ref _value, value))
+                {
+                    _isDirty = true;
+                }
+            }
         }
 
         public object Clone()
@@ -185,5 +260,18 @@ namespace Coffee.DigitalPlatform.Models
                 Value = this.Value
             };
         }
+
+        #region ISaveState 接口实现
+        private bool _isDirty = false;
+        public bool IsDirty
+        {
+            get { return _isDirty; }
+        }
+
+        public void Save()
+        {
+            _isDirty = false;
+        }
+        #endregion
     }
 }

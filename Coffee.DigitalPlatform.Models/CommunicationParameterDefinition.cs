@@ -1,4 +1,6 @@
 ﻿using Coffee.DigitalPlatform.Common;
+using Coffee.DigitalPlatform.CommWPF;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -8,13 +10,59 @@ using System.Threading.Tasks;
 
 namespace Coffee.DigitalPlatform.Models
 {
-    public class CommunicationParameter
+    public class CommunicationParameter : ObservableObject, ISaveState
     {
-        public string PropName { get; set; }
+        private string _propName;
+        public string PropName
+        {
+            get { return _propName; }
+            set
+            {
+                if (SetProperty(ref _propName, value))
+                {
+                    _isDirty = true;
+                }
+            }
+        }
 
-        public string PropValue { get; set; }
+        private string _propValue;
+        public string PropValue
+        {
+            get { return _propValue; }
+            set
+            {
+                if (SetProperty(ref _propValue, value))
+                {
+                    _isDirty = true;
+                }
+            }
+        }
 
-        public Type PropValueType { get; set; }
+        private Type _propValueType;
+        public Type PropValueType
+        {
+            get { return _propValueType; }
+            set
+            {
+                if (SetProperty(ref _propValueType, value))
+                {
+                    _isDirty = true;
+                }
+            }
+        }
+
+        #region ISaveState 接口实现
+        private bool _isDirty = false;
+        public bool IsDirty
+        {
+            get { return _isDirty; }
+        }
+
+        public void Save()
+        {
+            _isDirty = false;
+        }
+        #endregion
     }
 
     public class CommunicationParameterDefinition

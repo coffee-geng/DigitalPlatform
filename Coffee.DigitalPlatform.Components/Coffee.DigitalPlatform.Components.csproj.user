@@ -17,6 +17,9 @@
     <Compile Update="GasTank.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="General\AlarmMessageView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="General\ComponentAnchor.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -62,6 +65,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="GasTank.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="General\AlarmMessageView.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="General\ComponentAnchor.xaml">

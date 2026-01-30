@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows;
 using System.Windows.Shell;
 using CommunityToolkit.Mvvm.Messaging;
+using System.Runtime.CompilerServices;
 
 namespace Coffee.DigitalPlatform.CommWPF
 {

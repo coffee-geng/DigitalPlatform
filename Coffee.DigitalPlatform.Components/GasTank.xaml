@@ -6,7 +6,7 @@
              xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
              xmlns:local="clr-namespace:Coffee.DigitalPlatform.Components"
              mc:Ignorable="d" x:Name="root"
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="130" d:DesignWidth="80">
     <wpf:ComponentBase.Resources>
         <BooleanToVisibilityConverter x:Key="b2v"/>
 
@@ -28,88 +28,112 @@
         </Style>
     </wpf:ComponentBase.Resources>
     <Grid>
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,0,30">
-            <Border Background="#BBB" Width="3" Height="12" CornerRadius="1"/>
-            <Border Height="8" Width="20">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#16a1ff" Offset="0"/>
-                        <GradientStop Color="#5EBFFF" Offset="0.5"/>
-                        <GradientStop Color="#16a1ff" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
-            </Border>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right"
-                Margin="0,30,0,0">
-            <Border Height="8" Width="20">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#16a1ff" Offset="0"/>
-                        <GradientStop Color="#5EBFFF" Offset="0.5"/>
-                        <GradientStop Color="#16a1ff" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
-            </Border>
-            <Border Background="#BBB" Width="3" Height="12" CornerRadius="1"/>
-        </StackPanel>
-        <Grid Margin="10,5">
-            <Grid.RowDefinitions>
-                <RowDefinition/>
-                <RowDefinition Height="4*"/>
-                <RowDefinition/>
-                <RowDefinition Height="0.1*"/>
-            </Grid.RowDefinitions>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState x:Name="WarningState">
+                    <Storyboard>
+                        <ColorAnimationUsingKeyFrames Storyboard.TargetName="dse"
+                            Storyboard.TargetProperty="Color">
+                            <DiscreteColorKeyFrame Value="Red" KeyTime="0:0:0"/>
+                        </ColorAnimationUsingKeyFrames>
+                        <DoubleAnimation Duration="0:0:1" From="0" To="1"
+                            Storyboard.TargetName="dse"
+                            Storyboard.TargetProperty="Opacity"
+                            RepeatBehavior="Forever" AutoReverse="True"/>
+                    </Storyboard>
+                </VisualState>
+                <VisualState Name="NormalState"/>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <Grid Margin="5" Background="Transparent">
+            <Grid.Effect>
+                <DropShadowEffect BlurRadius="15" Color="#16a1ff" ShadowDepth="0" Opacity="0.1" x:Name="dse"/>
+            </Grid.Effect>
 
-            <Path Stretch="Fill" Data="M0 5A5 5 0 0 1 10 5z">
-                <Path.Fill>
-                    <RadialGradientBrush Center="0.5,1" GradientOrigin="0.5,1" RadiusY="1">
-                        <GradientStop Color="#EEE" Offset="0"/>
-                        <GradientStop Color="#DDD" Offset="1"/>
-                    </RadialGradientBrush>
-                </Path.Fill>
-            </Path>
-            <Border Grid.Row="1" Margin="0,-2">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="#DDD" Offset="0"/>
-                        <GradientStop Color="#EEE" Offset="0.5"/>
-                        <GradientStop Color="#DDD" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="0.2*"/>
-                        <RowDefinition Height="0.5*"/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
-                    <Border  Background="#2EC7FA" CornerRadius="100" Grid.Row="1"
-                         Width="{Binding RelativeSource={RelativeSource Self},Path=ActualHeight}"/>
-                </Grid>
-            </Border>
-            <Path Data="M0 10,8 0,5 10z" Fill="#CCC" Stroke="#FF5DCCEA" StrokeThickness="0" Stretch="Fill" Grid.Row="2" Grid.RowSpan="2" Width="10" HorizontalAlignment="Left"/>
-            <Path Data="M0 10,2.5 0,5 10z" Fill="#CCC" Stroke="#FF5DCCEA" StrokeThickness="0" Stretch="Fill" Grid.Row="2" Grid.RowSpan="2" Width="10" HorizontalAlignment="Center"/>
-            <Path Data="M0 10,-3 0,5 10z" Fill="#CCC" Stroke="#FF5DCCEA" StrokeThickness="0" Stretch="Fill" Grid.Row="2" Grid.RowSpan="2" Width="10" HorizontalAlignment="Right"/>
-            <Path Grid.Row="2" Data="M0 0A5 5 0 0 0 10 0" Stretch="Fill">
-                <Path.Fill>
-                    <RadialGradientBrush Center="0.5,0" GradientOrigin="0.5,0" RadiusY="1">
-                        <GradientStop Color="#EEE" Offset="0"/>
-                        <GradientStop Color="#DDD" Offset="1"/>
-                    </RadialGradientBrush>
-                </Path.Fill>
-            </Path>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,0,30">
+                <Border Background="#BBB" Width="3" Height="12" CornerRadius="1"/>
+                <Border Height="8" Width="20">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#16a1ff" Offset="0"/>
+                            <GradientStop Color="#5EBFFF" Offset="0.5"/>
+                            <GradientStop Color="#16a1ff" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,30,0,0">
+                <Border Height="8" Width="20">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#16a1ff" Offset="0"/>
+                            <GradientStop Color="#5EBFFF" Offset="0.5"/>
+                            <GradientStop Color="#16a1ff" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+                <Border Background="#BBB" Width="3" Height="12" CornerRadius="1"/>
+            </StackPanel>
+            <Grid Margin="10,5">
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition Height="4*"/>
+                    <RowDefinition/>
+                    <RowDefinition Height="0.1*"/>
+                </Grid.RowDefinitions>
 
+                <Path Stretch="Fill" Data="M0 5A5 5 0 0 1 10 5z">
+                    <Path.Fill>
+                        <RadialGradientBrush Center="0.5,1" GradientOrigin="0.5,1" RadiusY="1">
+                            <GradientStop Color="#EEE" Offset="0"/>
+                            <GradientStop Color="#DDD" Offset="1"/>
+                        </RadialGradientBrush>
+                    </Path.Fill>
+                </Path>
+                <Border Grid.Row="1" Margin="0,-2">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#DDD" Offset="0"/>
+                            <GradientStop Color="#EEE" Offset="0.5"/>
+                            <GradientStop Color="#DDD" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="0.2*"/>
+                            <RowDefinition Height="0.5*"/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <Border  Background="#2EC7FA" CornerRadius="100" Grid.Row="1"
+                            Width="{Binding RelativeSource={RelativeSource Self},Path=ActualHeight}"/>
+                    </Grid>
+                </Border>
+                <Path Data="M0 10,8 0,5 10z" Fill="#CCC" Stroke="#FF5DCCEA" StrokeThickness="0" Stretch="Fill" Grid.Row="2" Grid.RowSpan="2" Width="10" HorizontalAlignment="Left"/>
+                <Path Data="M0 10,2.5 0,5 10z" Fill="#CCC" Stroke="#FF5DCCEA" StrokeThickness="0" Stretch="Fill" Grid.Row="2" Grid.RowSpan="2" Width="10" HorizontalAlignment="Center"/>
+                <Path Data="M0 10,-3 0,5 10z" Fill="#CCC" Stroke="#FF5DCCEA" StrokeThickness="0" Stretch="Fill" Grid.Row="2" Grid.RowSpan="2" Width="10" HorizontalAlignment="Right"/>
+                <Path Grid.Row="2" Data="M0 0A5 5 0 0 0 10 0" Stretch="Fill">
+                    <Path.Fill>
+                        <RadialGradientBrush Center="0.5,0" GradientOrigin="0.5,0" RadiusY="1">
+                            <GradientStop Color="#EEE" Offset="0"/>
+                            <GradientStop Color="#DDD" Offset="1"/>
+                        </RadialGradientBrush>
+                    </Path.Fill>
+                </Path>
+            </Grid>
         </Grid>
 
         <!--锚点-->
         <local:ComponentAnchor x:Name="anchor" Canvas="{Binding Canvas, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}" />
 
+        <!--实时预警信息-->
+        <local:AlarmMessageView x:Name="alarmView" />
+
         <!--点位信息变量列表-->
         <local:VariableListView x:Name="variableListView" IsShowingPopup="{Binding IsShowingVariableListPopup, ElementName=root, Mode=TwoWay}"
-                        IsShowingPopupChanged="variableListView_IsShowingPopupChanged"/>
+            IsShowingPopupChanged="variableListView_IsShowingPopupChanged"/>
 
         <!--手动控制选项列表-->
         <local:ManualListView x:Name="manualListView" IsShowingPopup="{Binding IsShowingManualListPopup, ElementName=root, Mode=TwoWay}"
-                        IsShowingPopupChanged="manualListView_IsShowingPopupChanged"/>
+            IsShowingPopupChanged="manualListView_IsShowingPopupChanged"/>
     </Grid>
 </wpf:ComponentBase>

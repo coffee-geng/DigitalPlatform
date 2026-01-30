@@ -66,6 +66,7 @@ namespace Coffee.DigitalPlatform.Views
         {
             base.OnClosed(e);
             ActionManager.Unregister("AlarmCondition");
+            ActionManager.Unregister("ControlInfoByTriggerCondition");
         }
 
         #region Auxiliary Lines

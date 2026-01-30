@@ -24,7 +24,7 @@ namespace Coffee.DigitalPlatform
 
             services.AddSingleton<ConfigureComponentViewModel>();
 
-            services.AddSingleton<MonitorViewModel>();
+            services.AddSingleton<MonitorComponentViewModel>();
 
             var serviceProvider = services.BuildServiceProvider();
 

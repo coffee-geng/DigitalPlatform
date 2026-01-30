@@ -28,7 +28,27 @@
         </Style>
     </wpf:ComponentBase.Resources>
     <Grid>
-        <Grid Margin="5">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState x:Name="WarningState">
+                    <Storyboard>
+                        <ColorAnimationUsingKeyFrames Storyboard.TargetName="dse"
+                    Storyboard.TargetProperty="Color">
+                            <DiscreteColorKeyFrame Value="Red" KeyTime="0:0:0"/>
+                        </ColorAnimationUsingKeyFrames>
+                        <DoubleAnimation Duration="0:0:1" From="0" To="1"
+                    Storyboard.TargetName="dse"
+                    Storyboard.TargetProperty="Opacity"
+                    RepeatBehavior="Forever" AutoReverse="True"/>
+                    </Storyboard>
+                </VisualState>
+                <VisualState Name="NormalState"/>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <Grid Margin="5" Background="Transparent">
+            <Grid.Effect>
+                <DropShadowEffect BlurRadius="15" Color="#16a1ff" ShadowDepth="0" Opacity="0.1" x:Name="dse"/>
+            </Grid.Effect>
             <Grid.RowDefinitions>
                 <RowDefinition Height="0.3*"/>
                 <RowDefinition/>
@@ -68,6 +88,9 @@
 
         <!--锚点-->
         <local:ComponentAnchor x:Name="anchor" Canvas="{Binding Canvas, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type wpf:ComponentBase}}}" />
+
+        <!--实时预警信息-->
+        <local:AlarmMessageView x:Name="alarmView" />
 
         <!--点位信息变量列表-->
         <local:VariableListView x:Name="variableListView" IsShowingPopup="{Binding IsShowingVariableListPopup, ElementName=root, Mode=TwoWay}"
