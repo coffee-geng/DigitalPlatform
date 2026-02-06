@@ -77,6 +77,44 @@ namespace Coffee.DigitalPlatform.Common
             }
             return true;
         }
+
+        public static Type CreateGenericTypeBaseOnNonGeneric(Type nonGenericType, Type[] typeArguments)
+        {
+            // 前提条件是对应的泛型和非泛型类是在同一个程序集
+            Assembly assembly = nonGenericType.Assembly;
+
+            // 查找参数指定类对应的泛型类型定义
+            var genericTypeDefinitionArray = assembly.GetTypes().Where(t => t.IsGenericTypeDefinition);
+            IList<Type> myGenericTypeDefinitions = new List<Type>();
+            foreach (var genericType in genericTypeDefinitionArray)
+            {
+                string typeName = nonGenericType.GetType().Name;
+                if (genericType.Name == typeName)
+                {
+                    myGenericTypeDefinitions.Add(genericType);
+                }
+                else if (genericType.Name.StartsWith(typeName))
+                {
+                    var perfix = genericType.Name.Substring(typeName.Length);
+                    if (perfix.Length > 1 && perfix.First() == '`')
+                    {
+                        if (int.TryParse(perfix.Substring(1), out int paramCount) && paramCount > 0)
+                        {
+                            //符合Student的泛型类Student`1，其数字1是泛型参数的个数
+                            myGenericTypeDefinitions.Add(genericType);
+                        }
+                    }
+                }
+            }
+            var myGenericType = myGenericTypeDefinitions.FirstOrDefault();
+            if (myGenericType == null)
+            {
+                throw new TypeLoadException($"找不到泛型类型定义: {nonGenericType.FullName}");
+            }
+
+            // 创建构造泛型类型
+            return myGenericType.MakeGenericType(typeArguments);
+        }
     }
 
     public static class ObjectToStringConverter

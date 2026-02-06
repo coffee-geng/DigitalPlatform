@@ -91,6 +91,13 @@ namespace Coffee.DigitalPlatform.Models
             set { SetProperty(ref _isMonitor, value); }
         }
 
+        private DeviceConnectionStates _connectionState;
+        public DeviceConnectionStates ConnectionState
+        {
+            get { return _connectionState; }
+            set { SetProperty(ref _connectionState, value); }
+        }
+
         #region 设备在视图上的位置信息
         private double _x;
         public double X
@@ -708,5 +715,12 @@ namespace Coffee.DigitalPlatform.Models
     {
         Clockwise,
         Anticlockwise
+    }
+
+    public enum DeviceConnectionStates
+    {
+        Disconnected,
+        Connected,
+        Connecting
     }
 }

@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.OmronCommunication", "Coffee.OmronCommunication\Coffee.OmronCommunication.csproj", "{079BE912-5835-4E93-B286-AE9FC88521DF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.Omron.Communication", "Coffee.Omron.Communication\Coffee.Omron.Communication.csproj", "{64BB03A5-41BC-4DDE-A0E6-6403BF5AAB94}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{079BE912-5835-4E93-B286-AE9FC88521DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{079BE912-5835-4E93-B286-AE9FC88521DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{079BE912-5835-4E93-B286-AE9FC88521DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{079BE912-5835-4E93-B286-AE9FC88521DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64BB03A5-41BC-4DDE-A0E6-6403BF5AAB94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64BB03A5-41BC-4DDE-A0E6-6403BF5AAB94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64BB03A5-41BC-4DDE-A0E6-6403BF5AAB94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64BB03A5-41BC-4DDE-A0E6-6403BF5AAB94}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

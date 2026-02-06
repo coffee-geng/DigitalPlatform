@@ -1,10 +1,12 @@
-﻿using Coffee.DigitalPlatform.Common;
+﻿using Coffee.DeviceAccess;
+using Coffee.DigitalPlatform.Common;
 using Coffee.DigitalPlatform.CommWPF;
 using Coffee.DigitalPlatform.Entities;
 using Coffee.DigitalPlatform.IDataAccess;
 using Coffee.DigitalPlatform.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -12,6 +14,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using models = Coffee.DigitalPlatform.Models;
+using serv = Coffee.DeviceAccess;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
@@ -19,13 +23,18 @@ namespace Coffee.DigitalPlatform.ViewModels
     {
         MainViewModel _mainViewModel;
         ILocalDataAccess _localDataAccess;
+        ICommunicationService _communicationService;
+        ILogger<MonitorComponentViewModel> _logger;
 
-        public MonitorComponentViewModel(MainViewModel mainViewModel, ILocalDataAccess localDataAccess) : base()
+        public MonitorComponentViewModel(MainViewModel mainViewModel, ILocalDataAccess localDataAccess, ICommunicationService communicationService, ILoggerFactory loggerFactory) : base()
         {
             _mainViewModel = mainViewModel;
             _localDataAccess = localDataAccess;
+            _communicationService = communicationService;
+            _logger = loggerFactory.CreateLogger<MonitorComponentViewModel>();
 
             initDataForMonitor();
+            BeginMonitor();
 
             ConfigureComponentCommand = new RelayCommand(showConfigureComponentDialog);
             ResetPopupWithVariableListCommand = new RelayCommand(doResetPopupWithVariableListCommand);
@@ -33,11 +42,11 @@ namespace Coffee.DigitalPlatform.ViewModels
         }
 
         #region 设备状态统计
-        public Variable Temperature { get; set; }
-        public Variable Humidity { get; set; }
-        public Variable PM { get; set; }
-        public Variable Pressure { get; set; }
-        public Variable FlowRate { get; set; }
+        public models.Variable Temperature { get; set; }
+        public models.Variable Humidity { get; set; }
+        public models.Variable PM { get; set; }
+        public models.Variable Pressure { get; set; }
+        public models.Variable FlowRate { get; set; }
 
         public List<RankingItem> RankingList { get; set; }
 
@@ -144,7 +153,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             IList<ControlInfoByManual> controlInfos = new List<ControlInfoByManual>();
             foreach (var manualEntity in manualEntities)
             {
-                Variable variable = device.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == manualEntity.VarNum);
+                models.Variable variable = device.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == manualEntity.VarNum);
                 if (variable == null)
                     throw new Exception($"加载手动控制选项{manualEntity.Header} 的值失败，找不到编码为{manualEntity.VarNum}的点位信息！");
                 if (!string.Equals(device.DeviceNum, manualEntity.DeviceNum))
@@ -217,7 +226,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                     }
                 }
 
-                Variable variable = linkageDevice.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == controlInfoEntity.VarNum);
+                models.Variable variable = linkageDevice.Variables.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v.VarNum) && v.VarNum == controlInfoEntity.VarNum);
                 var targetDevice = DeviceList?.FirstOrDefault(d => !string.IsNullOrWhiteSpace(linkageDeviceNum) && d.DeviceNum == linkageDeviceNum);
 
                 //在当前联控条件触发下，可以对同一个联控设备操控多个点位信息
@@ -330,6 +339,7 @@ namespace Coffee.DigitalPlatform.ViewModels
 
                     // 刷新   配置文件/数据库
                     initDataForMonitor();
+                    BeginMonitor();
                     // 启动监听
                     //this.Monitor();
                 }
@@ -395,7 +405,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                 {
                     foreach (var variableEntity in deviceEntity.Variables)
                     {
-                        device.Variables.Add(new Variable()
+                        device.Variables.Add(new models.Variable()
                         {
                             DeviceNum = device.DeviceNum,
                             VarNum = variableEntity.VarNum,
@@ -434,6 +444,47 @@ namespace Coffee.DigitalPlatform.ViewModels
                 if (linkageEntityDict.TryGetValue(device.DeviceNum, out IList<ControlInfoByTriggerEntity>? linkageEntities))
                 {
                     initControlInfoByTriggerOptions(device, linkageEntities, deviceNumDict, topConditionEntities, conditionEntities);
+                }
+            }
+        }
+
+        private async Task BeginMonitor()
+        {
+            foreach(var device in DeviceList)
+            {
+                var propDict = new Dictionary<string, ProtocolParameter>();
+                foreach(var parameter in device.CommunicationParameters)
+                {
+                    propDict.TryAdd(parameter.PropName, new ProtocolParameter
+                    {
+                        PropName = parameter.PropName,
+                        PropValue = parameter.PropValue,
+                        PropValueType = parameter.PropValueType
+                    });
+                }
+                device.ConnectionState = DeviceConnectionStates.Connecting;
+                if (!await _communicationService.ConnectDeviceAsync(device.DeviceNum, propDict))
+                {
+                    device.ConnectionState = DeviceConnectionStates.Disconnected;
+                    _logger.LogInformation($"The device {device.Name} is not connected");
+                }
+                else
+                {
+                    device.ConnectionState = DeviceConnectionStates.Connected;
+                }
+
+                if (device.ConnectionState == DeviceConnectionStates.Connected)
+                {
+                    foreach(var variable in device.Variables)
+                    {
+                        var @var = new serv.Variable()
+                        {
+                            VarNum = variable.VarNum,
+                            VarAddress = variable.VarAddress,
+                            VarType = variable.VarType
+                        };
+                        
+                    }
                 }
             }
         }

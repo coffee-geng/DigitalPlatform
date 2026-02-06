@@ -1,4 +1,4 @@
-﻿namespace Coffee.DeviceAccess
+﻿namespace Zhaoxi.Mc3E
 {
     public class Class1
     {

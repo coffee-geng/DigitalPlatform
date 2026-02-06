@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Coffee.DeviceAdapter\Coffee.DeviceAdapter.csproj" />
+  </ItemGroup>
+
 </Project>

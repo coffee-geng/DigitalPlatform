@@ -820,13 +820,22 @@ namespace Coffee.DigitalPlatform.ViewModels
             saveCount++;
         }
 
+        private void SaveOnInitialized()
+        {
+            _isDirty = false;
+            foreach (var device in DeviceList)
+            {
+                device.Save();
+            }
+        }
+
         // 设备配置数据是否已修改。需要定时跟踪保存状态，以便提示用户保存。
         // IsDirty是ISaveState接口的属性，不能直接用于数据绑定
-        private bool _isDirtyForBinding;
-        public bool IsDirtyForBinding
+        private SaveStatus _saveState = SaveStatus.None;
+        public SaveStatus SaveState
         {
-            get { return _isDirtyForBinding; }
-            set { SetProperty(ref _isDirtyForBinding, value); }
+            get { return _saveState; }
+            set { SetProperty(ref _saveState, value); }
         }
 
         private DispatcherTimer _saveTrackTimer = null; //存盘状态跟踪定时器
@@ -839,14 +848,21 @@ namespace Coffee.DigitalPlatform.ViewModels
                 _saveTrackTimer.Interval = TimeSpan.FromSeconds(1);
                 _saveTrackTimer.Tick += (s, e) =>
                 {
-                    IsDirtyForBinding = IsDirty;
+                    if (saveCount == 0)
+                    {
+                        SaveState = IsDirty ? SaveStatus.Dirty : SaveStatus.None;
+                    }
+                    else
+                    {
+                        SaveState = IsDirty ? SaveStatus.Dirty : SaveStatus.Saved;
+                    }
                 };
             }
             //第一次的通知属性并不是因为用户操作更改的，而是组件配置页面打开后的初始化调用的，所以第一次的通知属性更改不因为影响_isDirty值。
             //所以这里需要延迟直到初始化完成后，将_isDirty值重置，再启动定时器跟踪_isDirty属性。
             Task.Delay(1000).ContinueWith(t =>
             {
-                Save();
+                SaveOnInitialized();
                 _saveTrackTimer.Start();
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
@@ -859,5 +875,13 @@ namespace Coffee.DigitalPlatform.ViewModels
             }
         }
         #endregion
+    }
+
+    public enum SaveStatus
+    {
+        None, //未更改
+        Dirty, //已更改，未保存
+        Saved, //已保存
+        FailToSave //保存失败
     }
 }

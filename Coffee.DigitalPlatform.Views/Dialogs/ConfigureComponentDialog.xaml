@@ -808,12 +808,25 @@
         <!--存盘状态栏-->
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,20,20">
             <StackPanel Orientation="Horizontal">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SaveState}" Value="None">
+                                <Setter Property="Visibility" Value="Hidden"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
                 <Ellipse Width="15" Height="15" VerticalAlignment="Center">
                     <Ellipse.Style>
                         <Style TargetType="Ellipse">
                             <Setter Property="Fill" Value="Green"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsDirtyForBinding}" Value="True">
+                                <DataTrigger Binding="{Binding SaveState}" Value="Dirty">
+                                    <Setter Property="Fill" Value="Orange"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding SaveState}" Value="FailToSave">
                                     <Setter Property="Fill" Value="OrangeRed"/>
                                 </DataTrigger>
                             </Style.Triggers>
@@ -826,8 +839,12 @@
                             <Setter Property="Text" Value="组态数据已保存"/>
                             <Setter Property="Foreground" Value="Green"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsDirtyForBinding}" Value="True">
+                                <DataTrigger Binding="{Binding SaveState}" Value="Dirty">
                                     <Setter Property="Text" Value="组态数据已修改，未保存"/>
+                                    <Setter Property="Foreground" Value="Orange"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding SaveState}" Value="FailToSave">
+                                    <Setter Property="Text" Value="组态数据已修改，保存失败"/>
                                     <Setter Property="Foreground" Value="OrangeRed"/>
                                 </DataTrigger>
                             </Style.Triggers>

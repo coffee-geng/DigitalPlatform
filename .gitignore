@@ -27,3 +27,33 @@
 /.vs
 /Coffee.DigitalPlatform.Controls/bin
 /Coffee.DigitalPlatform.Controls/obj
+/Coffee.DeviceAdapter/obj
+/Coffee.DeviceAdapter/bin
+/Coffee.DeviceService/obj
+/Coffee.DeviceService/bin
+/CommunicationLib/Mitsubishi/Coffee.MCProtocol.Server/Coffee.MCProtocol.Server/obj
+/CommunicationLib/Mitsubishi/Coffee.MCProtocol.Server/Coffee.MCProtocol.Server/bin
+/CommunicationLib/Mitsubishi/Coffee.Mitsubishi.Communication/Coffee.Mc3E/obj
+/CommunicationLib/Mitsubishi/Coffee.Mitsubishi.Communication/Coffee.Mc3E/bin
+/CommunicationLib/Mitsubishi/Coffee.Mitsubishi.Communication/Coffee.Mitsubishi/bin
+/CommunicationLib/Mitsubishi/Coffee.Mitsubishi.Communication/Coffee.Mitsubishi/obj
+/CommunicationLib/Mitsubishi/Coffee.Mitsubishi.Communication/Coffee.Mitsubishi.Communication/bin
+/CommunicationLib/Mitsubishi/Coffee.Mitsubishi.Communication/Coffee.Mitsubishi.Communication/obj
+/CommunicationLib/Modbus/Coffee.ModbusLib/obj
+/CommunicationLib/Modbus/Coffee.ModbusLib/bin
+/CommunicationLib/Modbus/Coffee.ModbusLib.TestConsole/bin
+/CommunicationLib/Modbus/Coffee.ModbusLib.TestConsole/obj
+/CommunicationLib/Omron/Coffee.OmronCommunication/Coffee.Omron.Communication/obj
+/CommunicationLib/Omron/Coffee.OmronCommunication/Coffee.Omron.Communication/bin
+/CommunicationLib/Omron/Coffee.OmronCommunication/Coffee.OmronCommunication/bin
+/CommunicationLib/Omron/Coffee.OmronCommunication/Coffee.OmronCommunication/obj
+/CommunicationLib/Omron/Omron FinsTCP Server/Zhaoxi.FinsProtocol.Server/obj
+/CommunicationLib/Omron/Omron FinsTCP Server/Zhaoxi.FinsProtocol.Server/bin
+/CommunicationLib/Siemens/Coffee.SiemensCommunication/Coffee.Siemens.Communication/bin
+/CommunicationLib/Siemens/Coffee.SiemensCommunication/Coffee.Siemens.Communication/obj
+/CommunicationLib/Siemens/Coffee.SiemensCommunication/Coffee.SiemensCommunication/bin
+/CommunicationLib/Siemens/Coffee.SiemensCommunication/Coffee.SiemensCommunication/obj
+/CommunicationLib/Mitsubishi/Coffee.MCProtocol.Server/.vs
+/CommunicationLib/Mitsubishi/Coffee.Mitsubishi.Communication/.vs
+/CommunicationLib/Omron/Coffee.OmronCommunication/.vs
+/CommunicationLib/Siemens/Coffee.SiemensCommunication/.vs

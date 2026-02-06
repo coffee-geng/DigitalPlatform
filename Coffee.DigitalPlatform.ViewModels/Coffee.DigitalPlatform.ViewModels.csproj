@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Coffee.DeviceAccess\Coffee.DeviceAccess.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.Controls\Coffee.DigitalPlatform.Controls.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.IDataAccess\Coffee.DigitalPlatform.IDataAccess.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.Models\Coffee.DigitalPlatform.Models.csproj" />
