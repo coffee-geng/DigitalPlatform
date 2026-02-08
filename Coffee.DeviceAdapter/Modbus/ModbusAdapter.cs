@@ -58,9 +58,39 @@ namespace Coffee.DeviceAdapter
         }
 
         #region IProtocolAdapter接口
-        public ProtocolType ProtocolType => throw new NotImplementedException();
+        public ProtocolType ProtocolType
+        {
+            get
+            {
+                if (_modbusOptions is null)
+                    return Coffee.DeviceAdapter.ProtocolType.Unknown;
+                if (_modbusOptions is ModbusTCP_Options)
+                    return Coffee.DeviceAdapter.ProtocolType.ModbusTCP;
+                else if (_modbusOptions is ModbusUDP_Options)
+                    return Coffee.DeviceAdapter.ProtocolType.ModbusUDP;
+                else if (_modbusOptions is ModbusSerialOptions)
+                    return Coffee.DeviceAdapter.ProtocolType.ModbusRTU;
+                else
+                    return Coffee.DeviceAdapter.ProtocolType.Unknown; 
+            }
+        }
 
-        public bool IsConnected => throw new NotImplementedException();
+        public bool IsConnected
+        {
+            get 
+            {
+                //尝试一次连接设备的操作，如果有异常，则返回不能连接
+                try
+                {
+                    var result = _modbusClient.Read(1, FunctionAreas.HoldingRegister, 1, 1);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    return false;
+                }
+            }
+        }
 
         public bool Connect()
         {

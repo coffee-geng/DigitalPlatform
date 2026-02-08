@@ -71,7 +71,7 @@
                                    HorizontalAlignment="Center"
                                    FontSize="11" Foreground="#AAA" 
                                    TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{Binding Value}" 
+                                    <TextBlock Text="{Binding FinalValue}" 
                                    Grid.Column="1" FontSize="11" 
                                    VerticalAlignment="Center"
                                    Foreground="#555" FontWeight="Normal"/>

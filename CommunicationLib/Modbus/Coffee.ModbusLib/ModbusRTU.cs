@@ -45,6 +45,12 @@ namespace Coffee.ModbusLib
             return SendAndReceiveAsync(bytesToSend, len, Functions.Read, callback);
         }
 
+        public override Task ReadAsync(byte slaveId, string variableAddress, ushort count, int transactionId, Action<ReadWriteModbusCallbackResult> callback)
+        {
+            (FunctionAreas, int) addr = ParseViriableAddress(variableAddress);
+            return ReadAsync(slaveId, addr.Item1, (ushort)addr.Item2, count, transactionId, callback);
+        }
+
         public override void Write(byte slaveId, FunctionAreas funcArea, ushort startAddress, ushort count, byte[] data)
         {
             var pair = createSendBytesToWrite(slaveId, funcArea, startAddress, count, data);
@@ -62,6 +68,12 @@ namespace Coffee.ModbusLib
             int len = pair.Item2;
 
             return SendAndReceiveAsync(bytesToSend, len, Functions.Write, callback);
+        }
+
+        public override Task WriteAsync(byte slaveId, string variableAddress, ushort count, byte[] data, int transcationId, Action<ReadWriteModbusCallbackResult> callback)
+        {
+            (FunctionAreas, int) addr = ParseViriableAddress(variableAddress);
+            return WriteAsync(slaveId, addr.Item1, (ushort)addr.Item2, count, data, transcationId, callback);
         }
 
         private (byte[], int) createSendBytesToRead(byte slaveId, FunctionAreas funcArea, ushort startAddress, ushort count)

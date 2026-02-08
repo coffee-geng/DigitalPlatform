@@ -1,4 +1,5 @@
 ﻿using Coffee.DeviceAccess;
+using Coffee.DeviceAdapter;
 using Coffee.DigitalPlatform.Common;
 using Coffee.DigitalPlatform.CommWPF;
 using Coffee.DigitalPlatform.Entities;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO.Ports;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -311,7 +313,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             loadComponentsFromDatabase();
         }
 
-        public RelayCommand ConfigureComponentCommand {  get; set; }
+        public RelayCommand ConfigureComponentCommand { get; set; }
 
         private void showConfigureComponentDialog()
         {
@@ -326,6 +328,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                 // 可以打开编辑   启动窗口   主动
                 var configViewModel = ViewModelLocator.Instance.ConfigureComponentViewModel;
                 configViewModel.StartSaveTrackTimer();
+
                 if (ActionManager.ExecuteAndResult<object>("ShowConfigureComponentDialog", configViewModel))
                 {
                     // 添加一个等待页面（预留）
@@ -384,8 +387,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                     Height = double.Parse(deviceEntity.Height),
                     FlowDirection = (FlowDirections)Enum.Parse(typeof(FlowDirections), deviceEntity.FlowDirection),
                     Rotate = double.Parse(deviceEntity.Rotate),
-                    IsMonitor = true,
-                    IsWarning = true
+                    IsMonitor = true
                 };
                 // 加载通信参数
                 if (deviceEntity.CommunicationParameters != null)
@@ -417,7 +419,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                         });
                     }
                 }
-                
+
                 devices.Add(device);
                 if (!deviceNumDict.ContainsKey(device.DeviceNum))
                 {
@@ -448,44 +450,65 @@ namespace Coffee.DigitalPlatform.ViewModels
             }
         }
 
+        private CancellationTokenSource cts { get; set; }
+
         private async Task BeginMonitor()
         {
-            foreach(var device in DeviceList)
-            {
-                var propDict = new Dictionary<string, ProtocolParameter>();
-                foreach(var parameter in device.CommunicationParameters)
-                {
-                    propDict.TryAdd(parameter.PropName, new ProtocolParameter
-                    {
-                        PropName = parameter.PropName,
-                        PropValue = parameter.PropValue,
-                        PropValueType = parameter.PropValueType
-                    });
-                }
-                device.ConnectionState = DeviceConnectionStates.Connecting;
-                if (!await _communicationService.ConnectDeviceAsync(device.DeviceNum, propDict))
-                {
-                    device.ConnectionState = DeviceConnectionStates.Disconnected;
-                    _logger.LogInformation($"The device {device.Name} is not connected");
-                }
-                else
-                {
-                    device.ConnectionState = DeviceConnectionStates.Connected;
-                }
+            cts = new CancellationTokenSource();
 
-                if (device.ConnectionState == DeviceConnectionStates.Connected)
+            Task task = Task.Run(async () =>
+            {
+                while (!cts.IsCancellationRequested)
                 {
-                    foreach(var variable in device.Variables)
+                    foreach (var device in DeviceList)
                     {
-                        var @var = new serv.Variable()
+                        var propDict = new Dictionary<string, ProtocolParameter>();
+                        foreach (var parameter in device.CommunicationParameters)
                         {
-                            VarNum = variable.VarNum,
-                            VarAddress = variable.VarAddress,
-                            VarType = variable.VarType
-                        };
-                        
+                            propDict.TryAdd(parameter.PropName, new ProtocolParameter
+                            {
+                                PropName = parameter.PropName,
+                                PropValue = parameter.PropValue,
+                                PropValueType = parameter.PropValueType
+                            });
+                        }
+                        device.ConnectionState = DeviceConnectionStates.Connecting;
+                        if (!await _communicationService.ConnectDeviceAsync(device.DeviceNum, propDict))
+                        {
+                            device.ConnectionState = DeviceConnectionStates.Disconnected;
+                            _logger.LogInformation($"The device {device.Name} is not connected");
+                        }
+                        else
+                        {
+                            device.ConnectionState = DeviceConnectionStates.Connected;
+                        }
+
+                        if (device.ConnectionState == DeviceConnectionStates.Connected)
+                        {
+                            foreach (var variable in device.Variables)
+                            {
+                                var @var = new serv.Variable()
+                                {
+                                    VarNum = variable.VarNum,
+                                    VarAddress = variable.VarAddress,
+                                    VarType = variable.VarType
+                                };
+                                var val = await _communicationService.ReadAsync(device.DeviceNum, @var);
+                                variable.Value = val;
+                            }
+                        }
                     }
+
+                    await Task.Delay(5000);
                 }
+            });
+        }
+
+        private async Task StopMonitor()
+        {
+            if (cts != null)
+            {
+                cts.Cancel();
             }
         }
         #endregion

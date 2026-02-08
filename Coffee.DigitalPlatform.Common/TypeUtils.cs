@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Coffee.DigitalPlatform.Common
 {
-    public class TypeUtils
+    public static class TypeUtils
     {
         public static Type GetTypeFromAssemblyQualifiedName(string assemblyQualifiedName)
         {
@@ -114,6 +114,61 @@ namespace Coffee.DigitalPlatform.Common
 
             // 创建构造泛型类型
             return myGenericType.MakeGenericType(typeArguments);
+        }
+
+        /// <summary>
+        /// 判断对象是否是IEnumerable<varType>类型
+        /// </summary>
+        public static bool IsEnumerableOf<T>(this object obj)
+        {
+            return IsEnumerableOfType(obj, typeof(T));
+        }
+
+        /// <summary>
+        /// 判断对象是否是IEnumerable<varType>类型
+        /// </summary>
+        public static bool IsEnumerableOfType(this object obj, Type varType)
+        {
+            if (obj == null || varType == null)
+                return false;
+
+            var objType = obj.GetType();
+
+            // 处理数组
+            if (objType.IsArray)
+            {
+                return objType.GetElementType() == varType;
+            }
+
+            // 构造目标接口类型：IEnumerable<varType>
+            var targetInterface = typeof(IEnumerable<>).MakeGenericType(varType);
+
+            // 检查对象是否实现了该接口
+            return targetInterface.IsAssignableFrom(objType);
+        }
+
+        /// <summary>
+        /// 获取对象作为IEnumerable<varType>的枚举器
+        /// </summary>
+        public static IEnumerable<object> AsEnumerableOfType(this object obj, Type varType)
+        {
+            if (!obj.IsEnumerableOfType(varType))
+                throw new InvalidCastException($"对象不是IEnumerable<{varType.Name}>类型");
+
+            var enumerableInterface = typeof(IEnumerable<>).MakeGenericType(varType);
+            var getEnumeratorMethod = enumerableInterface.GetMethod("GetEnumerator");
+
+            if (getEnumeratorMethod != null)
+            {
+                var enumerator = getEnumeratorMethod.Invoke(obj, null);
+                var moveNextMethod = enumerator.GetType().GetMethod("MoveNext");
+                var currentProperty = enumerator.GetType().GetProperty("Current");
+
+                while ((bool)moveNextMethod.Invoke(enumerator, null))
+                {
+                    yield return currentProperty.GetValue(enumerator);
+                }
+            }
         }
     }
 

@@ -2,6 +2,7 @@
 using Coffee.DigitalPlatform.CommWPF;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -133,7 +134,56 @@ namespace Coffee.DigitalPlatform.Models
         }
 
         // 变量值，即从设备指定点位中读取或写入的值
-        public object Value { get; set; }
+        private object _value;
+        public object Value 
+        {
+            get { return _value; }
+            set
+            {
+                _value = value;
+                if (_value != null)
+                {
+                    if (_value is IEnumerable) //如果是返回的是集合类型，则取第一个元素
+                    {
+                        try
+                        {
+                            if (TypeUtils.IsEnumerableOfType(_value, VarType))
+                            {
+                                FinalValue = TypeUtils.AsEnumerableOfType(_value, VarType).FirstOrDefault();
+                            }
+                            else
+                            {
+                                FinalValue = null;
+                            }
+                        }
+                        catch
+                        {
+                            FinalValue = null;
+                        }
+                    }
+                    else if (_value.GetType().IsAssignableTo(VarType))
+                    {
+                        FinalValue = Convert.ChangeType(_value, VarType);
+                    }
+                    else
+                    {
+                        FinalValue = null;
+                    }
+                }
+                else
+                {
+                    FinalValue = _value;
+                }
+            }
+        }
+
+        // 修正后的变量值
+        private object _finalValue;
+        public object FinalValue
+        {
+            get { return _finalValue; }
+            set { SetProperty(ref _finalValue, value); }
+        }
 
         #region 映射到FilterScheme中的属性
         //当加载表达式编辑器时，需要根据该设备的所有变量生成一个条件筛选类提供给FilterScheme初始化，每个变量就是类的一个属性作为操作数，根据变量的类型生成对应的操作符。

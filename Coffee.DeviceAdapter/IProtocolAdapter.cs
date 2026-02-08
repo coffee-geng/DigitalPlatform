@@ -189,8 +189,10 @@ namespace Coffee.DeviceAdapter
     /// </summary>
     public enum ProtocolType
     {
+        Unknown,
         ModbusRTU,
         ModbusTCP,
+        ModbusUDP,
         ModbusASCII,
         SiemensS7,
         OmronFinsTCP
