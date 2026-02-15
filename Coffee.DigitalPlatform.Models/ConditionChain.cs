@@ -1,4 +1,5 @@
 ﻿using Coffee.DigitalPlatform.Controls.FilterBuilder;
+using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -202,6 +203,100 @@ namespace Coffee.DigitalPlatform.Models
             if (_rawConditionGroup != null)
                 return _rawConditionGroup.ToString();
             return base.ToString();
+        }
+
+        public IList<Variable> GetSourceVariables()
+        {
+            List<Variable> variables = new List<Variable>();
+            foreach (var conditionItem in ConditionItems)
+            {
+                if (conditionItem is ConditionChain conditionChain)
+                {
+                    variables.AddRange(conditionChain.GetSourceVariables());
+                }
+                else if (conditionItem is Condition condition)
+                {
+                    variables.AddRange(condition.GetSourceVariables());
+                }
+            }
+            return variables;
+        }
+
+        public HtmlNode GetExpressionResult(Dictionary<string, object> valueDict, ExpressionFormatSetting formater)
+        {
+            if (ConditionItems.Any())
+            {
+                var firstCondition = ConditionItems.First();
+                var otherConditions = ConditionItems.Skip(1);
+
+                var htmlNode1 = firstCondition.GetExpressionResult(valueDict, formater);
+                if (htmlNode1 == null)
+                    return null;
+                if (!otherConditions.Any())
+                {
+                    return htmlNode1;
+                }
+                //如果有多个条件项，则需要将每个条件项的表达式结果根据AND或OR进行组合
+                var htmlParentNode = HtmlNode.CreateNode("<span></span>");
+                for (int i = 0; i < otherConditions.Count(); i++)
+                {
+                    var item = otherConditions.ElementAt(i);
+                    var htmlNode2 = item.GetExpressionResult(valueDict, formater);
+                    if (htmlNode2 == null)
+                        continue;
+                    if (i == 0) //循环内第一次组合 (表达式1) AND/OR (表达式2)
+                    {
+                        var leftParentheseNode = HtmlNode.CreateNode("<span></span>");
+                        leftParentheseNode.InnerHtml = "(";
+                        var rightParentheseNode = HtmlNode.CreateNode("<span></span>");
+                        rightParentheseNode.InnerHtml = ")";
+                        var jointNode = HtmlNode.CreateNode("<span></span>");
+                        if (Operator == ConditionChainOperators.AND)
+                        {
+                            jointNode.InnerHtml = ") AND (";
+                            htmlParentNode.AppendChild(leftParentheseNode);
+                            htmlParentNode.AppendChild(htmlNode1);
+                            htmlParentNode.AppendChild(jointNode);
+                            htmlParentNode.AppendChild(htmlNode2);
+                            htmlParentNode.AppendChild(rightParentheseNode);
+                        }
+                        else if (Operator == ConditionChainOperators.OR)
+                        {
+                            jointNode.InnerHtml = ") OR (";
+                            htmlParentNode.AppendChild(leftParentheseNode);
+                            htmlParentNode.AppendChild(htmlNode1);
+                            htmlParentNode.AppendChild(jointNode);
+                            htmlParentNode.AppendChild(htmlNode2);
+                            htmlParentNode.AppendChild(rightParentheseNode);
+                        }
+                    }
+                    else //循环内第二次及后续组合  AND/OR (表达式N)
+                    {
+                        var rightParentheseNode = HtmlNode.CreateNode("<span></span>");
+                        rightParentheseNode.InnerHtml = ")";
+                        var jointNode = HtmlNode.CreateNode("<span></span>");
+                        if (Operator == ConditionChainOperators.AND)
+                        {
+                            jointNode.InnerHtml = " AND ";
+                            htmlParentNode.AppendChild(jointNode);
+                            htmlParentNode.AppendChild(htmlNode2);
+                            htmlParentNode.AppendChild(rightParentheseNode);
+                        }
+                        else if (Operator == ConditionChainOperators.OR)
+                        {
+                            jointNode.InnerHtml = " OR ";
+                            htmlParentNode.AppendChild(jointNode);
+                            htmlParentNode.AppendChild(htmlNode2);
+                            htmlParentNode.AppendChild(rightParentheseNode);
+                        }
+                    }
+                }
+                return htmlParentNode;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public static class ConditionChainFactory

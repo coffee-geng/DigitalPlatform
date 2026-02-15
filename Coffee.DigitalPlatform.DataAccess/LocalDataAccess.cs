@@ -178,11 +178,11 @@ namespace Coffee.DigitalPlatform.DataAccess
                                 {
                                     expandoDict[kvp.Key] = kvp.Value;
                                 }
-                                rows = db.Execute(cmd.Sql, expandoDict);
+                                rows = db.Execute(cmd.Sql, expandoDict, transaction);
                             }
                             else
                             {
-                                rows = db.Execute(cmd.Sql, null);
+                                rows = db.Execute(cmd.Sql, null, transaction);
                             }
                         }
                         transaction.Commit();
@@ -948,6 +948,9 @@ namespace Coffee.DigitalPlatform.DataAccess
         public Dictionary<string, IList<AlarmEntity>> ReadAlarms()
         {
             SqlMapper.SetTypeMap(typeof(AlarmEntity), new ColumnAttributeTypeMapper<AlarmEntity>());
+            SqlMapper.AddTypeHandler(typeof(Type), new StringToTypeHandler());
+            SqlMapper.AddTypeHandler<IList<AlarmVariable>>(new JsonTypeHandler<IList<AlarmVariable>>());
+
             var alarms = SqlQuery<AlarmEntity>("SELECT * FROM alarms");
             if (alarms != null && alarms.Any())
             {
@@ -982,16 +985,6 @@ namespace Coffee.DigitalPlatform.DataAccess
                     }
                 }
             }
-            
-            var oldTopConditions = GetTopConditions();
-            //得到当前还在使用的一级预警条件编号集合
-            var aliveConditionNumList = deviceAlarmDict.Select(p => p.Value).SelectMany(a => a)
-                           .Select(a => a.ConditionNum)
-                           .Distinct();
-            //删除那些不再使用的一级预警条件及其子条件
-            var topConditionsForDelete = oldTopConditions.Where(c => c.CNum_Parent == null && !aliveConditionNumList.Contains(c.CNum)).ToList();
-            var sqlCommandsForDeleteConditions = CreateSqlCommandsForDeleteConditions(topConditionsForDelete);
-            sqlCommands.AddRange(sqlCommandsForDeleteConditions);
 
             var sqlCommandsForConditions = CreateSqlCommandsForAddingConditions(conditionList.DistinctBy(c => c.CNum));
             sqlCommands.AddRange(sqlCommandsForConditions);
@@ -1311,7 +1304,7 @@ namespace Coffee.DigitalPlatform.DataAccess
         }
 
         public void SaveControlInfosByTrigger(Dictionary<string, IList<ControlInfoByTriggerEntity>> deviceControlInfoDict, Dictionary<string, IList<ConditionEntity>> conditionDict)
-        {
+        {                 
             List<SqlCommand> sqlCommands = new List<SqlCommand>();
             var topConditionDict = new Dictionary<string, ConditionEntity>();
             var conditionList = new List<ConditionEntity>(); //要写入的所有条件实体
@@ -1327,16 +1320,6 @@ namespace Coffee.DigitalPlatform.DataAccess
                     }
                 }
             }
-
-            var oldTopConditions = GetTopConditions();
-            //得到当前还在使用的一级联控条件编号集合
-            var aliveConditionNumList = deviceControlInfoDict.Select(p => p.Value).SelectMany(a => a)
-                           .Select(a => a.ConditionNum)
-                           .Distinct();
-            //删除那些不再使用的一级联控条件及其子条件
-            var topConditionsForDelete = oldTopConditions.Where(c => c.CNum_Parent == null && !aliveConditionNumList.Contains(c.CNum)).ToList();
-            var sqlCommandsForDeleteConditions = CreateSqlCommandsForDeleteConditions(topConditionsForDelete);
-            sqlCommands.AddRange(sqlCommandsForDeleteConditions);
 
             var sqlCommandsForConditions = CreateSqlCommandsForAddingConditions(conditionList.DistinctBy(c => c.CNum));
             sqlCommands.AddRange(sqlCommandsForConditions);
@@ -1439,6 +1422,21 @@ namespace Coffee.DigitalPlatform.DataAccess
             return itemUpdateStateDict;
         }
         #endregion
+
+        /// <summary>
+        /// 删除那些不再使用的条件（包括顶级及其子条件）
+        /// </summary>
+        /// <param name="aliveConditionNumList">当前还在使用的顶级条件（包括预警条件和联动条件）</param>
+        /// <param name="oldTopConditions">数据库中所有的顶级条件</param>
+        public void CleanUpOutdatedConditions(IList<string> aliveConditionNumList, IEnumerable<ConditionEntity>? oldTopConditions)
+        {
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var topConditionsForDelete = oldTopConditions.Where(c => c.CNum_Parent == null && !aliveConditionNumList.Contains(c.CNum)).ToList();
+            var sqlCommandsForDeleteConditions = CreateSqlCommandsForDeleteConditions(topConditionsForDelete);
+            sqlCommands.AddRange(sqlCommandsForDeleteConditions);
+
+            SqlExecute(sqlCommands);
+        }
 
         internal class DeviceByNumComparer : IEqualityComparer<DeviceEntity>
         {

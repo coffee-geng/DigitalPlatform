@@ -100,7 +100,7 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         public RelayCommand SwitchToHomeCommand { get; set; }
 
-        private void ShowPage(object obj)
+        internal void ShowPage(object obj)
         {
             var model = obj as Models.Menu;
             if (model != null)
@@ -121,7 +121,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                     if (ViewContent != null && ViewContent.GetType().Name == model.TargetView) return;
 
                     Type type = Assembly.Load("Coffee.DigitalPlatform.Views")
-                        .GetType("Coffee.DigitalPlatform.Views.Pages." + model.TargetView)!;
+                        .GetType("Coffee.DigitalPlatform.Views." + model.TargetView)!;
                     ViewContent = Activator.CreateInstance(type)!;
                 }
             }

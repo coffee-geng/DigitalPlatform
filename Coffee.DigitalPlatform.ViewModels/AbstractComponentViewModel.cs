@@ -92,7 +92,24 @@ namespace Coffee.DigitalPlatform.ViewModels
                 if (variableNumDict != null && variableNumDict.TryGetValue(conditionEntity.VarNum, out Variable variable))
                 {
                     var @operator = new ConditionOperator((ConditionOperators)Enum.Parse(typeof(ConditionOperators), conditionEntity.Operator));
-                    var conditionExp = new Coffee.DigitalPlatform.Models.Condition(variable, conditionEntity.Value, @operator, conditionEntity.CNum);
+                    var targetValStr = conditionEntity.Value; //从数据库读取的值是String，需要进行类型转换
+                    object targetVal;
+                    if (targetValStr != null && targetValStr is string)
+                    {
+                        try
+                        {
+                            targetVal = Convert.ChangeType(targetValStr, variable.VarType);
+                        }
+                        catch
+                        {
+                            targetVal = targetValStr;
+                        }
+                    }
+                    else
+                    {
+                        targetVal = targetValStr;
+                    }
+                    var conditionExp = new Coffee.DigitalPlatform.Models.Condition(variable, targetVal, @operator, conditionEntity.CNum);
                     return conditionExp;
                 }
                 else
@@ -134,7 +151,24 @@ namespace Coffee.DigitalPlatform.ViewModels
                     if (variableNumDict != null && variableNumDict.TryGetValue(childConditionEntity.VarNum, out Variable variable))
                     {
                         var @operator = new ConditionOperator((ConditionOperators)Enum.Parse(typeof(ConditionOperators), childConditionEntity.Operator));
-                        var conditionExp = new Coffee.DigitalPlatform.Models.Condition(variable, childConditionEntity.Value, @operator, childConditionEntity.CNum);
+                        var targetValStr = childConditionEntity.Value; //从数据库读取的值是String，需要进行类型转换
+                        object targetVal;
+                        if (targetValStr != null && targetValStr is string)
+                        {
+                            try
+                            {
+                                targetVal = Convert.ChangeType(targetValStr, variable.VarType);
+                            }
+                            catch
+                            {
+                                targetVal = targetValStr;
+                            }
+                        }
+                        else
+                        {
+                            targetVal = targetValStr;
+                        }
+                        var conditionExp = new Coffee.DigitalPlatform.Models.Condition(variable, targetVal, @operator, childConditionEntity.CNum);
                         childConditions.Add(conditionExp);
                     }
                 }

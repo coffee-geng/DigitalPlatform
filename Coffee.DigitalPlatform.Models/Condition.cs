@@ -1,5 +1,6 @@
 ﻿using Coffee.DigitalPlatform.Common;
 using Coffee.DigitalPlatform.Controls.FilterBuilder;
+using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using System;
 using System.CodeDom;
@@ -11,6 +12,8 @@ using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
 
 namespace Coffee.DigitalPlatform.Models
 {
@@ -163,7 +166,7 @@ namespace Coffee.DigitalPlatform.Models
             if (Source.PropertyInFilterScheme == null)
                 throw new NullReferenceException(nameof(Source.PropertyInFilterScheme));
 
-            var propertyMetadata = new PropertyMetadata(Source.OwnerTypeInFilterScheme, Source.PropertyInFilterScheme);
+            var propertyMetadata = new Controls.FilterBuilder.PropertyMetadata(Source.OwnerTypeInFilterScheme, Source.PropertyInFilterScheme);
             propertyMetadata.DisplayName = Source.VarName;
             var rawPropertyExpression = new PropertyExpression()
             {
@@ -551,7 +554,7 @@ namespace Coffee.DigitalPlatform.Models
             var _comparer = Comparer<TValue>.Default;
             if (Source.IsNullableVar)
             {
-                var sourceValue = (TValue?)Source.Value;
+                var sourceValue = (TValue?)Source.FinalValue;
                 return Operator.Operator switch
                 {
                     ConditionOperators.EqualTo => Equals(sourceValue, TargetValue),
@@ -567,7 +570,7 @@ namespace Coffee.DigitalPlatform.Models
             }
             else
             {
-                var sourceValue = (TValue)Source.Value;
+                var sourceValue = (TValue)Source.FinalValue;
                 return Operator.Operator switch
                 {
                     ConditionOperators.EqualTo => Equals(sourceValue, TargetValue),
@@ -583,7 +586,7 @@ namespace Coffee.DigitalPlatform.Models
 
         private bool calculateBooleanResult()
         {
-            var sourceValue = (bool)Source.Value;
+            var sourceValue = (bool)Source.FinalValue;
             var targetValue = (bool)TargetValue;
 
             return Operator.Operator switch
@@ -601,7 +604,7 @@ namespace Coffee.DigitalPlatform.Models
                 throw new NotSupportedException($"Operator {Enum.GetName(typeof(ConditionOperators), Operator.Operator)} is not support in type of {Source.VarType.Name}");
             }
 
-            var sourceValue = Source.Value;
+            var sourceValue = Source.FinalValue;
             var targetValue = TargetValue;
 
             return Operator.Operator switch
@@ -625,13 +628,13 @@ namespace Coffee.DigitalPlatform.Models
                 throw new NotSupportedException("TargetValue is invalid.");
             }
 
-            var sourceValue = Source.Value as string;
+            var sourceValue = Source.FinalValue as string;
 
             if (sourceValue is null && Source.VarType.IsEnum)
             {
                 if (Source.Value is not null)
                 {
-                    sourceValue = Source.Value.ToString();
+                    sourceValue = Source.FinalValue.ToString();
                 }
             }
 
@@ -665,7 +668,7 @@ namespace Coffee.DigitalPlatform.Models
             {
                 throw new NotSupportedException("TargetValue is invalid.");
             }
-            if (Source.Value == null || !(Source.Value is TimeSpan sourceValue))
+            if (Source.Value == null || !(Source.FinalValue is TimeSpan sourceValue))
             {
                 throw new NotSupportedException("Source.Value is invalid.");
             }
@@ -689,6 +692,46 @@ namespace Coffee.DigitalPlatform.Models
             if (_rawPropertyExpression != null)
                 return _rawPropertyExpression.ToString();
             return base.ToString();
+        }
+
+        public IList<Variable> GetSourceVariables()
+        {
+            List<Variable> variables = new List<Variable>();
+            if (Source != null)
+            {
+                variables.Add(Source);
+            }
+            return variables;
+        }
+
+        public HtmlNode GetExpressionResult(Dictionary<string, object> valueDict, ExpressionFormatSetting formater)
+        {
+            if (valueDict == null || !valueDict.TryGetValue(Source.VarNum, out object value))
+                return null;
+            if (formater != null)
+            {
+                var htmlEle = HtmlNode.CreateNode($"<span></span>");
+                string key = Enum.GetName(typeof(ExpressionFormatBlocks), ExpressionFormatBlocks.Expression);
+                StringBuilder styleBuilder = new StringBuilder();
+                double fontSize = formater.GetFontSize(key);
+                styleBuilder.Append($"font-size:{fontSize}px;");
+                if (IsMatch())
+                {
+                    Color color = formater.GetFontForeground(key);
+                    styleBuilder.Append($"color:{string.Format("#{0:X2}{1:X2}{2:X2}", color.R, color.G, color.B)};");
+                    FontWeight fontWeight = formater.GetFontWeight(key);
+                    styleBuilder.Append($"font-weight:{fontWeight.ToString().ToLower()};");
+                    htmlEle.SetAttributeValue("style", styleBuilder.ToString());
+                }
+                htmlEle.InnerHtml = $"{Source.VarName} {Operator.DisplayName} {TargetValue}";
+                return htmlEle;
+            }
+            else
+            {
+                var htmlNode = HtmlNode.CreateNode($"<span></span>");
+                htmlNode.InnerHtml = $"{Source.VarName} {Operator.DisplayName} {TargetValue}";
+                return htmlNode;
+            }
         }
 
         public static class ConditionFactory
@@ -754,5 +797,20 @@ namespace Coffee.DigitalPlatform.Models
         ConditionTreeItem Raw {  get; }
 
         void SyncDeviceNum(string deviceNum);
+
+        IList<Variable> GetSourceVariables();
+
+        HtmlNode GetExpressionResult(Dictionary<string, object> valueDict, ExpressionFormatSetting formater);
+    }
+
+    /// <summary>
+    /// 对表达式的哪一块区域进行格式化
+    /// </summary>
+    public enum ExpressionFormatBlocks
+    {
+        Expression = 0, //整个表达式
+        Source, //表达式的左侧，即变量
+        Operator, //表达式的中间，即条件运算符
+        TargetValue //表达式的右侧，即目标值
     }
 }

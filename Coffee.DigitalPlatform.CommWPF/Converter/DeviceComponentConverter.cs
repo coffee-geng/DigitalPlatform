@@ -67,7 +67,7 @@ namespace Coffee.DigitalPlatform.CommWPF
             c.SetBinding(ComponentBase.IsWarningProperty, binding);
 
             binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("WarningMessage.AlarmContent");
+            binding.Path = new System.Windows.PropertyPath("WarningMessage");
             c.SetBinding(ComponentBase.WarningMessageProperty, binding);
 
             binding = new Binding();
@@ -93,7 +93,7 @@ namespace Coffee.DigitalPlatform.CommWPF
 
             binding = new Binding();
             binding.Path = new System.Windows.PropertyPath("DataContext.AlarmDetailCommand");
-            binding.RelativeSource = new RelativeSource { AncestorType = typeof(Window) };
+            binding.RelativeSource = new RelativeSource { AncestorType = typeof(UserControl) };
             c.SetBinding(ComponentBase.AlarmDetailCommandProperty, binding);
 
             binding = new Binding();

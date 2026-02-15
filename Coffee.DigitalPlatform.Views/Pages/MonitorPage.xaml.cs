@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Coffee.DigitalPlatform.Views.Pages
+namespace Coffee.DigitalPlatform.Views
 {
     /// <summary>
     /// MonitorPage.xaml 的交互逻辑

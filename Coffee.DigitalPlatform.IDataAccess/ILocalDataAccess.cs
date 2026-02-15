@@ -75,5 +75,7 @@ namespace Coffee.DigitalPlatform.IDataAccess
 
         void SaveControlInfosByTrigger(Dictionary<string, IList<ControlInfoByTriggerEntity>> deviceControlInfoDict, Dictionary<string, IList<ConditionEntity>> conditionDict);
         #endregion
+
+        void CleanUpOutdatedConditions(IList<string> aliveConditionNumList, IEnumerable<ConditionEntity>? oldTopConditions);
     }
 }

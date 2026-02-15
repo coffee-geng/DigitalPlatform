@@ -37,6 +37,8 @@ namespace Coffee.DigitalPlatform.Models
 
             Alarms.CollectionChanged += (s, e) =>
             {
+                var collection = s as ObservableCollection<Alarm>;
+                this.WarningMessage = collection.OrderByDescending(itm => itm.AlarmLevel).Select(itm => itm.AlarmMessage).FirstOrDefault();
                 _isDirty = true;
             };
             ControlInfosByManual.CollectionChanged += (s, e) =>
@@ -570,6 +572,13 @@ namespace Coffee.DigitalPlatform.Models
         {
             get { return _isWarning; }
             set { SetProperty(ref _isWarning, value); }
+        }
+
+        private string _warningMessage;
+        public string WarningMessage
+        {
+            get { return _warningMessage; }
+            set { SetProperty(ref _warningMessage, value); }
         }
 
         #endregion

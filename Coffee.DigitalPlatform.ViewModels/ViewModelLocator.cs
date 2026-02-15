@@ -25,5 +25,7 @@ namespace Coffee.DigitalPlatform.ViewModels
         public MonitorComponentViewModel MonitorViewModel => Provider.GetService<MonitorComponentViewModel>();
 
         public ConfigureComponentViewModel ConfigureComponentViewModel => Provider.GetService<ConfigureComponentViewModel>();
+
+        public AlarmViewModel AlarmViewModel => Provider.GetService<AlarmViewModel>();
     }
 }

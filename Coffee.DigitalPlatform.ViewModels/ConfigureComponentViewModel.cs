@@ -608,6 +608,10 @@ namespace Coffee.DigitalPlatform.ViewModels
 
                 _localDataAccess.SaveDevices(deviceEntities);
 
+                var oldTopConditions = _localDataAccess.GetTopConditions();
+                //得到当前还在使用的顶级条件编号集合（包括预警条件和联控条件）
+                var aliveConditionNumList = new HashSet<string>();
+
                 // 保存设备预警信息
                 Dictionary<string, IList<AlarmEntity>> deviceAlarmDict = new Dictionary<string, IList<AlarmEntity>>();
                 // 保存用于预警信息的条件选项字典，键是顶级条件选项编号，值是该顶级条件选项及其子条件选项实体集合
@@ -621,7 +625,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                             continue;
                         
                         DateTime? solvedTime = null;
-                        if (alarm.AlarmState != null && alarm.AlarmState.Status == AlarmStatus.Solved && alarm.AlarmState.SolvedTime.HasValue)
+                        if (alarm.AlarmState != null && (alarm.AlarmState.Status == AlarmStatus.SolvedByManual || alarm.AlarmState.Status == AlarmStatus.SolvedBySystem) && alarm.AlarmState.SolvedTime.HasValue)
                         {
                             solvedTime = alarm.AlarmState.SolvedTime.Value;
                         }
@@ -654,7 +658,16 @@ namespace Coffee.DigitalPlatform.ViewModels
                         deviceAlarmDict.Add(device.DeviceNum, alarmEntities);
                     }
                 }
-                
+
+                //得到当前还在使用的一级预警条件编号集合
+                var alarmConditionNumList = deviceAlarmDict.Select(p => p.Value).SelectMany(a => a)
+                               .Select(a => a.ConditionNum)
+                               .Distinct();
+                foreach (var item in alarmConditionNumList)
+                {
+                    aliveConditionNumList.Add(item);
+                }
+
                 _localDataAccess.SaveAlarms(deviceAlarmDict, conditionDict);
 
                 // 保存手动控制选项信息
@@ -745,7 +758,19 @@ namespace Coffee.DigitalPlatform.ViewModels
                     }
                 }
 
+                //得到当前还在使用的一级联控条件编号集合
+                var linkageConditionNumList = deviceControlInfoByTriggerDict.Select(p => p.Value).SelectMany(a => a)
+                               .Select(a => a.ConditionNum)
+                               .Distinct();
+                foreach (var item in linkageConditionNumList)
+                {
+                    aliveConditionNumList.Add(item);
+                }
+
                 _localDataAccess.SaveControlInfosByTrigger(deviceControlInfoByTriggerDict, conditionDict);
+
+                //删除那些不再使用的条件（包括顶级条件及其子条件）
+                _localDataAccess.CleanUpOutdatedConditions(aliveConditionNumList.ToList(), oldTopConditions);
 
                 VisualStateManager.GoToElementState(owner as Window, "ShowSuccess", true);
 

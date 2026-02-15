@@ -41,6 +41,8 @@ namespace Coffee.DigitalPlatform.ViewModels
             ConfigureComponentCommand = new RelayCommand(showConfigureComponentDialog);
             ResetPopupWithVariableListCommand = new RelayCommand(doResetPopupWithVariableListCommand);
             ResetPopupWithManualListCommand = new RelayCommand(doResetPopupWithManualListCommand);
+
+            AlarmDetailCommand = new RelayCommand<Device>(doAlarmDetailCommand, canAlarmDetailCommand);
         }
 
         #region 设备状态统计
@@ -75,6 +77,23 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         #region 设备提醒
         public List<MonitorWarnning> WarnningList { get; set; }
+
+        public RelayCommand<Device> AlarmDetailCommand { get; set; }
+
+        private void doAlarmDetailCommand(Device device)
+        {
+            var alarmMenu = _mainViewModel.Menus.FirstOrDefault(m => m.TargetView == "AlarmPage");
+            if (alarmMenu != null)
+            {
+                _mainViewModel.ShowPage(alarmMenu);
+                alarmMenu.CheckState = true;
+            }
+        }
+
+        private bool canAlarmDetailCommand(Device device)
+        {
+            return device != null && device.Alarms.Count > 0;
+        }
 
         private void initAlarmList()
         {
@@ -325,9 +344,10 @@ namespace Coffee.DigitalPlatform.ViewModels
             }
             else
             {
-                // 可以打开编辑   启动窗口   主动
+                // 打开组件编辑窗口前，停止组件状态监视并开启存盘状态监视
                 var configViewModel = ViewModelLocator.Instance.ConfigureComponentViewModel;
                 configViewModel.StartSaveTrackTimer();
+                StopMonitor();
 
                 if (ActionManager.ExecuteAndResult<object>("ShowConfigureComponentDialog", configViewModel))
                 {
@@ -451,16 +471,18 @@ namespace Coffee.DigitalPlatform.ViewModels
         }
 
         private CancellationTokenSource cts { get; set; }
+        private readonly IList<Task> taskList = new List<Task>();
 
         private async Task BeginMonitor()
         {
-            cts = new CancellationTokenSource();
+            StopMonitor();
 
-            Task task = Task.Run(async () =>
+            cts = new CancellationTokenSource();
+            foreach(var device in DeviceList)
             {
-                while (!cts.IsCancellationRequested)
+                Task task = Task.Run(async () =>
                 {
-                    foreach (var device in DeviceList)
+                    while (!cts.IsCancellationRequested)
                     {
                         var propDict = new Dictionary<string, ProtocolParameter>();
                         foreach (var parameter in device.CommunicationParameters)
@@ -496,12 +518,42 @@ namespace Coffee.DigitalPlatform.ViewModels
                                 var val = await _communicationService.ReadAsync(device.DeviceNum, @var);
                                 variable.Value = val;
                             }
-                        }
-                    }
 
-                    await Task.Delay(5000);
-                }
-            });
+                            //预警条件
+                            bool isWarning = false;
+                            foreach (var alarm in device.Alarms)
+                            {
+                                if (alarm.Condition.IsMatch())
+                                {
+                                    isWarning = true;
+                                    alarm.AlarmState = new AlarmState(AlarmStatus.Unsolved);
+                                    alarm.AlarmTime = DateTime.Now;
+                                    IList<models.Variable> alarmVariables = new List<models.Variable>();
+                                    alarm.Condition.GetSourceVariables().ToList().ForEach(v =>
+                                    {
+                                        var deviceVariable = device.Variables.FirstOrDefault(dv => dv.VarNum == v.VarNum);
+                                        if (deviceVariable != null)
+                                        {
+                                            alarmVariables.Add(new models.Variable()
+                                            {
+                                                VarNum = v.VarNum,
+                                                VarName = v.VarName,
+                                                VarType = v.VarType,
+                                                DeviceNum = v.DeviceNum,
+                                                Value = deviceVariable.Value
+                                            });
+                                        }
+                                    });
+                                    alarm.AlarmValues = alarmVariables;
+                                }
+                            }
+                            device.IsWarning = isWarning;
+                        }
+                        await Task.Delay(5000);
+                    }
+                });
+                taskList.Add(task);
+            }
         }
 
         private async Task StopMonitor()
@@ -509,6 +561,9 @@ namespace Coffee.DigitalPlatform.ViewModels
             if (cts != null)
             {
                 cts.Cancel();
+                //等待所有监视任务结束
+                await Task.WhenAll(taskList);
+                taskList.Clear();
             }
         }
         #endregion

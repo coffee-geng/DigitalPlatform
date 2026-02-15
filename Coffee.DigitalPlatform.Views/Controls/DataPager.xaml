@@ -1,0 +1,99 @@
+﻿<UserControl x:Class="Coffee.DigitalPlatform.Views.DataPager"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:local="clr-namespace:Coffee.DigitalPlatform.Views"
+             mc:Ignorable="d" x:Name="root"
+             d:DesignHeight="30" d:DesignWidth="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Styles/ButtonStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Styles/ComboBoxStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Styles/DataGridStyle.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="DataPagingDisplayModes">
+                <VisualState x:Name="FirstLastPreviousNextNumeric"/>
+                <VisualState x:Name="FirstLastPreviousNext">
+                    <Storyboard>
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="txtPageIndex" Storyboard.TargetProperty="Visibility">
+                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}"/>
+                        </ObjectAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+                <VisualState x:Name="PreviousNextNumeric">
+                    <Storyboard>
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="btnFirst" Storyboard.TargetProperty="Visibility">
+                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}"/>
+                        </ObjectAnimationUsingKeyFrames>
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="btnLast" Storyboard.TargetProperty="Visibility">
+                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}"/>
+                        </ObjectAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+                <VisualState x:Name="PreviousNext">
+                    <Storyboard>
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="txtPageIndex" Storyboard.TargetProperty="Visibility">
+                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}"/>
+                        </ObjectAnimationUsingKeyFrames>
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="btnFirst" Storyboard.TargetProperty="Visibility">
+                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}"/>
+                        </ObjectAnimationUsingKeyFrames>
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="btnLast" Storyboard.TargetProperty="Visibility">
+                            <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Collapsed}"/>
+                        </ObjectAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button x:Name="btnFirst" Content="首页" Margin="2" Padding="5,2" Click="btnFirst_Click"/>
+            <Button x:Name="btnPrev" Content="上一页" Margin="2" Padding="5,2" Click="btnPrev_Click"/>
+            <TextBlock x:Name="txtPageInfo" VerticalAlignment="Center" Margin="10,0">
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="{}第{0}页/共{1}页">
+                        <Binding Path="CurrentPage" ElementName="root"/>
+                        <Binding Path="PageCount" ElementName="root"/>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+            <Button x:Name="btnNext" Content="下一页" Margin="2" Padding="5,2" Click="btnNext_Click"/>
+            <Button x:Name="btnLast" Content="末页" Margin="2" Padding="5,2" Click="btnLast_Click"/>
+
+            <StackPanel x:Name="txtPageIndex" Orientation="Horizontal" Margin="10,0,0,0">
+                <TextBlock Text="跳至" VerticalAlignment="Center"/>
+                <TextBox  Width="40" Height="20" Margin="2" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                          local:DataPagerExtension.IsPageNumber="True" local:DataPagerExtension.FirstPageNumber="1" local:DataPagerExtension.LastPageNumber="{Binding PageCount, ElementName=root, Mode=OneWay}"
+                          Text="{Binding CurrentPage, ElementName=root}"/>
+                <Button x:Name="btnJump" Content="Go" Margin="2" Padding="5,2" Click="btnJump_Click"/>
+            </StackPanel>
+            
+            <StackPanel x:Name="cbPageSize" Orientation="Horizontal" Margin="10,0,0,0">
+                <TextBlock Text="每页显示" VerticalAlignment="Center" />
+                <ComboBox x:Name="combPagesize" Width="50" Margin="2" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                          SelectionChanged="combPagesize_SelectionChanged">
+                    <ComboBox.ItemsSource>
+                        <x:Array Type="sys:Int32">
+                            <sys:Int32>1</sys:Int32>
+                            <sys:Int32>2</sys:Int32>
+                            <sys:Int32>5</sys:Int32>
+                        </x:Array>
+                    </ComboBox.ItemsSource>
+                    <ComboBox.SelectedIndex>
+                        <MultiBinding Converter="{x:Static local:PageSizeSelectedIndexConverter.Instance}" Mode="OneWay">
+                            <Binding Path="PageSize" ElementName="root"/>
+                            <Binding Path="ItemsSource" ElementName="combPagesize" />
+                        </MultiBinding>
+                    </ComboBox.SelectedIndex>
+                </ComboBox>
+                <TextBlock Text="条" VerticalAlignment="Center"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

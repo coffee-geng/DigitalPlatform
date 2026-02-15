@@ -32,6 +32,11 @@ namespace Coffee.DigitalPlatform.Entities
         [Column(name: "content")]
         public string AlarmMessage { get; set; }
 
+        // 预警触发时的数据值，可能是一个变量的值，也可能是多个变量的值，取决于报警条件中使用了多少个变量
+        // 用JSON格式保存，格式为{"varNum": "varNum1", "varValue": "value1", ...}
+        [Column(name: "alarm_values")]
+        public IList<AlarmVariable> AlarmValues { get; set; }
+
         [Column(name: "tag")]
         public string? AlarmTag { get; set; }
 

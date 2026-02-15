@@ -10,6 +10,15 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
     {
         public ConditionGroupType Type { get; set; } = ConditionGroupType.And;
 
+        //因为在ConditionView的XAML中，条件元素绑定了DataTypeExpression，这个元素可能是PropertyExpression或者是ConditionGroup
+        //然而ConditionGroup不需要使用DataTypeExpression，添加这个属性只是为了避免绑定错误
+        private DataTypeExpression? _dataTypeExpression;
+        public DataTypeExpression? DataTypeExpression
+        {
+            get { return _dataTypeExpression; }
+            set { SetProperty(ref _dataTypeExpression, value); }
+        }
+
         public override bool CalculateResult(object entity)
         {
             ArgumentNullException.ThrowIfNull(entity);
