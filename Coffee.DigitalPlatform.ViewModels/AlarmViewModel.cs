@@ -16,7 +16,7 @@ using Coffee.DigitalPlatform.CommWPF;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
-    public class AlarmViewModel : AbstractComponentViewModel, IDataPager
+    public class AlarmViewModel : AbstractComponentViewModel, IDataPager, INavigationService
     {
         private ILocalDataAccess _localDataAccess;
 
@@ -186,6 +186,22 @@ namespace Coffee.DigitalPlatform.ViewModels
             PageSize = 2;
             Alarms = new ObservableCollection<Alarm>(alarms);
             AlarmCollectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(Alarms);
+        }
+
+
+        private void readAlarmHistory()
+        {
+            var result = _localDataAccess.ReadRecentAlarms();
+        }
+
+        public void OnNavigateTo(NavigationContext context = null)
+        {
+            
+        }
+
+        public void OnNavigateFrom(NavigationContext context = null)
+        {
+            
         }
     }
 }

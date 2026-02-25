@@ -295,6 +295,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                     var alarm = new Alarm()
                     {
                         AlarmNum = alarmEntity.AlarmNum,
+                        AlarmDevice = device,
                         AlarmMessage = alarmEntity.AlarmMessage,
                         AlarmTag = alarmEntity.AlarmTag,
                         AlarmLevel = alarmEntity.AlarmLevel,

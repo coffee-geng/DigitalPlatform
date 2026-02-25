@@ -4,6 +4,7 @@ using Coffee.DigitalPlatform.Entities.Converter;
 using Coffee.DigitalPlatform.IDataAccess;
 using Dapper;
 using Microsoft.Data.Sqlite;
+using Newtonsoft.Json;
 using SQLitePCL;
 using System.Collections;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text;
 using System.Xml.Linq;
 using static Dapper.SqlMapper;
 
@@ -882,9 +884,9 @@ namespace Coffee.DigitalPlatform.DataAccess
 
             AddCondition(condition);
 
-            SqlCommand cmd = new SqlCommand(@"INSERT INTO alarms(a_num, c_num, d_num, content, alarm_time, level, state, user_id, solve_time, tag) 
-                                                VALUES (@AlarmNum, @CNum, @DeviceNum, @Content, @AlarmTime, @Level, @State, @UserId, @SolveTime, @Tag)
-                                                ON CONFLICT(a_num, d_num) DO UPDATE
+            SqlCommand cmd = new SqlCommand(@"INSERT INTO alarms(a_num, c_num, d_num, content, alarm_time, level, state, user_id, solve_time, tag, statechange_history) 
+                                                VALUES (@AlarmNum, @CNum, @DeviceNum, @Content, @AlarmTime, @Level, @State, @UserId, @SolveTime, @Tag, 0)
+                                                ON CONFLICT(a_num, d_num, statechange_history) DO UPDATE
                                                 SET c_num=@CNum, content=@Content, alarm_time=@AlarmTime, level=@Level, state=@State, user_id=@UserId, solve_time=@SolveTime", new Dictionary<string, object>()
                                                 {
                                                     { "@AlarmNum", alarmInfo.AlarmNum },
@@ -917,9 +919,11 @@ namespace Coffee.DigitalPlatform.DataAccess
                 return Enumerable.Empty<SqlCommand>().ToList();
 
             IList<SqlCommand> sqlCommands = new List<SqlCommand>();
-            var cmd = new SqlCommand("DELETE FROM alarms WHERE a_num = @AlarmNum", new Dictionary<string, object>()
+            //仅删除statechange_history=0的预警信息，即还没有报警过的预警信息。如果这个预警信息已报警，则说明其不是设计时添加的预警信息，而是运行过程中产生的预警信息历史记录，此时不允许删除，以免影响预警信息历史记录的完整性
+            var cmd = new SqlCommand("DELETE FROM alarms WHERE a_num=@AlarmNum AND d_num=@DeviceNum AND statechange_history=0", new Dictionary<string, object>()
                 {
-                    { "@AlarmNum", alarmNum }
+                    { "@AlarmNum", alarmNum },
+                    {"@DeviceNum", device.DeviceNum }
                 });
             sqlCommands.Add(cmd);
             return sqlCommands;
@@ -935,23 +939,27 @@ namespace Coffee.DigitalPlatform.DataAccess
             }).ToList();
         }
 
-        public AlarmEntity GetAlarmByNum(string alarmNum)
+        public AlarmEntity GetAlarmByNum(string alarmNum, string deviceNum, bool isHistory=false)
         {
             if (string.IsNullOrWhiteSpace(alarmNum))
                 return null;
-            return SqlQueryFirst<AlarmEntity>("SELECT * FROM alarms WHERE a_num = @AlarmNum", new Dictionary<string, object>()
+            string condition1 = isHistory ? "AND statechange_history > 0" : "AND statechange_history = 0";
+            return SqlQueryFirst<AlarmEntity>($"SELECT * FROM alarms WHERE a_num=@AlarmNum AND d_num=@DeviceNum {condition1}", new Dictionary<string, object>()
             {
-                { "@AlarmNum", alarmNum }
+                { "@AlarmNum", alarmNum },
+                { "@DeviceNum", deviceNum }
             });
         }
 
-        public Dictionary<string, IList<AlarmEntity>> ReadAlarms()
+        public Dictionary<string, IList<AlarmEntity>> ReadAlarms(bool isHistory=false)
         {
             SqlMapper.SetTypeMap(typeof(AlarmEntity), new ColumnAttributeTypeMapper<AlarmEntity>());
             SqlMapper.AddTypeHandler(typeof(Type), new StringToTypeHandler());
             SqlMapper.AddTypeHandler<IList<AlarmVariable>>(new JsonTypeHandler<IList<AlarmVariable>>());
 
-            var alarms = SqlQuery<AlarmEntity>("SELECT * FROM alarms");
+            string condition1 = isHistory ? "WHERE statechange_history > 0" : "WHERE statechange_history = 0";
+
+            var alarms = SqlQuery<AlarmEntity>($"SELECT * FROM alarms {condition1}");
             if (alarms != null && alarms.Any())
             {
                 return alarms.GroupBy(a => a.DeviceNum)
@@ -960,6 +968,26 @@ namespace Coffee.DigitalPlatform.DataAccess
             else
             {
                 return new Dictionary<string, IList<AlarmEntity>>();
+            }
+        }
+
+        public Dictionary<string, IList<AlarmHistoryRecord>> ReadRecentAlarms()
+        {
+            SqlMapper.SetTypeMap(typeof(AlarmHistoryRecord), new ColumnAttributeTypeMapper<AlarmHistoryRecord>());
+            SqlMapper.AddTypeHandler(typeof(Type), new StringToTypeHandler());
+            SqlMapper.AddTypeHandler(typeof(DateTime?), new SqliteDateTimeHandler());
+            SqlMapper.AddTypeHandler<IList<AlarmVariable>>(new JsonTypeHandler<IList<AlarmVariable>>());
+
+            var alarms = SqlQuery<AlarmHistoryRecord>(@"WITH ranked_alarms AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY a_num, d_num ORDER BY statechange_history DESC) AS rn FROM alarms WHERE statechange_history > 0) 
+                SELECT a_num, d_num, state, alarm_values, alarm_time, solve_time, user_id, statechange_history FROM ranked_alarms WHERE rn = 1 ORDER BY a_num DESC, d_num DESC;");
+            if (alarms != null && alarms.Any())
+            {
+                return alarms.GroupBy(a => a.DeviceNum)
+                             .ToDictionary(g => g.Key, g => (IList<AlarmHistoryRecord>)g.ToList());
+            }
+            else
+            {
+                return new Dictionary<string, IList<AlarmHistoryRecord>>();
             }
         }
 
@@ -1082,6 +1110,63 @@ namespace Coffee.DigitalPlatform.DataAccess
                 }
             }
             return itemUpdateStateDict;
+        }
+
+        public void UpdateAlarmHistory(string alarmNum, string deviceNum, string newState, IList<AlarmVariable>? alarmVariables, DateTime? alarmTime, DateTime? solvedTime, string userId)
+        {
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var cmd = createSqlCommandForUpdateAlarmState(alarmNum, deviceNum, newState, alarmVariables, alarmTime, solvedTime, userId);
+            sqlCommands.Add(cmd);
+
+            SqlExecute(sqlCommands);
+        }
+
+        public void BatchUpdateAlarmHistory(IEnumerable<AlarmHistoryRecord> updateAlarmStateRecords)
+        {
+            if (updateAlarmStateRecords == null || !updateAlarmStateRecords.Any())
+                return;
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+            foreach (var record in updateAlarmStateRecords)
+            {
+                var cmd = createSqlCommandForUpdateAlarmState(record.AlarmNum, record.DeviceNum, record.AlarmState, record.AlarmVariables, record.AlarmTime, record.SolvedTime, record.UserId);
+                sqlCommands.Add(cmd);
+            }
+            SqlExecute(sqlCommands);
+        }
+
+        private SqlCommand createSqlCommandForUpdateAlarmState(string alarmNum, string deviceNum, string newState, IList<AlarmVariable>? alarmVariables, DateTime? alarmTime, DateTime? solvedTime, string userId)
+        {
+            //last_history为最近匹配到的预警历史信息记录。
+            //alarm_record为匹配到的预警记录（设计时），即还没有报警过的预警信息记录。
+            //注意：当statechange_history大于0时，说明当前预警信息已经报警过，此时属于运行历史记录。每修改一次预警状态，其statechange_history字段值就加1，以记录其状态变更的次数
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(@"WITH last_history AS (SELECT * FROM alarms WHERE a_num=@AlarmNum AND d_num=@DeviceNum AND statechange_history > 0 ORDER BY statechange_history DESC LIMIT 1),
+            action_type AS (SELECT CASE WHEN EXISTS(SELECT 1 FROM last_history WHERE state=@NewState) THEN 'UPDATE' ELSE 'INSERT' END as action),
+            alarm_record AS (SELECT * FROM alarms WHERE a_num=@AlarmNum AND d_num=@DeviceNum AND statechange_history = 0 LIMIT 1)");
+
+            sb.Append(@"INSERT INTO alarms(a_num, c_num, d_num, content, level, tag, state, alarm_values, alarm_time, solve_time, user_id, statechange_history) 
+                        SELECT a_num, c_num, d_num, content, level, tag, 
+                            COALESCE(@NewState, t.state) AS state,
+                            COALESCE(@AlarmVariables, t.alarm_values) AS alarm_values,
+                            COALESCE(@AlarmTime, t.alarm_time) AS alarm_time,
+                            COALESCE(@SolveTime, t.solve_time) AS solve_time,
+                            COALESCE(@UserId, t.user_id) AS user_id,
+                            CASE 
+                                WHEN EXISTS(SELECT 1 FROM last_history) THEN (SELECT  statechange_history+1 FROM last_history)
+                                ELSE (SELECT 1) END AS statechange_history
+                        FROM alarm_record t WHERE (SELECT action FROM action_type) = 'INSERT';");
+
+            var cmd = new SqlCommand(sb.ToString(), new Dictionary<string, object>()
+            {
+                { "@AlarmNum", alarmNum },
+                { "@DeviceNum", deviceNum },
+                { "@NewState", newState },
+                { "@AlarmVariables", alarmVariables != null && alarmVariables.Any() ? JsonConvert.SerializeObject(alarmVariables) : null },
+                { "@AlarmTime", alarmTime.HasValue ? alarmTime.Value : null },
+                { "@SolveTime", solvedTime.HasValue ? solvedTime.Value : null },
+                { "@UserId", userId }
+            });
+            return cmd;
         }
         #endregion
 

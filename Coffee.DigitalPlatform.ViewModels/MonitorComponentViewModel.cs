@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO.Ports;
@@ -21,7 +22,7 @@ using serv = Coffee.DeviceAccess;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
-    public class MonitorComponentViewModel : AbstractComponentViewModel
+    public class MonitorComponentViewModel : AbstractComponentViewModel, INavigationService
     {
         MainViewModel _mainViewModel;
         ILocalDataAccess _localDataAccess;
@@ -36,7 +37,6 @@ namespace Coffee.DigitalPlatform.ViewModels
             _logger = loggerFactory.CreateLogger<MonitorComponentViewModel>();
 
             initDataForMonitor();
-            BeginMonitor();
 
             ConfigureComponentCommand = new RelayCommand(showConfigureComponentDialog);
             ResetPopupWithVariableListCommand = new RelayCommand(doResetPopupWithVariableListCommand);
@@ -85,7 +85,15 @@ namespace Coffee.DigitalPlatform.ViewModels
             var alarmMenu = _mainViewModel.Menus.FirstOrDefault(m => m.TargetView == "AlarmPage");
             if (alarmMenu != null)
             {
-                _mainViewModel.ShowPage(alarmMenu);
+                _mainViewModel.ShowPage(alarmMenu, context =>
+                {
+                    StopMonitor();
+                    StopAlarmHistoryPersistence();
+                }, context =>
+                {
+                    BeginMonitor();
+                    BeginAlarmHistoryPersistence();
+                });
                 alarmMenu.CheckState = true;
             }
         }
@@ -348,23 +356,16 @@ namespace Coffee.DigitalPlatform.ViewModels
                 var configViewModel = ViewModelLocator.Instance.ConfigureComponentViewModel;
                 configViewModel.StartSaveTrackTimer();
                 StopMonitor();
+                StopAlarmHistoryPersistence();
 
                 if (ActionManager.ExecuteAndResult<object>("ShowConfigureComponentDialog", configViewModel))
                 {
                     // 添加一个等待页面（预留）
 
-                    // 可能会有耗时控件
-                    //cts.Cancel();
-                    //Task.WaitAll(tasks.ToArray());
-
-                    //cts = new CancellationTokenSource();
-                    //tasks.Clear();
-
                     // 刷新   配置文件/数据库
                     initDataForMonitor();
                     BeginMonitor();
-                    // 启动监听
-                    //this.Monitor();
+                    BeginAlarmHistoryPersistence();
                 }
             }
         }
@@ -473,9 +474,19 @@ namespace Coffee.DigitalPlatform.ViewModels
         private CancellationTokenSource cts { get; set; }
         private readonly IList<Task> taskList = new List<Task>();
 
-        private async Task BeginMonitor()
+        //在当前内存中的设备预警状态监控记录，即还未保存到数据库的预警状态监控记录。当设备的预警状态发生变化时，先将变化记录添加到该集合中，再由一个定时器定期将集合中的记录保存到数据库中，并从集合中移除已保存的记录
+        private ConcurrentQueue<AlarmHistoryRecord> updateAlarmStateQueue = new ConcurrentQueue<AlarmHistoryRecord>();
+        //保存在数据库中的预警状态监控记录。注意：这个队列中只存放从数据库中读取的最新的历史记录，即如果同一个预警信息有多个历史记录，只存放最新的一条记录
+        private ConcurrentQueue<AlarmHistoryRecord> alarmHistoryQueue = new ConcurrentQueue<AlarmHistoryRecord>();
+
+        internal async Task BeginMonitor()
         {
             StopMonitor();
+
+            //从数据库中读取最近的预警历史记录到内存中
+            alarmHistoryQueue.Clear();
+            var recentAlarmHistoryRecords = _localDataAccess.ReadRecentAlarms();
+            recentAlarmHistoryRecords.SelectMany(p => p.Value).ToList().ForEach(p => alarmHistoryQueue.Enqueue(p));
 
             cts = new CancellationTokenSource();
             foreach(var device in DeviceList)
@@ -523,28 +534,112 @@ namespace Coffee.DigitalPlatform.ViewModels
                             bool isWarning = false;
                             foreach (var alarm in device.Alarms)
                             {
-                                if (alarm.Condition.IsMatch())
+                                //因为设备中的点位信息是实时变化的，所以在每次计算预警状态时，需要将当前设备中的点位信息更新到预警条件中，从而保证调用IsMatch方法时检测的变量值是最新的，保证预警状态监控的准确性
+                                alarm.Condition?.UpdateSourceVariables(device.Variables.ToList());
+
+                                bool isMatching = alarm.Condition.IsMatch();
+                                if (isMatching)
                                 {
                                     isWarning = true;
                                     alarm.AlarmState = new AlarmState(AlarmStatus.Unsolved);
                                     alarm.AlarmTime = DateTime.Now;
-                                    IList<models.Variable> alarmVariables = new List<models.Variable>();
-                                    alarm.Condition.GetSourceVariables().ToList().ForEach(v =>
+                                    
+                                }
+                                else
+                                {
+                                    alarm.AlarmState = new AlarmState(AlarmStatus.SolvedBySystem);
+                                    alarm.SolvedTime = DateTime.Now;
+                                }
+                                IList<models.Variable> alarmVariables = new List<models.Variable>();
+                                alarm.Condition.GetSourceVariables().ToList().ForEach(v =>
+                                {
+                                    var deviceVariable = device.Variables.FirstOrDefault(dv => dv.VarNum == v.VarNum);
+                                    if (deviceVariable != null)
                                     {
-                                        var deviceVariable = device.Variables.FirstOrDefault(dv => dv.VarNum == v.VarNum);
-                                        if (deviceVariable != null)
+                                        alarmVariables.Add(new models.Variable()
                                         {
-                                            alarmVariables.Add(new models.Variable()
+                                            VarNum = v.VarNum,
+                                            VarName = v.VarName,
+                                            VarType = v.VarType,
+                                            DeviceNum = v.DeviceNum,
+                                            Value = deviceVariable.Value
+                                        });
+                                    }
+                                });
+                                alarm.AlarmValues = alarmVariables;
+
+                                var recordFromMemory = updateAlarmStateQueue.FirstOrDefault(r => string.Equals(r.DeviceNum, device.DeviceNum) && string.Equals(r.AlarmNum, alarm.AlarmNum));
+                                if (recordFromMemory == null)
+                                {
+                                    var recordFromDB = alarmHistoryQueue.FirstOrDefault(r => string.Equals(r.DeviceNum, device.DeviceNum) && string.Equals(r.AlarmNum, alarm.AlarmNum));
+                                    if (recordFromDB == null) //如果内存和数据库中都没有该预警信息的监控历史记录，说明这是一条新的预警实时信息，需要添加到数据库
+                                    {
+                                        if (isMatching)
+                                        {
+                                            var newRecord = new AlarmHistoryRecord()
                                             {
-                                                VarNum = v.VarNum,
-                                                VarName = v.VarName,
-                                                VarType = v.VarType,
-                                                DeviceNum = v.DeviceNum,
-                                                Value = deviceVariable.Value
-                                            });
+                                                DeviceNum = device.DeviceNum,
+                                                AlarmNum = alarm.AlarmNum,
+                                                AlarmState = alarm.AlarmState != null ? Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status) : null,
+                                                AlarmTime = alarm.AlarmTime
+                                            };
+                                            updateAlarmStateQueue.Enqueue(newRecord);
                                         }
-                                    });
-                                    alarm.AlarmValues = alarmVariables;
+                                    }
+                                    else //如果内存中没有但数据库中有该预警信息的监控历史记录，则需要判断数据库中相关预警最近的历史记录的状态与当前预警信息的状态是否一致，如果不一致，则说明预警状态发生了变化，需要添加一条新的监控历史记录到数据库中
+                                    {
+                                        if (alarm.AlarmState != null && !string.Equals(recordFromDB.AlarmState, Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status)))
+                                        {
+                                            var newRecord = new AlarmHistoryRecord()
+                                            {
+                                                DeviceNum = device.DeviceNum,
+                                                AlarmNum = alarm.AlarmNum,
+                                                AlarmTime = alarm.AlarmTime
+                                            };
+                                            if (isMatching) //当前是报警状态
+                                            {
+                                                newRecord.AlarmState = Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status);
+                                            }
+                                            else //当前是非报警状态
+                                            {
+                                                if (!string.Equals(recordFromDB.AlarmState, Enum.GetName(typeof(AlarmStatus), AlarmStatus.SolvedByManual))) //当前是已处理状态，但数据库中最近的历史记录是已人工处理状态，此时不需要添加新的监控历史记录到数据库中，因为系统已处理和人工已处理都是已处理状态
+                                                {
+                                                    newRecord.AlarmState = Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status);
+                                                }
+                                            }
+                                            if (!string.IsNullOrEmpty(recordFromDB.AlarmState)) //如果当前是报警状态或者是从报警转变为已处理状态，则需要添加一条新的监控历史记录到数据库中
+                                            {
+                                                updateAlarmStateQueue.Enqueue(newRecord);
+                                            }
+                                        }
+                                    }
+                                }
+                                else //如果内存中已经有该预警信息的监控历史记录，则需要判断内存中相关预警最近的历史记录的状态与当前预警信息的状态是否一致，如果不一致，则说明预警状态发生了变化，需要添加一条新的监控历史记录到数据库中
+                                {
+                                    if (alarm.AlarmState != null && !string.Equals(recordFromMemory.AlarmState, Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status)))
+                                    {
+                                        var newRecord = new AlarmHistoryRecord()
+                                        {
+                                            DeviceNum = device.DeviceNum,
+                                            AlarmNum = alarm.AlarmNum,
+                                            AlarmTime = alarm.AlarmTime
+                                        };
+                                        if (isMatching) //当前是报警状态
+                                        {
+                                            newRecord.AlarmState = Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status);
+                                        }
+                                        else //当前是非报警状态
+                                        {
+                                            if (!string.Equals(recordFromMemory.AlarmState, Enum.GetName(typeof(AlarmStatus), AlarmStatus.SolvedByManual))) //当前是已处理状态，但数据库中最近的历史记录是已人工处理状态，此时不需要添加新的监控历史记录到数据库中，因为系统已处理和人工已处理都是已处理状态
+                                            {
+                                                newRecord.AlarmState = Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status);
+                                            }
+                                        }
+                                        if (!string.IsNullOrEmpty(recordFromMemory.AlarmState)) //如果当前是报警状态或者是从报警转变为已处理状态，则需要添加一条新的监控历史记录到数据库中
+                                        {
+                                            updateAlarmStateQueue.Enqueue(newRecord);
+                                        }
+                                    }
                                 }
                             }
                             device.IsWarning = isWarning;
@@ -556,7 +651,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             }
         }
 
-        private async Task StopMonitor()
+        internal async Task StopMonitor()
         {
             if (cts != null)
             {
@@ -565,6 +660,84 @@ namespace Coffee.DigitalPlatform.ViewModels
                 await Task.WhenAll(taskList);
                 taskList.Clear();
             }
+        }
+
+        //开启定时器，每隔一段时间将队列中的所有预警历史记录一次性保存到数据库中
+        private CancellationTokenSource cts_alarm_history { get; set; }
+        private Task task_alarm_history;
+        internal async Task BeginAlarmHistoryPersistence()
+        {
+            if (!await StopAlarmHistoryPersistence())
+            {
+                return;
+            }
+
+            cts_alarm_history = new CancellationTokenSource();
+            task_alarm_history = Task.Run(async () =>
+            {
+                while (!cts_alarm_history.IsCancellationRequested)
+                {
+                    if (updateAlarmStateQueue.Any())
+                    {
+                        IList<AlarmHistoryRecord> alarmHistoryRecords = updateAlarmStateQueue.ToList();
+                        try
+                        {                            
+                            _localDataAccess.BatchUpdateAlarmHistory(alarmHistoryRecords);
+
+                            updateAlarmStateQueue.Clear(); //当队列中的所有预警历史记录都保存到数据库后，需要会清空队列，从而保证预警历史记录在内存或数据库中是同一份数据
+
+                            //当队列中的所有预警历史记录都保存到数据库后，需要从数据库读取相关预警信息的最新的历史记录到内存中，从而确保alarmHistoryQueue保存的是数据库中最后添加的预警历史记录，而updateAlarmStateQueue内存中保存的是写入数据库后新创建的预警历史记录
+                            alarmHistoryQueue.Clear();
+                            var recentAlarmHistoryRecords = _localDataAccess.ReadRecentAlarms();
+                            recentAlarmHistoryRecords.SelectMany(p => p.Value).ToList().ForEach(p => alarmHistoryQueue.Enqueue(p));
+                        }
+                        catch (Exception ex)
+                        {
+                        }
+                    }
+                    else
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(30));
+                    }
+                }
+            });
+        }
+
+        internal async Task<bool> StopAlarmHistoryPersistence()
+        {
+            if (cts_alarm_history != null && task_alarm_history != null)
+            {
+                cts_alarm_history.Cancel();
+                await Task.WhenAll(task_alarm_history);
+                try
+                {
+                    task_alarm_history.Dispose();
+                    task_alarm_history = null;
+                    cts_alarm_history.TryReset();
+
+                    return true;
+                }
+                catch(Exception ex)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        public void OnNavigateTo(NavigationContext context = null)
+        {
+            BeginMonitor();
+            BeginAlarmHistoryPersistence();
+        }
+
+        public void OnNavigateFrom(NavigationContext context = null)
+        {
+            StopMonitor();
+            StopAlarmHistoryPersistence();
         }
         #endregion
     }

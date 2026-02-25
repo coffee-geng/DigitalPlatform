@@ -128,4 +128,30 @@ namespace Coffee.DigitalPlatform.Entities.Converter
             parameter.Value = value.AssemblyQualifiedName;
         }
     }
+
+    public class SqliteDateTimeHandler : SqlMapper.TypeHandler<DateTime?>
+    {
+        public override void SetValue(IDbDataParameter parameter, DateTime? value)
+        {
+            if (value.HasValue)
+            {
+                parameter.Value = value.Value.ToString("yyyy-MM-dd HH:mm:ss");
+            }
+            else
+            {
+                parameter.Value = DBNull.Value;
+            }
+        }
+
+        public override DateTime? Parse(object value)
+        {
+            if (value == null || value == DBNull.Value)
+                return null;
+            if (!(value is string))
+                throw new ArgumentNullException($"对象的日期时间格式不正确！");
+            if (string.IsNullOrEmpty(value.ToString()))
+                return null;
+            return DateTime.TryParse(value.ToString(), out DateTime dateTime) ? dateTime : null;
+        }
+    }
 }

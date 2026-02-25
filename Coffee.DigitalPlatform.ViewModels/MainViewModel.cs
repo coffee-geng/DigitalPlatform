@@ -102,11 +102,37 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         internal void ShowPage(object obj)
         {
+            Action<NavigationContext> callbackBeforeNavigate = context =>
+            {
+                var fromVM = context.FromContext;
+                if (fromVM is INavigationService navigateService)
+                {
+                    navigateService.OnNavigateFrom(context);
+                }
+            };
+            Action<NavigationContext> callbackAfterNavigate = context =>
+            {
+                var toVM = context.ToContext;
+                if (toVM is INavigationService navigateService)
+                {
+                    navigateService.OnNavigateTo(context);
+                }
+            };
+            ShowPage(obj, callbackBeforeNavigate, callbackAfterNavigate);
+        }
+
+        internal void ShowPage(object obj, Action<NavigationContext> callbackBeforeNavigate, Action<NavigationContext> callbackAfterNavigate)
+        {
             var model = obj as Models.Menu;
             if (model != null)
             {
+                //页面切换前的视图（视图一定是继承UserControl的对象）
+                var oldPage = ViewContent as UserControl;
+
                 if (GlobalUserInfo.UserType == UserTypes.Operator && model.TargetView != "MonitorPage")
                 {
+                    if (callbackBeforeNavigate != null)
+                        callbackBeforeNavigate.Invoke(new NavigationContext(null, oldPage?.DataContext as INavigationService, null));
                     // 提示权限
                     this.Menus[0].CheckState = true;
                     // 提示没有权限操作
@@ -122,7 +148,21 @@ namespace Coffee.DigitalPlatform.ViewModels
 
                     Type type = Assembly.Load("Coffee.DigitalPlatform.Views")
                         .GetType("Coffee.DigitalPlatform.Views." + model.TargetView)!;
-                    ViewContent = Activator.CreateInstance(type)!;
+                    var targetView = Activator.CreateInstance(type)!;
+
+                    INavigationService toContext = null;
+                    if (targetView is UserControl)
+                    {
+                        toContext = (targetView as UserControl).DataContext as INavigationService;
+                    }
+
+                    if (callbackBeforeNavigate != null)
+                        callbackBeforeNavigate.Invoke(new NavigationContext(new Uri(targetView.GetType().Name, UriKind.Relative), oldPage?.DataContext as INavigationService, toContext));
+
+                    ViewContent = targetView;
+
+                    if (callbackAfterNavigate != null)
+                        callbackAfterNavigate.Invoke(new NavigationContext(new Uri(targetView.GetType().Name, UriKind.Relative), oldPage?.DataContext as INavigationService, toContext));
                 }
             }
         }
@@ -132,7 +172,23 @@ namespace Coffee.DigitalPlatform.ViewModels
             var homePage = Menus.FirstOrDefault();
             if (homePage == null)
                 return;
-            ShowPage(homePage);
+            Action<NavigationContext> callbackBeforeNavigate = context =>
+            {
+                var fromVM = context.FromContext;
+                if (fromVM is INavigationService navigateService)
+                {
+                    navigateService.OnNavigateFrom(context);
+                }
+            };
+            Action<NavigationContext> callbackAfterNavigate = context =>
+            {
+                var toVM = context.ToContext;
+                if (toVM is INavigationService navigateService)
+                {
+                    navigateService.OnNavigateTo(context);
+                }
+            };
+            ShowPage(homePage, callbackBeforeNavigate, callbackAfterNavigate);
         }
         #endregion
 

@@ -2,6 +2,7 @@
 using Coffee.DigitalPlatform.Controls.FilterBuilder;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using System;
 using System.CodeDom;
 using System.Collections;
@@ -143,6 +144,44 @@ namespace Coffee.DigitalPlatform.Models
         void ICondition.SetParent(ConditionChain conditionGroup)
         {
             this.Parent = conditionGroup;
+        }
+
+        public void UpdateSourceVariables(IList<Variable> variables)
+        {
+            if (variables == null)
+                return;
+            var variable = variables.FirstOrDefault(v => v.VarNum == Source.VarNum && v.DeviceNum == Source.DeviceNum);
+            if (variable != null)
+            {
+                updateSourceVariable(variable);
+            }
+        }
+
+        private void updateSourceVariable(Variable variable)
+        {
+            if (variable == null)
+                throw new ArgumentNullException(nameof(variable));
+
+            if (Source.VarType != variable.VarType)
+                throw new ArgumentException("设置的点位信息类型与当前条件使用的点位类型不一致！");
+            if (Source.Value == null)
+            {
+                if (variable.Value != null)
+                {
+                    if (variable.Value.GetType() != Source.VarType)
+                        throw new ArgumentException("设置的点位信息值类型与当前条件使用的点位值类型不一致！");
+                    Source.Value = variable.Value;
+                }
+                return;
+            }
+            else if (variable.Value == null)
+            {
+                Source.Value = variable.Value;
+                return;
+            }
+            if (Source.Value.GetType() != variable.Value.GetType())
+                throw new ArgumentException("设置的点位信息值类型与当前条件使用的点位值类型不一致！");
+            Source.Value = variable.Value;
         }
 
         public ConditionTreeItem Raw
@@ -801,6 +840,12 @@ namespace Coffee.DigitalPlatform.Models
         IList<Variable> GetSourceVariables();
 
         HtmlNode GetExpressionResult(Dictionary<string, object> valueDict, ExpressionFormatSetting formater);
+
+        /// <summary>
+        /// 更新条件项使用的点位信息的变量值。
+        /// </summary>
+        /// <param name="variables">当前设备读取到的所有实时变量值</param>
+        void UpdateSourceVariables(IList<Variable> variables);
     }
 
     /// <summary>

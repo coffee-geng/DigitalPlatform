@@ -222,6 +222,16 @@ namespace Coffee.DigitalPlatform.Models
             return variables;
         }
 
+        public void UpdateSourceVariables(IList<Variable> variables)
+        {
+            if (variables == null)
+                return;
+            foreach(var condition in ConditionItems)
+            {
+                condition.UpdateSourceVariables(variables);
+            }
+        }
+
         public HtmlNode GetExpressionResult(Dictionary<string, object> valueDict, ExpressionFormatSetting formater)
         {
             if (ConditionItems.Any())
