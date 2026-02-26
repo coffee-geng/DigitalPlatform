@@ -145,7 +145,8 @@ namespace Coffee.DigitalPlatform.ViewModels
                     AlarmMessage = alarmEntity.AlarmMessage,
                     AlarmTag = alarmEntity.AlarmTag,
                     AlarmLevel = alarmEntity.AlarmLevel,
-                    AlarmTime = !string.IsNullOrWhiteSpace(alarmEntity.AlarmTime) ? DateTime.Parse(alarmEntity.AlarmTime) : (DateTime?)null
+                    AlarmTime = !string.IsNullOrWhiteSpace(alarmEntity.AlarmTime) ? DateTime.Parse(alarmEntity.AlarmTime) : (DateTime?)null,
+                    UserId = alarmEntity.UserId
                 };
                 if (!string.IsNullOrWhiteSpace(alarmEntity.State) && Enum.TryParse<AlarmStatus>(alarmEntity.State, out AlarmStatus alarmStatus))
                 {
@@ -596,6 +597,10 @@ namespace Coffee.DigitalPlatform.ViewModels
                                                 AlarmNum = alarm.AlarmNum,
                                                 AlarmTime = alarm.AlarmTime
                                             };
+                                            if (string.Equals(recordFromDB.AlarmState, Enum.GetName(typeof(AlarmStatus), AlarmStatus.SolvedByManual))) //如果最近的预警状态是SolvedByManual，说明该预警信息正在进行人工干预，这时该预警状态将不需要监控。如果要再次监控此预警状态，则需要用户添加新的预警条件信息
+                                            {
+                                                continue;
+                                            }
                                             if (isMatching) //当前是报警状态
                                             {
                                                 newRecord.AlarmState = Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status);
@@ -624,6 +629,10 @@ namespace Coffee.DigitalPlatform.ViewModels
                                             AlarmNum = alarm.AlarmNum,
                                             AlarmTime = alarm.AlarmTime
                                         };
+                                        if (string.Equals(recordFromMemory.AlarmState, Enum.GetName(typeof(AlarmStatus), AlarmStatus.SolvedByManual))) //如果现在是人工处理状态，则该预警状态将不需要监控
+                                        {
+                                            continue;
+                                        }
                                         if (isMatching) //当前是报警状态
                                         {
                                             newRecord.AlarmState = Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status);
@@ -711,7 +720,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                 await Task.WhenAll(task_alarm_history);
                 try
                 {
-                    task_alarm_history.Dispose();
+                    task_alarm_history?.Dispose();
                     task_alarm_history = null;
                     cts_alarm_history.TryReset();
 

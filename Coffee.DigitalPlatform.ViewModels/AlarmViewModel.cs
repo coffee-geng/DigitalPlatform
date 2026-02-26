@@ -13,6 +13,7 @@ using System.Windows;
 using Coffee.DigitalPlatform.Common;
 using System.Windows.Data;
 using Coffee.DigitalPlatform.CommWPF;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
@@ -23,6 +24,8 @@ namespace Coffee.DigitalPlatform.ViewModels
         public AlarmViewModel(ILocalDataAccess localDataAccess)
         {
             _localDataAccess = localDataAccess;
+
+            SolveByManualCommand = new RelayCommand<Alarm>(doSolveByManualCommand, canSolveByManualCommand);
 
             loadAlarms();
         }
@@ -87,9 +90,47 @@ namespace Coffee.DigitalPlatform.ViewModels
             }
         }
 
+        public RelayCommand<Alarm> SolveByManualCommand { get; set; }
+
+        private void doSolveByManualCommand(Alarm alarm)
+        {
+            if (alarm == null || alarm.AlarmState == null)
+                return;
+            alarm.AlarmState = new AlarmState(AlarmStatus.SolvedByManual);
+            alarm.AlarmState.SolvedTime = DateTime.Now;
+            alarm.SolvedTime = alarm.AlarmState.SolvedTime;
+            if (SolveByManualCommand != null)
+            {
+                SolveByManualCommand.NotifyCanExecuteChanged();
+            }
+
+            if (AlarmCollectionView != null)
+            {
+                AlarmCollectionView.Refresh();
+            }
+
+            if (alarm.AlarmDevice == null)
+                return;
+            _localDataAccess.UpdateAlarmHistory(alarm.AlarmNum, alarm.AlarmDevice.DeviceNum, Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status),
+                alarm.AlarmValues != null ? alarm.AlarmValues.Select(v => new AlarmVariable()
+                {
+                    VarNum = v.VarNum,
+                    VarType = v.VarType,
+                    VarValue = v.FinalValue != null ? Convert.ToString(v.FinalValue) : null
+                }).ToList() : null, 
+                alarm.AlarmTime, alarm.SolvedTime, alarm.UserId);
+        }
+
+        private bool canSolveByManualCommand(Alarm alarm)
+        {
+            if (alarm == null || alarm.AlarmState == null)
+                return false;
+            return alarm.AlarmState.Status == AlarmStatus.Unsolved;
+        }
+
         private void loadAlarms()
         {
-            Dictionary<string, IList<AlarmEntity>> deviceAlarmDict = _localDataAccess.ReadAlarms();
+            Dictionary<string, IList<AlarmEntity>> deviceAlarmDict = _localDataAccess.ReadAlarms(true);
             List<AlarmEntity> alarmList = new List<AlarmEntity>();
             foreach (var pair in deviceAlarmDict)
             {
@@ -141,6 +182,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                     AlarmDevice = deviceDict.ContainsKey(alarmEntity.DeviceNum) ? deviceDict[alarmEntity.DeviceNum] : null,
                     AlarmState = new AlarmState(Enum.TryParse(typeof(AlarmStatus), alarmEntity.State, out object? state) ? (AlarmStatus)state : AlarmStatus.Unknown),
                     AlarmTime = DateTime.TryParse(alarmEntity.AlarmTime, out DateTime alarmTime) ? alarmTime : (DateTime?)null,
+                    UserId = alarmEntity.UserId
                 };
                 if (alarmEntity.AlarmValues != null && alarmEntity.AlarmValues.Count > 0)
                 {
@@ -183,7 +225,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                 }
             });
 
-            PageSize = 2;
+            PageSize = 5;
             Alarms = new ObservableCollection<Alarm>(alarms);
             AlarmCollectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(Alarms);
         }

@@ -13,8 +13,6 @@ namespace Coffee.DigitalPlatform.Models
 {
     public class Alarm : ObservableObject, IReceiveFilterScheme, ISaveState
     {
-        public int Index { get; set; }
-
         // 预警编号
         public string AlarmNum { get; set; }
 
@@ -134,6 +132,13 @@ namespace Coffee.DigitalPlatform.Models
         {
             get { return _solvedTime; }
             set { SetProperty(ref _solvedTime, value); }
+        }
+
+        private string _userId;
+        public string UserId
+        {
+            get { return _userId; }
+            set { SetProperty(ref _userId, value); }
         }
         #endregion
 

@@ -299,7 +299,8 @@ namespace Coffee.DigitalPlatform.ViewModels
                         AlarmMessage = alarmEntity.AlarmMessage,
                         AlarmTag = alarmEntity.AlarmTag,
                         AlarmLevel = alarmEntity.AlarmLevel,
-                        AlarmTime = !string.IsNullOrWhiteSpace(alarmEntity.AlarmTime) ? DateTime.Parse(alarmEntity.AlarmTime) : (DateTime?)null
+                        AlarmTime = !string.IsNullOrWhiteSpace(alarmEntity.AlarmTime) ? DateTime.Parse(alarmEntity.AlarmTime) : (DateTime?)null,
+                        UserId = alarmEntity.UserId
                     };
                     if (!string.IsNullOrWhiteSpace(alarmEntity.State) && Enum.TryParse<AlarmStatus>(alarmEntity.State, out AlarmStatus alarmStatus))
                     {
@@ -651,6 +652,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                             ConditionNum = alarm.Condition?.ConditionNum,
                             DeviceNum = device.DeviceNum,
                             State = alarm.AlarmState != null ? Enum.GetName(typeof(AlarmStatus), alarm.AlarmState.Status) : null,
+                            UserId = alarm.UserId
                         };
                         alarmEntities.Add(alarmEntity);
                     }

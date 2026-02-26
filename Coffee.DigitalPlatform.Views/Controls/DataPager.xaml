@@ -80,9 +80,10 @@
                           SelectionChanged="combPagesize_SelectionChanged">
                     <ComboBox.ItemsSource>
                         <x:Array Type="sys:Int32">
-                            <sys:Int32>1</sys:Int32>
-                            <sys:Int32>2</sys:Int32>
                             <sys:Int32>5</sys:Int32>
+                            <sys:Int32>10</sys:Int32>
+                            <sys:Int32>20</sys:Int32>
+                            <sys:Int32>50</sys:Int32>
                         </x:Array>
                     </ComboBox.ItemsSource>
                     <ComboBox.SelectedIndex>

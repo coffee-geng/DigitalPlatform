@@ -958,8 +958,12 @@ namespace Coffee.DigitalPlatform.DataAccess
             SqlMapper.AddTypeHandler<IList<AlarmVariable>>(new JsonTypeHandler<IList<AlarmVariable>>());
 
             string condition1 = isHistory ? "WHERE statechange_history > 0" : "WHERE statechange_history = 0";
+            string order1 = @"ORDER BY 
+                            CASE WHEN state='SolvedByManual' OR state='SolvedBySystem' THEN solve_time
+                            ELSE alarm_time
+                            END DESC";
 
-            var alarms = SqlQuery<AlarmEntity>($"SELECT * FROM alarms {condition1}");
+            var alarms = SqlQuery<AlarmEntity>($"SELECT * FROM alarms {condition1} {order1}");
             if (alarms != null && alarms.Any())
             {
                 return alarms.GroupBy(a => a.DeviceNum)

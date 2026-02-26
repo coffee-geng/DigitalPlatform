@@ -2,7 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
              xmlns:local="clr-namespace:Coffee.DigitalPlatform.Views"
              xmlns:html="clr-namespace:TheArtOfDev.HtmlRenderer.WPF;assembly=HtmlRenderer.WPF"
              mc:Ignorable="d" 
@@ -86,15 +88,29 @@
         </StackPanel>
 
 
-        <DataGrid x:Name="alarmDataGrid" Grid.Row="1" Background="Transparent" BorderThickness="0" IsReadOnly="True" ItemsSource="{Binding AlarmCollectionView}"
+        <DataGrid x:Name="alarmDataGrid" Grid.Row="1" Background="Transparent" BorderThickness="0" ItemsSource="{Binding AlarmCollectionView}"
+                  IsReadOnly="True" SelectionMode="Single" LoadingRow="alarmDataGrid_LoadingRow"
                   HorizontalGridLinesBrush="#888" VerticalGridLinesBrush="#888">
+            <DataGrid.Resources>
+                <Style TargetType="DataGridCell">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="#444"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Resources>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="序号" Width="40" Binding="{Binding Index}" Foreground="#AAA" ElementStyle="{StaticResource CenterAlignmentStyle}"/>
+                <DataGridTextColumn Header="序号" Width="40" Binding="{Binding Path=Header, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type DataGridRow}}, StringFormat={}{0:00}}" Foreground="#AAA" ElementStyle="{StaticResource CenterAlignmentStyle}"/>
                 <DataGridTextColumn Header="报警等级" Width="60" Binding="{Binding AlarmLevel}" ElementStyle="{StaticResource CenterAlignmentStyle}" FontWeight="Normal"/>
                 <DataGridTextColumn Header="报警信息" Width="1.5*" Binding="{Binding AlarmMessage}"/>
                 <DataGridTextColumn Header="设备名称" Width="*" Binding="{Binding AlarmDevice.Name}" ElementStyle="{StaticResource CenterAlignmentStyle}">
                     <DataGridTextColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
+                        <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                             <Setter Property="ToolTip">
                                 <Setter.Value>
                                     <ToolTip Content="{Binding AlarmDevice.DeviceNum}" ContentStringFormat="{}设备编号：{0}" />
@@ -126,7 +142,7 @@
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="当前状态" Width="80" Binding="{Binding AlarmState.Status, Converter={x:Static local:AlarmStateNameConverter.Instance }}" ElementStyle="{StaticResource CenterAlignmentStyle}" FontWeight="Normal">
                     <DataGridTextColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
+                        <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                             <Setter Property="Foreground" Value="DarkGray"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding AlarmState.Status}" Value="Unsolved">
@@ -151,7 +167,39 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock HorizontalAlignment="Center">
-                            <Hyperlink TextDecorations="None" Command="{Binding Path=CancelAlarmCommand}">处理</Hyperlink>
+                            <Hyperlink x:Name="hyplink" TextDecorations="None">
+                                <Hyperlink.Style>
+                                    <Style TargetType="Hyperlink">
+                                        <Setter Property="Foreground" Value="#16a1ff"/>
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                        <Setter Property="Tag" Value="处理"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding AlarmState.Status}" Value="Unsolved">
+                                                <Setter Property="Cursor" Value="Hand"/>
+                                                <Setter Property="Foreground" Value="#16a1ff"/>
+                                                <Setter Property="Tag" Value="处理"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding AlarmState.Status}" Value="SolvedBySystem">
+                                                <Setter Property="Cursor" Value="Arrow"/>
+                                                <Setter Property="Foreground" Value="#444"/>
+                                                <Setter Property="Tag" Value="已处理"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding AlarmState.Status}" Value="SolvedByManual">
+                                                <Setter Property="Cursor" Value="Arrow"/>
+                                                <Setter Property="Foreground" Value="#444"/>
+                                                <Setter Property="Tag" Value="已处理"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Hyperlink.Style>
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="PreviewMouseLeftButtonDown">
+                                        <i:InvokeCommandAction Command="{Binding Path=DataContext.SolveByManualCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type DataGrid}}}"
+                                                                CommandParameter="{Binding .}" />
+                                        </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                                <Label Content="{Binding Tag, ElementName=hyplink}" Foreground="{Binding Foreground, ElementName=hyplink}" Cursor="{Binding Cursor, ElementName=hyplink}" />
+                            </Hyperlink>
                             </TextBlock>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
