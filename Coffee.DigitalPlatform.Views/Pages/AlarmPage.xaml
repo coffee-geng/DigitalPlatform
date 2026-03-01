@@ -122,7 +122,7 @@
                 <DataGridTemplateColumn Header="触发条件" Width="*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <html:HtmlLabel Text="{Binding FormattedCondition}">
+                            <html:HtmlLabel Text="{Binding FormattedCondition}" VerticalAlignment="Center" FontSize="6" Foreground="#444">
                                 <html:HtmlLabel.ToolTip>
                                     <ItemsControl ItemsSource="{Binding AlarmValues}">
                                         <ItemsControl.ItemTemplate>
@@ -162,7 +162,14 @@
                                     ElementStyle="{StaticResource CenterAlignmentStyle}" Foreground="#AAA"/>
                 <DataGridTextColumn Header="处理时间" Width="126" Binding="{Binding SolvedTime, StringFormat='yyyy年MM月dd日 HH:mm'}"
                                     ElementStyle="{StaticResource CenterAlignmentStyle}" Foreground="#AAA"/>
-                <DataGridTextColumn Header="记录人" Width="80" Binding="{Binding UserName}" ElementStyle="{StaticResource CenterAlignmentStyle}" Foreground="#AAA"/>
+                <DataGridTextColumn Header="记录人" Width="80" ElementStyle="{StaticResource CenterAlignmentStyle}" Foreground="#AAA">
+                    <DataGridTextColumn.Binding>
+                        <MultiBinding Converter="{x:Static local:UserIdConverter.Instance}">
+                            <Binding Path="UserId" />
+                            <Binding Path="DataContext.UserList" ElementName="alarmDataGrid"/>
+                        </MultiBinding>
+                    </DataGridTextColumn.Binding>
+                </DataGridTextColumn>
                 <DataGridTemplateColumn Header="操作" Width="70">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>

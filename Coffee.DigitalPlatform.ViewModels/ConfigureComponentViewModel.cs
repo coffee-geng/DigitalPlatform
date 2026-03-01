@@ -353,6 +353,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                         };
                         if (variable != null)
                         {
+                            controlInfo.ValueType = variable.VarType;
                             controlInfo.Value = ObjectToStringConverter.ConvertFromString(controlInfoEntity.Value, variable.VarType);
                         }
                         controlInfos.Add(controlInfo);

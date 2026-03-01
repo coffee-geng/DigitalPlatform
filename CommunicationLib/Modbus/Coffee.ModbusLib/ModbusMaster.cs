@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -238,7 +239,7 @@ namespace Coffee.ModbusLib
             {
                 for (int i = 0; i < bytes.Length; i++)
                 {
-                    for (int j = 0; j < 8; i++)
+                    for (int j = 0; j < 8; j++)
                     {
                         //对某个字节的每一数据位进行与操作，即可知道当前这个位数据是否有值
                         dynamic bit = (bytes[i] & (1 << j)) > 0;
@@ -329,7 +330,7 @@ namespace Coffee.ModbusLib
                     //值类型转换为字节数组时，先进行大小端转换，再进行字节序转换
                     if (BitConverter.IsLittleEndian)
                     {
-                        valueBytes.Reverse();
+                        valueBytes = valueBytes.Reverse().ToArray();
                     }
                     valueBytes = SwitchEndianType(valueBytes.ToList(), endianType);
                     bytes.AddRange(valueBytes);

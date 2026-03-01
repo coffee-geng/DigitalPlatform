@@ -62,7 +62,10 @@ namespace Coffee.DigitalPlatform.ViewModels
                 });
                 #endregion
 
-                SwitchPageCommand = new RelayCommand<object>(ShowPage);
+                SwitchPageCommand = new RelayCommand<object>(obj =>
+                {
+                    ShowPage(obj);
+                });
                 SwitchToHomeCommand = new RelayCommand(GoToHome);
             }
         }
@@ -100,7 +103,7 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         public RelayCommand SwitchToHomeCommand { get; set; }
 
-        internal void ShowPage(object obj)
+        internal void ShowPage(object obj, Dictionary<string, object> navigateParameters = null)
         {
             Action<NavigationContext> callbackBeforeNavigate = context =>
             {
@@ -118,10 +121,10 @@ namespace Coffee.DigitalPlatform.ViewModels
                     navigateService.OnNavigateTo(context);
                 }
             };
-            ShowPage(obj, callbackBeforeNavigate, callbackAfterNavigate);
+            ShowPage(obj, callbackBeforeNavigate, callbackAfterNavigate, navigateParameters);
         }
 
-        internal void ShowPage(object obj, Action<NavigationContext> callbackBeforeNavigate, Action<NavigationContext> callbackAfterNavigate)
+        internal void ShowPage(object obj, Action<NavigationContext> callbackBeforeNavigate, Action<NavigationContext> callbackAfterNavigate, Dictionary<string, object> navigateParameters = null)
         {
             var model = obj as Models.Menu;
             if (model != null)
@@ -132,7 +135,17 @@ namespace Coffee.DigitalPlatform.ViewModels
                 if (GlobalUserInfo.UserType == UserTypes.Operator && model.TargetView != "MonitorPage")
                 {
                     if (callbackBeforeNavigate != null)
-                        callbackBeforeNavigate.Invoke(new NavigationContext(null, oldPage?.DataContext as INavigationService, null));
+                    {
+                        var context = new NavigationContext(null, oldPage?.DataContext as INavigationService, null);
+                        if (navigateParameters != null)
+                        {
+                            foreach(var pair in navigateParameters)
+                            {
+                                context.Parameters.Add(pair.Key, pair.Value);
+                            }
+                        }
+                        callbackBeforeNavigate.Invoke(context);
+                    }
                     // 提示权限
                     this.Menus[0].CheckState = true;
                     // 提示没有权限操作
@@ -157,12 +170,32 @@ namespace Coffee.DigitalPlatform.ViewModels
                     }
 
                     if (callbackBeforeNavigate != null)
-                        callbackBeforeNavigate.Invoke(new NavigationContext(new Uri(targetView.GetType().Name, UriKind.Relative), oldPage?.DataContext as INavigationService, toContext));
+                    {
+                        var context = new NavigationContext(new Uri(targetView.GetType().Name, UriKind.Relative), oldPage?.DataContext as INavigationService, toContext);
+                        if (navigateParameters != null)
+                        {
+                            foreach (var pair in navigateParameters)
+                            {
+                                context.Parameters.Add(pair.Key, pair.Value);
+                            }
+                        }
+                        callbackBeforeNavigate.Invoke(context);
+                    }
 
                     ViewContent = targetView;
 
                     if (callbackAfterNavigate != null)
-                        callbackAfterNavigate.Invoke(new NavigationContext(new Uri(targetView.GetType().Name, UriKind.Relative), oldPage?.DataContext as INavigationService, toContext));
+                    {
+                        var context = new NavigationContext(new Uri(targetView.GetType().Name, UriKind.Relative), oldPage?.DataContext as INavigationService, toContext);
+                        if (navigateParameters != null)
+                        {
+                            foreach (var pair in navigateParameters)
+                            {
+                                context.Parameters.Add(pair.Key, pair.Value);
+                            }
+                        }
+                        callbackAfterNavigate.Invoke(context);
+                    }
                 }
             }
         }

@@ -26,8 +26,6 @@ namespace Coffee.DigitalPlatform.ViewModels
             _localDataAccess = localDataAccess;
 
             SolveByManualCommand = new RelayCommand<Alarm>(doSolveByManualCommand, canSolveByManualCommand);
-
-            loadAlarms();
         }
 
         private ObservableCollection<Alarm> _alarms;
@@ -35,6 +33,13 @@ namespace Coffee.DigitalPlatform.ViewModels
         {
             get { return _alarms; }
             set { SetProperty(ref _alarms, value); }
+        }
+
+        private IEnumerable<User> _userList;
+        public IEnumerable<User> UserList
+        {
+            get { return _userList; }
+            set { SetProperty(ref _userList, value); }
         }
 
         private int _pageSize = 1;
@@ -173,6 +178,11 @@ namespace Coffee.DigitalPlatform.ViewModels
             var alarms = new List<Alarm>();
             alarmList.ForEach(alarmEntity =>
             {
+                var alarmState = new AlarmState(Enum.TryParse(typeof(AlarmStatus), alarmEntity.State, out object? state) ? (AlarmStatus)state : AlarmStatus.Unknown);
+                if (alarmState.Status == AlarmStatus.SolvedByManual || alarmState.Status == AlarmStatus.SolvedBySystem)
+                {
+                    alarmState.SolvedTime = DateTime.TryParse(alarmEntity.SolvedTime, out DateTime solvedTime) ? solvedTime : (DateTime?)null;
+                }
                 var alarm = new Alarm
                 {
                     AlarmNum = alarmEntity.AlarmNum,
@@ -180,8 +190,9 @@ namespace Coffee.DigitalPlatform.ViewModels
                     AlarmMessage = alarmEntity.AlarmMessage,
                     AlarmTag = alarmEntity.AlarmTag,
                     AlarmDevice = deviceDict.ContainsKey(alarmEntity.DeviceNum) ? deviceDict[alarmEntity.DeviceNum] : null,
-                    AlarmState = new AlarmState(Enum.TryParse(typeof(AlarmStatus), alarmEntity.State, out object? state) ? (AlarmStatus)state : AlarmStatus.Unknown),
+                    AlarmState = alarmState,
                     AlarmTime = DateTime.TryParse(alarmEntity.AlarmTime, out DateTime alarmTime) ? alarmTime : (DateTime?)null,
+                    SolvedTime = alarmState.SolvedTime,
                     UserId = alarmEntity.UserId
                 };
                 if (alarmEntity.AlarmValues != null && alarmEntity.AlarmValues.Count > 0)
@@ -230,6 +241,36 @@ namespace Coffee.DigitalPlatform.ViewModels
             AlarmCollectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(Alarms);
         }
 
+        private void loadUsers()
+        {
+            var userEntities = _localDataAccess.GetAllUsers();
+            UserList = userEntities.Select(u => new User()
+            {
+                UserName = u.UserName,
+                UserType = Enum.TryParse(typeof(UserTypes), u.UserType, out object? userType) ? (UserTypes)userType : UserTypes.Operator,
+                RealName = u.RealName,
+                PhoneNumber = u.PhoneNum,
+                Department = u.Department,
+            }).ToList();
+        }
+
+        /// <summary>
+        /// 定位到第一个包含参数指定设备触发的预警历史记录所在页面。
+        /// </summary>
+        /// <param name="device">指定设备</param>
+        public void GoToPageWithAlarmDetailOnDevice(Device device)
+        {
+            if (device == null || Alarms == null || !Alarms.Any())
+                return;
+            var alarmList = _alarmCollectionView.SourceCollection.Cast<Alarm>().ToList();
+            //找到第一个包含该设备且未处理的预警信息，计算其所在页码并跳转
+            var alarm = Alarms.FirstOrDefault(a => a.AlarmDevice != null && string.Equals(a.AlarmDevice.DeviceNum, device.DeviceNum) && a.AlarmState != null && a.AlarmState.Status == AlarmStatus.Unsolved);
+            if (alarm != null)
+            {
+                int index = alarmList.IndexOf(alarm);
+                CurrentPage = index / PageSize + 1; //页码从1开始
+            }
+        }
 
         private void readAlarmHistory()
         {
@@ -238,7 +279,8 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         public void OnNavigateTo(NavigationContext context = null)
         {
-            
+            loadAlarms();
+            loadUsers();
         }
 
         public void OnNavigateFrom(NavigationContext context = null)

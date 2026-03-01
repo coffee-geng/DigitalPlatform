@@ -43,6 +43,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             ResetPopupWithManualListCommand = new RelayCommand(doResetPopupWithManualListCommand);
 
             AlarmDetailCommand = new RelayCommand<Device>(doAlarmDetailCommand, canAlarmDetailCommand);
+            ManualControlCommand = new RelayCommand<ControlInfoByManual>(doManualControlCommand);
         }
 
         #region 设备状态统计
@@ -91,8 +92,16 @@ namespace Coffee.DigitalPlatform.ViewModels
                     StopAlarmHistoryPersistence();
                 }, context =>
                 {
-                    BeginMonitor();
-                    BeginAlarmHistoryPersistence();
+                    var dev = context.Parameters["Device"];
+                    if (dev != null && dev is Device)
+                    {
+                        //找到当前设备所在的页
+                        var alarmViewModel = ViewModelLocator.Instance.AlarmViewModel;
+                        alarmViewModel.GoToPageWithAlarmDetailOnDevice(device);
+                    }
+                }, new Dictionary<string, object>
+                {
+                    { "Device", device }
                 });
                 alarmMenu.CheckState = true;
             }
@@ -129,6 +138,8 @@ namespace Coffee.DigitalPlatform.ViewModels
         public RelayCommand ResetPopupWithVariableListCommand { get; private set; }
 
         public RelayCommand ResetPopupWithManualListCommand { get; private set; }
+
+        public RelayCommand<ControlInfoByManual> ManualControlCommand { get; private set; }
 
         private void initAlarmOptions(Device device, IList<AlarmEntity> alarmEntities, IEnumerable<ConditionEntity> topConditionEntities, IEnumerable<ConditionEntity> conditionEntities)
         {
@@ -197,6 +208,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                         Header = manualEntity.Header,
                         Variable = variable
                     };
+                    controlInfo.ValueType = variable.VarType;
                     controlInfo.Value = ObjectToStringConverter.ConvertFromString(manualEntity.Value, variable.VarType);
                     controlInfos.Add(controlInfo);
                 }
@@ -328,6 +340,63 @@ namespace Coffee.DigitalPlatform.ViewModels
             foreach (var device in DeviceList)
             {
                 device.IsShowingManualListPopup = false; //隐藏手工控制选项菜单
+            }
+        }
+
+        private async void doManualControlCommand(ControlInfoByManual controlInfo)
+        {
+            if (controlInfo == null || DeviceList == null)
+                return;
+            var device = DeviceList.FirstOrDefault(d => d.DeviceNum == controlInfo.DeviceNum);
+            if (device == null)
+                return;
+            var variable = controlInfo.Variable;
+            if (variable == null || string.IsNullOrWhiteSpace(variable.VarAddress))
+                return;
+
+            //根据提供的通信参数尝试连接设备
+            var propDict = new Dictionary<string, ProtocolParameter>();
+            foreach (var parameter in device.CommunicationParameters)
+            {
+                propDict.TryAdd(parameter.PropName, new ProtocolParameter
+                {
+                    PropName = parameter.PropName,
+                    PropValue = parameter.PropValue,
+                    PropValueType = parameter.PropValueType
+                });
+            }
+            device.ConnectionState = DeviceConnectionStates.Connecting;
+            if (!await _communicationService.ConnectDeviceAsync(device.DeviceNum, propDict))
+            {
+                device.ConnectionState = DeviceConnectionStates.Disconnected;
+                _logger.LogInformation($"The device {device.Name} is not connected");
+            }
+            else
+            {
+                device.ConnectionState = DeviceConnectionStates.Connected;
+            }
+
+            if (device.ConnectionState == DeviceConnectionStates.Connected)
+            {
+                try
+                {
+                    var value = Convert.ChangeType(controlInfo.Value, controlInfo.ValueType);
+                    bool b = await _communicationService.WriteAsyn(device.DeviceNum, new serv.Variable()
+                    {
+                        VarNum = variable.VarNum,
+                        VarAddress = variable.VarAddress,
+                        VarType = controlInfo.ValueType,
+                        VarValue = value
+                    });
+                    if (!b)
+                    {
+                        throw new Exception("写入地址失败！");
+                    }
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogInformation($"Failed to write value to device {device.Name} for variable {variable.VarAddress}");
+                }
             }
         }
         #endregion
@@ -656,6 +725,13 @@ namespace Coffee.DigitalPlatform.ViewModels
                         await Task.Delay(5000);
                     }
                 });
+                task.ContinueWith(t =>
+                {
+                    if (t.Exception != null)
+                    {
+                        _logger.LogError($"An error occurred while monitoring device {device.Name}: {t.Exception}");
+                    }
+                }, TaskContinuationOptions.OnlyOnFaulted);
                 taskList.Add(task);
             }
         }

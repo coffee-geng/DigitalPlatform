@@ -223,6 +223,18 @@ namespace Coffee.DigitalPlatform.DataAccess
 
             this.SqlExecute(sql, paramDict);
         }
+
+        public IEnumerable<UserEntity> GetAllUsers()
+        {
+            SqlMapper.SetTypeMap(typeof(UserEntity), new ColumnAttributeTypeMapper<UserEntity>());
+
+            string sql = "select * from sys_users";
+            var results = this.SqlQuery<UserEntity>(sql);
+            if (results != null && results.Any())
+                return results.ToList();
+            else
+                return Enumerable.Empty<UserEntity>().ToList();
+        }
         #endregion
 
         #region 设备信息

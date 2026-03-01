@@ -97,7 +97,8 @@ namespace Coffee.DigitalPlatform.CommWPF
             c.SetBinding(ComponentBase.AlarmDetailCommandProperty, binding);
 
             binding = new Binding();
-            binding.Path = new System.Windows.PropertyPath("ManualControlCommand");
+            binding.Path = new System.Windows.PropertyPath("DataContext.ManualControlCommand");
+            binding.RelativeSource = new RelativeSource { AncestorType = typeof(UserControl) };
             c.SetBinding(ComponentBase.ManualControlCommandProperty, binding);
 
             binding = new Binding();
@@ -109,6 +110,11 @@ namespace Coffee.DigitalPlatform.CommWPF
             binding.Path = new PropertyPath("IsShowingVariableListPopup");
             binding.Mode = BindingMode.TwoWay;
             c.SetBinding(ComponentBase.IsShowingVariableListPopupProperty, binding);
+
+            binding = new Binding();
+            binding.Path = new PropertyPath("ChangeManualListPopupVisibilityCommand");
+            binding.Mode = BindingMode.OneWay;
+            c.SetBinding(ComponentBase.ChangeManualListPopupVisibilityCommandProperty, binding);
             #endregion
 
             return c;

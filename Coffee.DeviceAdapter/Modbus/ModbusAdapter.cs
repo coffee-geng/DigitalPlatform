@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -54,7 +55,7 @@ namespace Coffee.DeviceAdapter
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            Disconnect();
         }
 
         #region IProtocolAdapter接口
@@ -150,6 +151,7 @@ namespace Coffee.DeviceAdapter
             };
             try
             {
+
                 byte[] result = _modbusClient.Read(slaveId, address, length);
                 modbusData.Bytes = result;
 
@@ -393,7 +395,8 @@ namespace Coffee.DeviceAdapter
             };
             try
             {
-                await _modbusClient.ReadAsync(slaveId, address, length, _conter.GetAndIncrement(), r =>
+                ushort registerCount = GetRegisterCount(dataType, length);
+                await _modbusClient.ReadAsync(slaveId, address, registerCount, _conter.GetAndIncrement(), r =>
                 {
                     if (r.IsCompleted && r.Error == null)
                     {
@@ -448,17 +451,17 @@ namespace Coffee.DeviceAdapter
 
             try
             {
-                int count = 0;
+                ushort count = 0; //计算出写入数据占用的寄存器个数
                 byte[] bytesToWrite = new byte[0];
                 var genericType1 = DataTypeHelper.GetTypeFromDataType(dataType);
                 try
                 {
-
                     //反射调用泛型方法：public static T[] ConvertToDataArray<T>(object value)
                     var method1 = typeof(DataTypeHelper).GetMethod("ConvertToDataArray");
                     var genericMethod1 = method1.MakeGenericMethod(genericType1);
                     dynamic dataArray = genericMethod1.Invoke(null, new object[] { value });
-                    count = dataArray.Length;
+                    //count = dataArray.Length;
+                    count = GetRegisterCount(dataType, dataArray);
 
                     //反射调用泛型方法：public static byte[] ConvertBytesFromData<T>(T[] data, EndianTypes endianType)
                     var method2 = typeof(ModbusMaster).GetMethod("ConvertBytesFromData");
@@ -587,5 +590,142 @@ namespace Coffee.DeviceAdapter
             return response;
         }
         #endregion
+
+        /// <summary>
+        /// 根据数据类型和数据个数，计算出此类型在Modbus中占据的寄存器个数。
+        /// </summary>
+        /// <param name="dataType">数据类型</param>
+        /// <param name="length">数据个数，如果是数据类型是字符串，则数据个数就是这个字符串的字符数；如果类型是字节数组，则其就是数组中的元素个数</param>
+        /// <param name="encoding">当数据类型是字符串，则其指定字符串的编码方式。默认是ASCII</param>
+        /// <returns></returns>
+        public static ushort GetRegisterCount(DataType dataType, ushort length)
+        {
+            int count = 0; //寄存器个数
+            switch (dataType)
+            {
+                case DataType.Byte:
+                    count = (int)Math.Ceiling(length * 1.0 / 2);
+                    break;
+                case DataType.Int16:
+                case DataType.UInt16:
+                    count = length;
+                    break;
+                case DataType.Int32:
+                case DataType.UInt32:
+                case DataType.Float:
+                    count = length * 2;
+                    break;
+                case DataType.Double:
+                    count = length * 4;
+                    break;
+                case DataType.Bit:
+                    count = length; //一个bit占用一个线圈寄存器
+                    break;
+                default:
+                    throw new Exception($"数据类型{Enum.GetName(typeof(DataType), dataType)}不受支持，无法计算寄存器个数！");
+            }
+            if (count > ushort.MaxValue)
+            {
+                throw new Exception($"根据数据类型{Enum.GetName(typeof(DataType), dataType)}和数据个数{length}计算出的寄存器个数{count}超过了short类型的最大值！");
+            }
+            return (ushort)count;
+        }
+
+        public static ushort GetRegisterCount(DataType dataType, object data, Encoding encoding = null)
+        {
+            var genericType1 = DataTypeHelper.GetTypeFromDataType(dataType);
+            if (genericType1 == typeof(string))
+            {
+                if (data is string str)
+                {
+                    return GetRegisterCountByString(str, encoding);
+                }
+                else
+                {
+                    throw new Exception($"参数{nameof(data)}提供的数据类型与参数{nameof(dataType)}指定的类型{Enum.GetName(typeof(DataType), dataType)}不匹配！");
+                }
+            }
+            else if (genericType1 == typeof(byte[]))
+            {
+                if (data is byte[] bytes)
+                {
+                    return GetRegisterCountByPrimitiveType<byte>(bytes);
+                }
+                else
+                {
+                    throw new Exception($"参数{nameof(data)}提供的数据类型与参数{nameof(dataType)}指定的类型{Enum.GetName(typeof(DataType), dataType)}不匹配！");
+                }
+            }
+            else
+            {
+                if (data != null)
+                {
+                    if (data.GetType() == genericType1 || (DataTypeHelper.TryGetIEnumerableElementType(data, out Type elementType) && elementType == genericType1))
+                    {
+                        //反射调用泛型方法：private static short GetRegisterCountByPrimitiveType<T>(T[] dataArray)
+                        var method2 = typeof(ModbusAdapter).GetMethod("GetRegisterCountByPrimitiveType", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                        var genericMethod2 = method2.MakeGenericMethod(genericType1);
+
+                        ushort count = 0;
+                        if (data.GetType() == genericType1) //如果data是单个数据对象
+                        {
+                            var array = Array.CreateInstance(genericType1, 1);
+                            array.SetValue(data, 0);
+                            count = (ushort)genericMethod2.Invoke(null, new object[] { array });
+                        }
+                        else //集合对象
+                        {
+                            count = (ushort)genericMethod2.Invoke(null, new object[] { data });
+                        }
+                        return count;
+                    }
+                    else
+                    {
+                        throw new Exception($"参数{nameof(data)}提供的数据类型与参数{nameof(dataType)}指定的类型{Enum.GetName(typeof(DataType), dataType)}不匹配！");
+                    }
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+        }
+
+        private static ushort GetRegisterCountByPrimitiveType<T>(T[] dataArray)
+        {
+            if (dataArray == null)
+                return 0;
+            int byteCount = Marshal.SizeOf<T>() * dataArray.Length;
+            int count = (int)Math.Ceiling((double)byteCount / 2); //寄存器数
+            if (count > ushort.MaxValue)
+            {
+                throw new Exception($"根据数据类型{typeof(T).Name}和数据个数{dataArray.Length}计算出的寄存器个数{count}超过了short类型的最大值！");
+            }
+            return (ushort)count;
+        }
+
+        private static ushort GetRegisterCountByString(string str, Encoding encoding = null)
+        {
+            int byteCount = 0;
+            //字符串类型占用的寄存器个数需要根据字符串的字符数及其编码方式来定，这里的length就是字符的个数
+            if (encoding == null || encoding == Encoding.ASCII)
+            {
+                byteCount = str.Length;
+            }
+            else if (encoding == Encoding.Unicode || encoding == Encoding.BigEndianUnicode) //UTF16
+            {
+                byteCount = str.Length * 2;
+            }
+            else if (encoding == Encoding.UTF8) //UTF-8是变长编码，一个字符可能占用1到4个字节
+            {
+                byteCount = encoding.GetByteCount(str);
+            }
+            int count = (int)Math.Ceiling((double)byteCount / 2); //寄存器数
+            if (count > ushort.MaxValue)
+            {
+                throw new Exception($"根据当前字符串计算出的寄存器个数超过了short类型的最大值！");
+            }
+            return (ushort)count;
+        }
     }
 }

@@ -34,6 +34,7 @@ namespace Coffee.DigitalPlatform.Models
 
             AddControlInfoByManualCommand = new RelayCommand<ControlInfoByManual>(doAddControlInfoByManual);
             DeleteControlInfoByManualCommand = new RelayCommand<ControlInfoByManual>(doDeleteControlInfoByManualCommand, canDeleteControlInfoByManualCommand);
+            ChangeManualListPopupVisibilityCommand = new RelayCommand<Visibility>(doChangeManualListPopupVisibilityCommand);
 
             Alarms.CollectionChanged += (s, e) =>
             {
@@ -590,6 +591,8 @@ namespace Coffee.DigitalPlatform.Models
 
         public RelayCommand<ControlInfoByManual> DeleteControlInfoByManualCommand { get; set; }
 
+        public RelayCommand<Visibility> ChangeManualListPopupVisibilityCommand {  get; set; }
+
         private void doAddControlInfoByManual(ControlInfoByManual controlInfo)
         {
             //确保在同一个设备会话中，变量名唯一
@@ -623,9 +626,21 @@ namespace Coffee.DigitalPlatform.Models
                 return false;
             return true;
         }
+
+        private void doChangeManualListPopupVisibilityCommand(Visibility visibility)
+        {
+            if (visibility == Visibility.Visible)
+            {
+                IsShowingManualListPopup = true;
+            }
+            else
+            {
+                IsShowingManualListPopup = false;
+            }
+        }
         #endregion
 
-        #region 联动控制设备
+            #region 联动控制设备
         public ObservableCollection<ControlInfoByTrigger> ControlInfosByTrigger { get; private set; } = new ObservableCollection<ControlInfoByTrigger>();
 
         #endregion

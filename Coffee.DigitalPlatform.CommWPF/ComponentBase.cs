@@ -187,6 +187,13 @@ namespace Coffee.DigitalPlatform.CommWPF
         public static readonly DependencyProperty AlarmDetailCommandProperty =
             DependencyProperty.Register("AlarmDetailCommand", typeof(ICommand), typeof(ComponentBase), new PropertyMetadata(null));
 
+        public ICommand ChangeManualListPopupVisibilityCommand
+        {
+            get { return (ICommand)GetValue(ChangeManualListPopupVisibilityCommandProperty); }
+            set { SetValue(ChangeManualListPopupVisibilityCommandProperty, value); }
+        }
+        public static readonly DependencyProperty ChangeManualListPopupVisibilityCommandProperty =
+            DependencyProperty.Register("ChangeManualListPopupVisibilityCommand", typeof(ICommand), typeof(ComponentBase), new PropertyMetadata(null));
 
 
         public Canvas Canvas

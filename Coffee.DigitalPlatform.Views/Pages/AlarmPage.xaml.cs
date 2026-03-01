@@ -54,4 +54,26 @@ namespace Coffee.DigitalPlatform.Views
             throw new NotImplementedException();
         }
     }
+
+    public class UserIdConverter : IMultiValueConverter
+    {
+        public static UserIdConverter Instance { get; } = new UserIdConverter();
+
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values == null || values.Length < 2)
+                return string.Empty;
+            if (values[0] == null || values[0] == DependencyProperty.UnsetValue || !(values[0] is string userId))
+                return string.Empty;
+            if (values[1] == null || values[1] == DependencyProperty.UnsetValue || !(values[1] is IEnumerable<User> userList))
+                return string.Empty;
+            var user = userList.FirstOrDefault(usr => usr.UserName == userId);
+            return user != null ? user.RealName : userId;
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

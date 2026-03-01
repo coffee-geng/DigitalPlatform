@@ -9,6 +9,8 @@ namespace Coffee.DigitalPlatform.IDataAccess
         UserEntity Login(string username, string password);
 
         void ResetPassword(string username);
+
+        IEnumerable<UserEntity> GetAllUsers();
         #endregion
 
         #region 设备信息

@@ -21,12 +21,14 @@ namespace Coffee.DigitalPlatform.CommWPF
             Uri = uri;
             FromContext = fromContext;
             ToContext = toContext;
+            Parameters = new NavigationParameters();
         }
 
         public NavigationContext(Uri uri, NavigationParameters paramters, INavigationService fromContext, INavigationService toContext)
         {
             Uri = uri;
             Parameters = paramters;
+            FromContext = fromContext;
             ToContext = toContext;
         }
 
