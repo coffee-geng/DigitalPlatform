@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Coffee.DigitalPlatform.Models
 {
@@ -72,6 +73,8 @@ namespace Coffee.DigitalPlatform.Models
                             {
                                 action.ValueChanged += OnVariableValueChanged;
 
+                                if (action.Variable == null) //当点击添加Action按钮时，会先创建一个空的Action，此时Varible为空，直到用户在下拉框中选择点位信息时才赋值
+                                    continue;
                                 if (TempVariableValueDict.Any(p => p.Key.VarNum == action.Variable.VarNum && p.Key.DeviceNum == action.Variable.DeviceNum))
                                 {
                                     TempVariableValueDict[action.Variable] = action.Value;
@@ -307,6 +310,16 @@ namespace Coffee.DigitalPlatform.Models
 
     public class LinkageAction : ObservableObject, ICloneable, ISaveState
     {
+        public LinkageAction()
+        {
+            SetVariableValueCommand = new RelayCommand<RoutedPropertyChangedEventArgs<object>>(e =>
+            {
+                if (e.NewValue == null || !(e.NewValue is RoutedPropertyChangedEventArgs<object> eventArgs))
+                    return;
+                this.Value = eventArgs.NewValue;
+            });
+        }
+
         private Variable _variable;
         public Variable Variable
         {
@@ -353,6 +366,8 @@ namespace Coffee.DigitalPlatform.Models
         {
             return _valueChanged != null && _valueChanged.GetInvocationList().Length > 0;
         }
+
+        public RelayCommand<RoutedPropertyChangedEventArgs<object>> SetVariableValueCommand { get; private set; }
 
         public object Clone()
         {

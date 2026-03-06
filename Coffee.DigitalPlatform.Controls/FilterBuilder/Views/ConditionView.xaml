@@ -15,6 +15,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Controls;component/Themes/Geometry.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Controls;component/Themes/Generic.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Styles/ButtonStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Styles/ComboBoxStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <BooleanToVisibilityConverter x:Key="b2v" />
@@ -69,9 +71,10 @@
                     <Grid HorizontalAlignment="Stretch" Background="Transparent">
                         <StackPanel Orientation="Horizontal" Margin="0"
                             Visibility="{Binding Converter={x:Static fb:ConditionTreeItemConverter.Instance}, ConverterParameter=Group}">
-                            <ComboBox x:Name="PART_GroupTypeComboBox"
+                            <ComboBox x:Name="PART_GroupTypeComboBox" Margin="0,0,10,0"
                               ItemsSource="{fb:EnumBinding {x:Type fb:ConditionGroupType}}"
-                              SelectedItem="{Binding Type}">
+                              SelectedItem="{Binding Type}"
+                              Style="{StaticResource VariableComboBoxStyle}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ., Converter={x:Static fb:ConditionGroupTypeNameConverter.Instance}}" VerticalAlignment="Center" HorizontalAlignment="Left"/>
@@ -90,7 +93,7 @@
                                   Fill="{Binding Path=Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Button}}}"/>
                             </Button>
 
-                            <Button x:Name="PART_AddGroupButton"
+                            <Button x:Name="PART_AddGroupButton" Margin="5,0,5,0"
                                 ToolTip="{Binding ., Source={StaticResource FilterBuilder_AddGroup}, Converter={x:Static fb:TextResourceConverter.Instance}}"
                                 BorderThickness="0"
                                 Command="{Binding DataContext.AddGroupCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TreeView}}"
@@ -119,11 +122,13 @@
                             Visibility="{Binding Converter={x:Static fb:ConditionTreeItemConverter.Instance}, ConverterParameter=Expression}">
                             <ComboBox x:Name="PART_PropertiesComboBox"
                               ItemsSource="{Binding DataContext.InstanceProperties, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TreeView}}"
-                              DisplayMemberPath="DisplayName" SelectedItem="{Binding Property, NotifyOnValidationError=True, ValidatesOnDataErrors=True}" />
+                              DisplayMemberPath="DisplayName" SelectedItem="{Binding Property, NotifyOnValidationError=True, ValidatesOnDataErrors=True}" 
+                              Style="{StaticResource VariableComboBoxStyle}" />
 
-                            <ComboBox x:Name="PART_ConditionComboBox"
+                            <ComboBox x:Name="PART_ConditionComboBox" Margin="10,0,0,0"
                               ItemsSource="{Binding DataTypeExpression, Converter={x:Static fb:DataTypeExpressionToConditionsConverter.Instance}}"
-                              SelectedItem="{Binding DataTypeExpression.SelectedCondition}">
+                              SelectedItem="{Binding DataTypeExpression.SelectedCondition}"
+                              Style="{StaticResource VariableComboBoxStyle}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ., Converter={x:Static fb:ConditionNameConverter.Instance}}" VerticalAlignment="Center" HorizontalAlignment="Left"/>
@@ -131,13 +136,13 @@
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
 
-                            <Grid Visibility="{Binding DataTypeExpression.IsValueRequired, Converter={StaticResource b2v}}" Margin="0">
-                                <TextBox x:Name="PART_ValueTextBox"
-                                     Text="{Binding DataTypeExpression.Value}" Height="26"
+                            <Grid Visibility="{Binding DataTypeExpression.IsValueRequired, Converter={StaticResource b2v}}" Margin="10,0,10,0">
+                                <TextBox x:Name="PART_ValueTextBox" HorizontalAlignment="Center" Height="26"
+                                     Text="{Binding DataTypeExpression.Value}"
                                      Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Text}}">
                                 </TextBox>
 
-                                <controls:NumericUpDown x:Name="PART_ValueNumericUpDown"             
+                                <controls:NumericUpDown x:Name="PART_ValueNumericUpDown" HorizontalAlignment="Center" HorizontalContentAlignment="Center"
                                     Value="{Binding DataTypeExpression.Value, Mode=TwoWay}"
                                     ValueControlType="{Binding DataTypeExpression.ValueControlType}">
                                     <controls:NumericUpDown.Visibility>
@@ -162,21 +167,21 @@
                                     </controls:NumericUpDown.Visibility>
                                 </controls:NumericUpDown>
 
-                                <xctk:DateTimePicker x:Name="PART_ValueDateTimePicker"
+                                <xctk:DateTimePicker x:Name="PART_ValueDateTimePicker" HorizontalAlignment="Center"
                                     Value="{Binding DataTypeExpression.Value, Converter={x:Static controls:EnsureDateTimeValueConverter.Instance}}"    
                                     Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.DateTime}}"/>
 
-                                <ComboBox x:Name="PART_BooleanValueComboBox"
+                                <ComboBox x:Name="PART_BooleanValueComboBox" HorizontalAlignment="Center"
                                   ItemsSource="{Binding DataTypeExpression.BooleanValues}"
                                   SelectedValue="{Binding DataTypeExpression.Value}"
                                   Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Boolean}}"/>
 
-                                <ComboBox x:Name="PART_EnumValueComboBox"
+                                <ComboBox x:Name="PART_EnumValueComboBox" HorizontalAlignment="Center"
                                   ItemsSource="{Binding DataTypeExpression.EnumValues}"
                                   SelectedValue="{Binding DataTypeExpression.Value}"
                                   Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Enum}}"/>
 
-                                <xctk:TimeSpanUpDown x:Name="PART_ValueTimeSpanPicker"
+                                <xctk:TimeSpanUpDown x:Name="PART_ValueTimeSpanPicker" HorizontalAlignment="Center"
                                     Value="{Binding DataTypeExpression.Value, Converter={x:Static controls:EnsureTimeSpanValueConverter.Instance}}"
                                     Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.TimeSpan}}"/>
                             </Grid>

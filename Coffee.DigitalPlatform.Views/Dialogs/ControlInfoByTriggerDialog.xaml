@@ -76,7 +76,7 @@
 
             <Style TargetType="{x:Type controls:NumericUpDown}" BasedOn="{StaticResource NumericUpDownStyle}">
                 <Setter Property="Height" Value="26" />
-                <Setter Property="Width" Value="173" />
+                <Setter Property="Width" Value="183" />
                 <Setter Property="MinWidth" Value="123" />
                 <Setter Property="Margin" Value="2" />
                 <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -320,6 +320,11 @@
                                                                                                 </Binding.ConverterParameter>
                                                                                             </Binding>
                                                                                         </controls:NumericUpDown.Visibility>
+                                                                                        <i:Interaction.Triggers>
+                                                                                            <i:EventTrigger EventName="ValueChanged">
+                                                                                                <i:InvokeCommandAction Command="{Binding SetVariableValueCommand}" PassEventArgsToCommand="True"/>
+                                                                                            </i:EventTrigger>
+                                                                                        </i:Interaction.Triggers>
                                                                                     </controls:NumericUpDown>
 
                                                                                     <xctk:DateTimePicker x:Name="PART_ValueDateTimePicker" HorizontalAlignment="Center"
@@ -523,8 +528,13 @@
                                                                             </TextBox>
 
                                                                             <controls:NumericUpDown x:Name="PART_ValueNumericUpDown" HorizontalAlignment="Center" Height="28"
-                                                                                Value="{Binding Value, Mode=TwoWay}"
                                                                                 ValueControlType="{Binding Variable.VarType, Converter={x:Static local:ValueTypeToValueControlTypeConverter.Instance}}">
+                                                                                <controls:NumericUpDown.Value>
+                                                                                    <MultiBinding Mode="OneWay" Converter="{x:Static local:LinkageActionVariableValueConverter.Instance}">
+                                                                                        <Binding Path="Variable" />
+                                                                                        <Binding Path="DataContext" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl},AncestorLevel=1}"/>
+                                                                                    </MultiBinding>
+                                                                                </controls:NumericUpDown.Value>
                                                                                 <controls:NumericUpDown.Visibility>
                                                                                     <Binding Path="Variable.VarType" Converter="{x:Static local:ValueTypeVisibilityConverter.Instance}" FallbackValue="Collapsed" TargetNullValue="Collapsed">
                                                                                         <Binding.ConverterParameter>
@@ -545,6 +555,11 @@
                                                                                         </Binding.ConverterParameter>
                                                                                     </Binding>
                                                                                 </controls:NumericUpDown.Visibility>
+                                                                                <i:Interaction.Triggers>
+                                                                                    <i:EventTrigger EventName="ValueChanged">
+                                                                                        <i:InvokeCommandAction Command="{Binding SetVariableValueCommand}" PassEventArgsToCommand="True"/>
+                                                                                    </i:EventTrigger>
+                                                                                </i:Interaction.Triggers>
                                                                             </controls:NumericUpDown>
 
                                                                             <xctk:DateTimePicker x:Name="PART_ValueDateTimePicker" HorizontalAlignment="Center"

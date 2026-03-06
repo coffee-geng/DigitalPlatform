@@ -31,28 +31,6 @@ namespace Coffee.DigitalPlatform.Controls
             updateContent();
         }
 
-        private void updateContentSize()
-        {
-            if (this.Content == null)
-                return;
-            if (this.Content is ShortUpDown shortEle)
-            {
-                UpdateNumericUpDownWidth<short>(shortEle);
-            }
-            else if (this.Content is IntegerUpDown intEle)
-            {
-                UpdateNumericUpDownWidth<int>(intEle);
-            }
-            else if (this.Content is DoubleUpDown doubleEle)
-            {
-                UpdateNumericUpDownWidth<double>(doubleEle);
-            }
-            else if (this.Content is DecimalUpDown decimalEle)
-            {
-                UpdateNumericUpDownWidth<decimal>(decimalEle);
-            }
-        }
-
         #region Value
         public object Value
         {
@@ -121,6 +99,27 @@ namespace Coffee.DigitalPlatform.Controls
         }
         #endregion
 
+        #region ValueChangedEvent
+        public static readonly RoutedEvent ValueChangedEvent = EventManager.RegisterRoutedEvent("ValueChanged",
+            RoutingStrategy.Bubble, typeof(RoutedPropertyChangedEventHandler<object>), typeof(NumericUpDown));
+
+        public event RoutedPropertyChangedEventHandler<object> ValueChanged
+        {
+            add { AddHandler(ValueChangedEvent, value); }
+            remove { RemoveHandler(ValueChangedEvent, value); }
+        }
+
+        protected virtual void OnValueChanged(object oldValue, object newValue)
+        {
+            var args = new RoutedPropertyChangedEventArgs<object>(oldValue, newValue)
+            {
+                RoutedEvent = ValueChangedEvent,
+                Source = this
+            };
+            RaiseEvent(args);
+        }
+        #endregion
+
         #region Increment
         public object Increment
         {
@@ -145,7 +144,7 @@ namespace Coffee.DigitalPlatform.Controls
             set => SetValue(MinimumProperty, value);
         }
         public static readonly DependencyProperty MinimumProperty =
-        DependencyProperty.Register("Minimum", typeof(object), typeof(NumericUpDown), new System.Windows.PropertyMetadata(0.0, onMinimumPropertyChanged));
+        DependencyProperty.Register("Minimum", typeof(object), typeof(NumericUpDown), new System.Windows.PropertyMetadata(null, onMinimumPropertyChanged));
 
         private static void onMinimumPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -162,7 +161,7 @@ namespace Coffee.DigitalPlatform.Controls
         }
 
         public static readonly DependencyProperty MaximumProperty =
-        DependencyProperty.Register("Maximum", typeof(object), typeof(NumericUpDown), new System.Windows.PropertyMetadata(100.0, onMaximumPropertyChanged));
+        DependencyProperty.Register("Maximum", typeof(object), typeof(NumericUpDown), new System.Windows.PropertyMetadata(null, onMaximumPropertyChanged));
 
         private static void onMaximumPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -178,24 +177,18 @@ namespace Coffee.DigitalPlatform.Controls
             if (ValueControlType == ValueControlType.Short && controlType != typeof(ShortUpDown))
             {
                 var shortUpDown = createShortUpDown();
-                shortUpDown.BorderBrush = new SolidColorBrush(Colors.Red);
-                shortUpDown.BorderThickness = new Thickness(2);
                 Content = shortUpDown;
                 UpdateNumericUpDownWidth<short>(shortUpDown);
             }
             else if (ValueControlType == ValueControlType.Integer && controlType != typeof(IntegerUpDown))
             {
                 var intUpDown = createIntegerUpDown();
-                intUpDown.BorderBrush = new SolidColorBrush(Colors.Green);
-                intUpDown.BorderThickness = new Thickness(2);
                 Content = intUpDown;
                 UpdateNumericUpDownWidth<int>(intUpDown);
             }
             else if (ValueControlType == ValueControlType.Double & controlType != typeof(DoubleUpDown))
             {
                 var doubleUpDown = createDoubleUpDown();
-                doubleUpDown.BorderBrush = new SolidColorBrush(Colors.Blue);
-                doubleUpDown.BorderThickness = new Thickness(2);
                 Content = doubleUpDown;
                 UpdateNumericUpDownWidth<double>(doubleUpDown);
             }
@@ -219,6 +212,10 @@ namespace Coffee.DigitalPlatform.Controls
                 Increment = Increment != null ? (short?)Convert.ToInt16(Increment) : null,
                 Minimum = Minimum != null ? (short?)Convert.ToInt16(Minimum) : null,
                 Maximum = Maximum != null ? (short?)Convert.ToInt16(Maximum) : null,
+            };
+            shortUpDown.ValueChanged += (s, e) =>
+            {
+                OnValueChanged(this, e);                
             };
             
             DependencyPropertyDescriptor.FromProperty(ShortUpDown.ValueProperty, typeof(ShortUpDown))
@@ -257,6 +254,10 @@ namespace Coffee.DigitalPlatform.Controls
                 Minimum = Minimum != null ? (int?)Convert.ToInt32(Minimum) : null,
                 Maximum = Maximum != null ? (int?)Convert.ToInt32(Maximum) : null,
             };
+            intUpDown.ValueChanged += (s, e) =>
+            {
+                OnValueChanged(this, e);
+            };
 
             DependencyPropertyDescriptor.FromProperty(IntegerUpDown.ValueProperty, typeof(IntegerUpDown))
                 .AddValueChanged(intUpDown, (s, e) =>
@@ -294,6 +295,10 @@ namespace Coffee.DigitalPlatform.Controls
                 Minimum = Minimum != null ? (int?)Convert.ToDouble(Minimum) : null,
                 Maximum = Maximum != null ? (int?)Convert.ToDouble(Maximum) : null,
             };
+            doubleUpDown.ValueChanged += (s, e) =>
+            {
+                OnValueChanged(this, e);
+            };
 
             DependencyPropertyDescriptor.FromProperty(DoubleUpDown.ValueProperty, typeof(DoubleUpDown))
                 .AddValueChanged(doubleUpDown, (s, e) =>
@@ -330,6 +335,10 @@ namespace Coffee.DigitalPlatform.Controls
                 Increment = Increment != null ? (decimal?)Convert.ToDecimal(Increment) : null,
                 Minimum = Minimum != null ? (decimal?)Convert.ToDecimal(Minimum) : null,
                 Maximum = Maximum != null ? (decimal?)Convert.ToDecimal(Maximum) : null,
+            };
+            decimalUpDown.ValueChanged += (s, e) =>
+            {
+                OnValueChanged(this, e);
             };
 
             DependencyPropertyDescriptor.FromProperty(DecimalUpDown.ValueProperty, typeof(DecimalUpDown))
@@ -412,19 +421,19 @@ namespace Coffee.DigitalPlatform.Controls
                 return;
             if (Content is ShortUpDown shortUpDown)
             {
-                shortUpDown.Minimum = Minimum != null ? (short?)Convert.ToInt16(Minimum) : null;
+                shortUpDown.Minimum = Minimum != null ? (short?)Convert.ToInt16(Minimum) : short.MinValue;
             }
             else if (Content is IntegerUpDown intUpDown)
             {
-                intUpDown.Minimum = Minimum != null ? (int?)Convert.ToInt32(Minimum) : null;
+                intUpDown.Minimum = Minimum != null ? (int?)Convert.ToInt32(Minimum) : int.MinValue;
             }
             else if (Content is DoubleUpDown doubleUpDown)
             {
-                doubleUpDown.Minimum = Minimum != null ? (double?)Convert.ToDouble(Minimum) : null;
+                doubleUpDown.Minimum = Minimum != null ? (double?)Convert.ToDouble(Minimum) : double.MinValue;
             }
             else if (Content is DecimalUpDown decimalUpDown)
             {
-                decimalUpDown.Minimum = Minimum != null ? (decimal?)Convert.ToDecimal(Minimum) : null;
+                decimalUpDown.Minimum = Minimum != null ? (decimal?)Convert.ToDecimal(Minimum) : decimal.MinValue;
             }
         }
 
@@ -434,19 +443,19 @@ namespace Coffee.DigitalPlatform.Controls
                 return;
             if (Content is ShortUpDown shortUpDown)
             {
-                shortUpDown.Maximum = Maximum != null ? (short?)Convert.ToInt16(Maximum) : null;
+                shortUpDown.Maximum = Maximum != null ? (short?)Convert.ToInt16(Maximum) : short.MaxValue;
             }
             else if (Content is IntegerUpDown intUpDown)
             {
-                intUpDown.Maximum = Maximum != null ? (int?)Convert.ToInt32(Maximum) : null;
+                intUpDown.Maximum = Maximum != null ? (int?)Convert.ToInt32(Maximum) : int.MaxValue;
             }
             else if (Content is DoubleUpDown doubleUpDown)
             {
-                doubleUpDown.Maximum = Maximum != null ? (double?)Convert.ToDouble(Maximum) : null;
+                doubleUpDown.Maximum = Maximum != null ? (double?)Convert.ToDouble(Maximum) : double.MaxValue;
             }
             else if (Content is DecimalUpDown decimalUpDown)
             {
-                decimalUpDown.Maximum = Maximum != null ? (decimal?)Convert.ToDecimal(Maximum) : null;
+                decimalUpDown.Maximum = Maximum != null ? (decimal?)Convert.ToDecimal(Maximum) : decimal.MaxValue;
             }
         }
 
