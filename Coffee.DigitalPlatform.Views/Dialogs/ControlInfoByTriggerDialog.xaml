@@ -3,12 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:local="clr-namespace:Coffee.DigitalPlatform.Views"
         xmlns:comm="clr-namespace:Coffee.DigitalPlatform.Common;assembly=Coffee.DigitalPlatform.Common"
         xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
         xmlns:controls="clr-namespace:Coffee.DigitalPlatform.Controls;assembly=Coffee.DigitalPlatform.Controls"
         xmlns:fb="clr-namespace:Coffee.DigitalPlatform.Controls.FilterBuilder;assembly=Coffee.DigitalPlatform.Controls"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d"
         FontFamily="Microsoft YaHei" FontWeight="ExtraLight" FontSize="12"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
@@ -22,6 +24,8 @@
                 <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Styles/ButtonStyles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Styles/ComboBoxStyles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Assets;component/Styles/ExpanderStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Controls;component/Themes/Geometry.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/Coffee.DigitalPlatform.Controls;component/Themes/Generic.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <BooleanToVisibilityConverter x:Key="b2v"/>
@@ -68,6 +72,15 @@
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
+            </Style>
+
+            <Style TargetType="{x:Type controls:NumericUpDown}" BasedOn="{StaticResource NumericUpDownStyle}">
+                <Setter Property="Height" Value="26" />
+                <Setter Property="Width" Value="173" />
+                <Setter Property="MinWidth" Value="123" />
+                <Setter Property="Margin" Value="2" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
             </Style>
         </Grid.Resources>
         <Grid.ColumnDefinitions>
@@ -126,6 +139,7 @@
                 <TextBlock Text="联控设备" Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center"/>                
                 <TextBlock Text="操作" Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Center"/>
             </Grid>
+
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" Grid.ColumnSpan="2">
                 <ItemsControl ItemsSource="{Binding ControlInfosByTrigger}" AlternationCount="10000" Name="ic" Margin="10,5">
                     <ItemsControl.ItemTemplateSelector>
@@ -234,7 +248,7 @@
                                                                                     <ColumnDefinition/>
                                                                                     <ColumnDefinition Width="35"/>
                                                                                 </Grid.ColumnDefinitions>
-                                                                                <ComboBox Grid.Column="0" HorizontalContentAlignment="Stretch" Margin="2,1,2,1"
+                                                                                <ComboBox Grid.Column="0" HorizontalContentAlignment="Stretch" Margin="2,1,2,1" Text="请选择一个点位信息..."
                                                                                     ItemsSource="{Binding DataContext.NewDevice.Variables, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
                                                                                     SelectedItem="{Binding Variable}"
                                                                                     Style="{StaticResource VariableComboBoxStyle}">
@@ -258,9 +272,73 @@
                                                                                         </DataTemplate>
                                                                                     </ComboBox.ItemTemplate>
                                                                                 </ComboBox>
-                                                                                <TextBox Grid.Column="1" Height="28" Margin="2,1,2,1" TextAlignment="Center"
-                                                                                    Text="{Binding Value, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}" 
-                                                                                    ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
+                                                                                <Grid Grid.Column="1" Height="28" Margin="2,1,2,1">
+                                                                                    <TextBox x:Name="PART_ValueTextBox" HorizontalAlignment="Center" Height="28"
+                                                                                        Text="{Binding Value, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}"
+                                                                                        Visibility="{Binding Variable.VarType, Converter={x:Static local:ValueTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Text}, FallbackValue=Collapsed, TargetNullValue=Collapsed}"
+                                                                                        ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}">
+                                                                                    </TextBox>
+
+                                                                                    <controls:NumericUpDown x:Name="PART_ValueNumericUpDown" HorizontalAlignment="Center" Height="28"
+                                                                                        ValueControlType="{Binding Variable.VarType, Converter={x:Static local:ValueTypeToValueControlTypeConverter.Instance}}">
+                                                                                        <controls:NumericUpDown.Value>
+                                                                                            <MultiBinding Mode="OneWay" Converter="{x:Static local:LinkageActionVariableValueConverter.Instance}">
+                                                                                                <Binding Path="Variable" />
+                                                                                                <Binding Path="DataContext" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl},AncestorLevel=1}"/>
+                                                                                            </MultiBinding>
+                                                                                        </controls:NumericUpDown.Value>
+                                                                                        <controls:NumericUpDown.Visibility>
+                                                                                            <Binding Path="Variable.VarType" Converter="{x:Static local:ValueTypeVisibilityConverter.Instance}" FallbackValue="Collapsed" TargetNullValue="Collapsed">
+                                                                                                <Binding.ConverterParameter>
+                                                                                                    <x:Array Type="{x:Type controls:ValueControlType}">
+                                                                                                        <controls:ValueControlType>Byte</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>SByte</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>Short</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>UnsignedShort</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>Integer</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>UnsignedInteger</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>Long</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>UnsignedLong</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>Decimal</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>Float</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>Double</controls:ValueControlType>
+                                                                                                        <controls:ValueControlType>Numeric</controls:ValueControlType>
+                                                                                                    </x:Array>
+                                                                                                </Binding.ConverterParameter>
+                                                                                            </Binding>
+                                                                                        </controls:NumericUpDown.Visibility>
+                                                                                    </controls:NumericUpDown>
+
+                                                                                    <xctk:DateTimePicker x:Name="PART_ValueDateTimePicker" HorizontalAlignment="Center"
+                                                                                        Value="{Binding Value, Converter={x:Static controls:EnsureDateTimeValueConverter.Instance}}"    
+                                                                                        Visibility="{Binding Variable.VarType, Converter={x:Static local:ValueTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.DateTime}, FallbackValue=Collapsed, TargetNullValue=Collapsed}"/>
+
+                                                                                    <ComboBox x:Name="PART_BooleanValueComboBox" HorizontalAlignment="Center" Margin="15,0,0,0" 
+                                                                                        Text="请选择一项..."
+                                                                                        controls:ComboBoxWidthBehavior.AutoWidth="True"
+                                                                                        SelectedValue="{Binding Value}"
+                                                                                        Visibility="{Binding Variable.VarType, Converter={x:Static local:ValueTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Boolean}, FallbackValue=Collapsed, TargetNullValue=Collapsed}"
+                                                                                        Style="{StaticResource PlaceholdComboBoxStyle}">
+                                                                                        <ComboBox.ItemsSource>
+                                                                                            <x:Array Type="{x:Type sys:Boolean}">
+                                                                                                <sys:Boolean>False</sys:Boolean>
+                                                                                                <sys:Boolean>True</sys:Boolean>
+                                                                                            </x:Array>
+                                                                                        </ComboBox.ItemsSource>
+                                                                                    </ComboBox>
+
+                                                                                    <ComboBox x:Name="PART_EnumValueComboBox" HorizontalAlignment="Center" Margin="15,0,0,0" 
+                                                                                        Text="请选择一项..."
+                                                                                        controls:ComboBoxWidthBehavior.AutoWidth="True"
+                                                                                        ItemsSource="{Binding Variable.VarType, Converter={x:Static local:EnumValuesConverter.Instance}}"
+                                                                                        SelectedValue="{Binding Value}"
+                                                                                        Visibility="{Binding Variable.VarType, Converter={x:Static local:ValueTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Enum}, FallbackValue=Collapsed, TargetNullValue=Collapsed}"/>
+
+                                                                                    <xctk:TimeSpanUpDown x:Name="PART_ValueTimeSpanPicker" HorizontalAlignment="Center"
+                                                                                        Value="{Binding Value, Converter={x:Static controls:EnsureTimeSpanValueConverter.Instance}}"
+                                                                                        Visibility="{Binding Variable.VarType, Converter={x:Static local:ValueTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.TimeSpan}, FallbackValue=Collapsed, TargetNullValue=Collapsed}"/>
+                                                                                </Grid>
+                                                                                
                                                                                 <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
                                                                                     <Hyperlink Command="{Binding DataContext.RemoveLinkageActionCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
                                                                                         CommandParameter="{Binding}">删除</Hyperlink>
@@ -400,7 +478,7 @@
                                                                             <ColumnDefinition/>
                                                                             <ColumnDefinition Width="35"/>
                                                                         </Grid.ColumnDefinitions>
-                                                                        <ComboBox Grid.Column="0" HorizontalContentAlignment="Stretch" Margin="2,1,2,1"
+                                                                        <ComboBox Grid.Column="0" HorizontalContentAlignment="Stretch" Margin="2,1,2,1" Text="请选择一个点位信息..."
                                                                         ItemsSource="{Binding DataContext.NewDevice.Variables, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
                                                                         SelectedItem="{Binding Variable}"
                                                                         Style="{StaticResource VariableComboBoxStyle}">
@@ -424,9 +502,68 @@
                                                                                 </DataTemplate>
                                                                             </ComboBox.ItemTemplate>
                                                                         </ComboBox>
-                                                                        <TextBox Grid.Column="1" Height="28" Margin="2,1,2,1" TextAlignment="Center"
-                                                                        Text="{Binding Value, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}" 
-                                                                        ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}" />
+                                                                        <Grid Grid.Column="1" Height="28" Margin="2,1,2,1">
+                                                                            <TextBox x:Name="PART_ValueTextBox" HorizontalAlignment="Center" Height="28"
+                                                                                Text="{Binding Value, ValidatesOnDataErrors=True, UpdateSourceTrigger=PropertyChanged}"
+                                                                                Visibility="{Binding Variable.VarType, Converter={x:Static local:ValueTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Text}, FallbackValue=Collapsed, TargetNullValue=Collapsed}"
+                                                                                ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Mode=Self}}">
+                                                                            </TextBox>
+
+                                                                            <controls:NumericUpDown x:Name="PART_ValueNumericUpDown" HorizontalAlignment="Center" Height="28"
+                                                                                Value="{Binding Value, Mode=TwoWay}"
+                                                                                ValueControlType="{Binding Variable.VarType, Converter={x:Static local:ValueTypeToValueControlTypeConverter.Instance}}">
+                                                                                <controls:NumericUpDown.Visibility>
+                                                                                    <Binding Path="Variable.VarType" Converter="{x:Static local:ValueTypeVisibilityConverter.Instance}" FallbackValue="Collapsed" TargetNullValue="Collapsed">
+                                                                                        <Binding.ConverterParameter>
+                                                                                            <x:Array Type="{x:Type controls:ValueControlType}">
+                                                                                                <controls:ValueControlType>Byte</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>SByte</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>Short</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>UnsignedShort</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>Integer</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>UnsignedInteger</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>Long</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>UnsignedLong</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>Decimal</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>Float</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>Double</controls:ValueControlType>
+                                                                                                <controls:ValueControlType>Numeric</controls:ValueControlType>
+                                                                                            </x:Array>
+                                                                                        </Binding.ConverterParameter>
+                                                                                    </Binding>
+                                                                                </controls:NumericUpDown.Visibility>
+                                                                            </controls:NumericUpDown>
+
+                                                                            <xctk:DateTimePicker x:Name="PART_ValueDateTimePicker" HorizontalAlignment="Center"
+                                                                                Value="{Binding Value, Converter={x:Static controls:EnsureDateTimeValueConverter.Instance}}"    
+                                                                                Visibility="{Binding Variable.VarType, Converter={x:Static local:ValueTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.DateTime}, FallbackValue=Collapsed, TargetNullValue=Collapsed}"/>
+
+                                                                            <ComboBox x:Name="PART_BooleanValueComboBox" HorizontalAlignment="Center" Margin="15,0,0,0" 
+                                                                                Text="请选择一项..."
+                                                                                controls:ComboBoxWidthBehavior.AutoWidth="True"
+                                                                                SelectedValue="{Binding Value}"
+                                                                                Visibility="{Binding Variable.VarType, Converter={x:Static local:ValueTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Boolean}, FallbackValue=Collapsed, TargetNullValue=Collapsed}"
+                                                                                Style="{StaticResource PlaceholdComboBoxStyle}">
+                                                                                <ComboBox.ItemsSource>
+                                                                                    <x:Array Type="{x:Type sys:Boolean}">
+                                                                                        <sys:Boolean>False</sys:Boolean>
+                                                                                        <sys:Boolean>True</sys:Boolean>
+                                                                                    </x:Array>
+                                                                                </ComboBox.ItemsSource>
+                                                                            </ComboBox>
+
+                                                                            <ComboBox x:Name="PART_EnumValueComboBox" HorizontalAlignment="Center" Margin="15,0,0,0" 
+                                                                                Text="请选择一项..."
+                                                                                controls:ComboBoxWidthBehavior.AutoWidth="True"
+                                                                                ItemsSource="{Binding Variable.VarType, Converter={x:Static local:EnumValuesConverter.Instance}}"
+                                                                                SelectedValue="{Binding Value}"
+                                                                                Visibility="{Binding Variable.VarType, Converter={x:Static local:ValueTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Enum}, FallbackValue=Collapsed, TargetNullValue=Collapsed}"/>
+
+                                                                            <xctk:TimeSpanUpDown x:Name="PART_ValueTimeSpanPicker" HorizontalAlignment="Center"
+                                                                                Value="{Binding Value, Converter={x:Static controls:EnsureTimeSpanValueConverter.Instance}}"
+                                                                                Visibility="{Binding Variable.VarType, Converter={x:Static local:ValueTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.TimeSpan}, FallbackValue=Collapsed, TargetNullValue=Collapsed}"/>
+                                                                        </Grid>
+
                                                                         <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
                                                                         <Hyperlink Command="{Binding DataContext.RemoveLinkageActionCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
                                                                             CommandParameter="{Binding}">删除</Hyperlink>

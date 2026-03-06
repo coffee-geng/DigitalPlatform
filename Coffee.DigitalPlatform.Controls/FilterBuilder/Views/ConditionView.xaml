@@ -7,7 +7,7 @@
              xmlns:local="clr-namespace:Coffee.DigitalPlatform.Controls.FilterBuilder"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              xmlns:fb="clr-namespace:Coffee.DigitalPlatform.Controls.FilterBuilder"
-             xmlns:control="clr-namespace:Coffee.DigitalPlatform.Controls"
+             xmlns:controls="clr-namespace:Coffee.DigitalPlatform.Controls"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
@@ -43,7 +43,7 @@
                     <Setter Property="VerticalContentAlignment" Value="Center" />
                 </Style>
 
-                <Style TargetType="{x:Type control:NumericUpDown}" BasedOn="{StaticResource NumericUpDownStyle}">
+                <Style TargetType="{x:Type controls:NumericUpDown}" BasedOn="{StaticResource NumericUpDownStyle}">
                     <Setter Property="Height" Value="26" />
                     <Setter Property="Width" Value="173" />
                     <Setter Property="MinWidth" Value="123" />
@@ -134,51 +134,51 @@
                             <Grid Visibility="{Binding DataTypeExpression.IsValueRequired, Converter={StaticResource b2v}}" Margin="0">
                                 <TextBox x:Name="PART_ValueTextBox"
                                      Text="{Binding DataTypeExpression.Value}" Height="26"
-                                     Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static fb:ValueControlType.Text}}">
+                                     Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Text}}">
                                 </TextBox>
 
-                                <control:NumericUpDown x:Name="PART_ValueNumericUpDown"             
+                                <controls:NumericUpDown x:Name="PART_ValueNumericUpDown"             
                                     Value="{Binding DataTypeExpression.Value, Mode=TwoWay}"
                                     ValueControlType="{Binding DataTypeExpression.ValueControlType}">
-                                    <control:NumericUpDown.Visibility>
+                                    <controls:NumericUpDown.Visibility>
                                         <Binding Path="DataTypeExpression.ValueControlType" Converter="{x:Static fb:ValueControlTypeVisibilityConverter.Instance}">
                                             <Binding.ConverterParameter>
-                                                <x:Array Type="{x:Type fb:ValueControlType}">
-                                                    <fb:ValueControlType>Byte</fb:ValueControlType>
-                                                    <fb:ValueControlType>SByte</fb:ValueControlType>
-                                                    <fb:ValueControlType>Short</fb:ValueControlType>
-                                                    <fb:ValueControlType>UnsignedShort</fb:ValueControlType>
-                                                    <fb:ValueControlType>Integer</fb:ValueControlType>
-                                                    <fb:ValueControlType>UnsignedInteger</fb:ValueControlType>
-                                                    <fb:ValueControlType>Long</fb:ValueControlType>
-                                                    <fb:ValueControlType>UnsignedLong</fb:ValueControlType>
-                                                    <fb:ValueControlType>Decimal</fb:ValueControlType>
-                                                    <fb:ValueControlType>Float</fb:ValueControlType>
-                                                    <fb:ValueControlType>Double</fb:ValueControlType>
-                                                    <fb:ValueControlType>Numeric</fb:ValueControlType>
+                                                <x:Array Type="{x:Type controls:ValueControlType}">
+                                                    <controls:ValueControlType>Byte</controls:ValueControlType>
+                                                    <controls:ValueControlType>SByte</controls:ValueControlType>
+                                                    <controls:ValueControlType>Short</controls:ValueControlType>
+                                                    <controls:ValueControlType>UnsignedShort</controls:ValueControlType>
+                                                    <controls:ValueControlType>Integer</controls:ValueControlType>
+                                                    <controls:ValueControlType>UnsignedInteger</controls:ValueControlType>
+                                                    <controls:ValueControlType>Long</controls:ValueControlType>
+                                                    <controls:ValueControlType>UnsignedLong</controls:ValueControlType>
+                                                    <controls:ValueControlType>Decimal</controls:ValueControlType>
+                                                    <controls:ValueControlType>Float</controls:ValueControlType>
+                                                    <controls:ValueControlType>Double</controls:ValueControlType>
+                                                    <controls:ValueControlType>Numeric</controls:ValueControlType>
                                                 </x:Array>
                                             </Binding.ConverterParameter>
                                         </Binding>
-                                    </control:NumericUpDown.Visibility>
-                                </control:NumericUpDown>
+                                    </controls:NumericUpDown.Visibility>
+                                </controls:NumericUpDown>
 
                                 <xctk:DateTimePicker x:Name="PART_ValueDateTimePicker"
-                                    Value="{Binding DataTypeExpression.Value, Converter={x:Static fb:EnsureDateTimeValueConverter.Instance}}"    
-                                    Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static fb:ValueControlType.DateTime}}"/>
+                                    Value="{Binding DataTypeExpression.Value, Converter={x:Static controls:EnsureDateTimeValueConverter.Instance}}"    
+                                    Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.DateTime}}"/>
 
                                 <ComboBox x:Name="PART_BooleanValueComboBox"
                                   ItemsSource="{Binding DataTypeExpression.BooleanValues}"
                                   SelectedValue="{Binding DataTypeExpression.Value}"
-                                  Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static fb:ValueControlType.Boolean}}"/>
+                                  Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Boolean}}"/>
 
                                 <ComboBox x:Name="PART_EnumValueComboBox"
                                   ItemsSource="{Binding DataTypeExpression.EnumValues}"
                                   SelectedValue="{Binding DataTypeExpression.Value}"
-                                  Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static fb:ValueControlType.Enum}}"/>
+                                  Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.Enum}}"/>
 
                                 <xctk:TimeSpanUpDown x:Name="PART_ValueTimeSpanPicker"
-                                    Value="{Binding DataTypeExpression.Value, Converter={x:Static fb:EnsureTimeSpanValueConverter.Instance}}"
-                                    Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static fb:ValueControlType.TimeSpan}}"/>
+                                    Value="{Binding DataTypeExpression.Value, Converter={x:Static controls:EnsureTimeSpanValueConverter.Instance}}"
+                                    Visibility="{Binding DataTypeExpression.ValueControlType, Converter={x:Static fb:ValueControlTypeVisibilityConverter.Instance}, ConverterParameter={x:Static controls:ValueControlType.TimeSpan}}"/>
                             </Grid>
 
                             <Button x:Name="PART_DeleteExpressionButton"

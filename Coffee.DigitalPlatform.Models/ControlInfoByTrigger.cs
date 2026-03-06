@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,10 +40,61 @@ namespace Coffee.DigitalPlatform.Models
                 }
             });
 
+            NewLinkageActions.CollectionChanged += (s, e) =>
+            {
+                if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add)
+                {
+                    foreach(var item in e.NewItems)
+                    {
+                        if (item != null && item is LinkageAction action)
+                        {
+                            if (!action.HasValueChangedHandler())
+                            {
+                                action.ValueChanged += Action_PropertyChanged;
+
+                                if (TempVariableValueDict.Any(p => p.Key.VarNum == action.Variable.VarNum && p.Key.DeviceNum == action.Variable.DeviceNum))
+                                {
+                                    TempVariableValueDict[action.Variable] = action.Value;
+                                }
+                                else
+                                {
+                                    TempVariableValueDict.Add(action.Variable, action.Value);
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Remove)
+                {
+                    foreach (var action in e.OldItems)
+                    {
+                        if (action != null)
+                        {
+                            (action as LinkageAction).ValueChanged -= Action_PropertyChanged;
+                        }
+                    }
+                }
+            };
             LinkageActions.CollectionChanged += (s, e) =>
             {
                 _isDirty = true;
             };
+        }
+
+        private void Action_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            LinkageAction action = sender as LinkageAction;
+            if (action != null && action.Variable != null)
+            {
+                if (TempVariableValueDict.Any(p => p.Key.VarNum == action.Variable.VarNum && p.Key.DeviceNum == action.Variable.DeviceNum))
+                {
+                    TempVariableValueDict[action.Variable] = action.Value;
+                }
+                else
+                {
+                    TempVariableValueDict.Add(action.Variable, action.Value);
+                }
+            }
         }
 
         public int Index { get; set; }
@@ -190,6 +242,13 @@ namespace Coffee.DigitalPlatform.Models
                 return;
             this.NewDevice = device;
         }
+
+        //暂存用户在编辑联控信息时，设置或选择的点位信息变量的值
+        private Dictionary<Variable, object> _tempVariableValueDict = new Dictionary<Variable, object>();
+        public  Dictionary<Variable, object> TempVariableValueDict
+        {
+            get => _tempVariableValueDict;
+        }
         #endregion
 
         public RelayCommand<LinkageAction> AddLinkageActionCommand { get; private set; }
@@ -245,11 +304,32 @@ namespace Coffee.DigitalPlatform.Models
             get => _value;
             set
             {
+                object oldValue = _value;
                 if (SetProperty(ref _value, value))
                 {
+                    _valueChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Value)));
                     _isDirty = true;
                 }
             }
+        }
+
+        private PropertyChangedEventHandler _valueChanged;
+
+        public event PropertyChangedEventHandler ValueChanged
+        {
+            add
+            {
+                _valueChanged += value;
+            }
+            remove
+            {
+                _valueChanged -= value;
+            }
+        }
+
+        public bool HasValueChangedHandler()
+        {
+            return _valueChanged != null && _valueChanged.GetInvocationList().Length > 0;
         }
 
         public object Clone()
@@ -261,7 +341,7 @@ namespace Coffee.DigitalPlatform.Models
             };
         }
 
-        #region ISaveState 接口实现
+        #region ISaveState 接口实现  
         private bool _isDirty = false;
         public bool IsDirty
         {

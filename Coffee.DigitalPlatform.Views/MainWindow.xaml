@@ -9,7 +9,7 @@
         xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
         FontFamily="Microsoft YaHei" FontSize="12" FontWeight="ExtraLight"
         WindowStartupLocation="CenterScreen" Background="#f1f5fd"
-        Title="智能化通信平台" Height="800" Width="1400"
+        Title="智能化通信平台" Height="810" Width="1440"
         DataContext="{Binding Source={StaticResource locator}, Path=MainViewModel}"
         wpf:WindowHelper.Close="{Binding IsWindowClose}">
     <WindowChrome.WindowChrome>

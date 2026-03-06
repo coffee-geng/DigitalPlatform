@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Data;
 
-namespace Coffee.DigitalPlatform.Controls.FilterBuilder
+namespace Coffee.DigitalPlatform.Controls
 {
     [ValueConversion(typeof(object), typeof(DateTime?))]
     public class EnsureDateTimeValueConverter : IValueConverter
@@ -16,7 +16,7 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
         {
             if (value is not DateTime time)
             {
-                return null;
+                return Binding.DoNothing;
             }
 
             return time;
@@ -37,7 +37,7 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
         {
             if (value is not TimeSpan time)
             {
-                return null;
+                return Binding.DoNothing;
             }
 
             return time;
@@ -45,6 +45,9 @@ namespace Coffee.DigitalPlatform.Controls.FilterBuilder
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            //if (value != null)
+            //    return value;
+            //else return Binding.DoNothing;
             return value;
         }
     }

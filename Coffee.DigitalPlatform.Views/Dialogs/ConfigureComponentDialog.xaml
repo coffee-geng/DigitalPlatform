@@ -12,7 +12,7 @@
         mc:Ignorable="d"
         FontFamily="Microsoft YaHei" FontWeight="ExtraLight" FontSize="11"
         WindowStartupLocation="CenterOwner" x:Name="configComponentDlg"
-        Title="设备组态编辑" Height="650" Width="1200">
+        Title="设备组态编辑" Height="720" Width="1280">
     <WindowChrome.WindowChrome>
         <WindowChrome GlassFrameThickness="1"/>
     </WindowChrome.WindowChrome>

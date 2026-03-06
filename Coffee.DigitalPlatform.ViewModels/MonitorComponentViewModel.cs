@@ -600,7 +600,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                                 variable.Value = val;
                             }
 
-                            //预警条件
+                            #region 预警条件
                             bool isWarning = false;
                             foreach (var alarm in device.Alarms)
                             {
@@ -721,6 +721,46 @@ namespace Coffee.DigitalPlatform.ViewModels
                                 }
                             }
                             device.IsWarning = isWarning;
+                            #endregion
+
+                            #region 联动控制
+                            foreach(var controlInfo in device.ControlInfosByTrigger)
+                            {
+                                //因为设备中的点位信息是实时变化的，所以在每次计算联动控制条件时，需要将当前设备中的点位信息更新到联动控制条件中，从而保证调用IsMatch方法时检测的变量值是最新的，保证联动控制的准确性
+                                controlInfo.Condition?.UpdateSourceVariables(device.Variables.ToList());
+                                bool isMatching = controlInfo.Condition.IsMatch();
+                                if (isMatching)
+                                {
+                                    //目前仅支持每个联动控制选项对同一个联动设备的多个点位信息进行控制
+                                    foreach (var action in controlInfo.LinkageActions)
+                                    {
+                                        var targetDevice = controlInfo.LinkageDevice;
+                                        if (targetDevice != null && targetDevice.ConnectionState == DeviceConnectionStates.Connected)
+                                        {
+                                            try
+                                            {
+                                                var value = Convert.ChangeType(action.Value, action.Variable.VarType);
+                                                bool b = await _communicationService.WriteAsyn(targetDevice.DeviceNum, new serv.Variable()
+                                                {
+                                                    VarNum = action.Variable.VarNum,
+                                                    VarAddress = action.Variable.VarAddress,
+                                                    VarType = action.Variable.VarType,
+                                                    VarValue = value
+                                                });
+                                                if (!b)
+                                                {
+                                                    throw new Exception("写入地址失败！");
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                _logger.LogInformation($"Failed to write value to device {targetDevice.Name} for variable {action.Variable.VarAddress} in linkage control {controlInfo.Header}");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            #endregion
                         }
                         await Task.Delay(5000);
                     }

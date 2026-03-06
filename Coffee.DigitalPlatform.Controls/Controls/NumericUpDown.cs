@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -30,6 +31,28 @@ namespace Coffee.DigitalPlatform.Controls
             updateContent();
         }
 
+        private void updateContentSize()
+        {
+            if (this.Content == null)
+                return;
+            if (this.Content is ShortUpDown shortEle)
+            {
+                UpdateNumericUpDownWidth<short>(shortEle);
+            }
+            else if (this.Content is IntegerUpDown intEle)
+            {
+                UpdateNumericUpDownWidth<int>(intEle);
+            }
+            else if (this.Content is DoubleUpDown doubleEle)
+            {
+                UpdateNumericUpDownWidth<double>(doubleEle);
+            }
+            else if (this.Content is DecimalUpDown decimalEle)
+            {
+                UpdateNumericUpDownWidth<decimal>(decimalEle);
+            }
+        }
+
         #region Value
         public object Value
         {
@@ -43,11 +66,8 @@ namespace Coffee.DigitalPlatform.Controls
         private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var control = (NumericUpDown)d;
-            if (e.NewValue == null)
-            {
-                control.ValueControlType = ValueControlType.Double;
-            }
-            else
+            bool b = true;
+            if (e.NewValue != null)
             {
                 if (e.NewValue is byte)
                     control.ValueControlType = ValueControlType.Byte;
@@ -70,12 +90,17 @@ namespace Coffee.DigitalPlatform.Controls
                 else if (e.NewValue is decimal)
                     control.ValueControlType = ValueControlType.Decimal;
                 else
-                {
-                    control.ValueControlType = ValueControlType.Double;
-                }
+                    b = false;
             }
-            control.updateContent();
-            control.updateValue();
+            else
+            {
+                b = false;
+            }
+            if (b)
+            {
+                control.updateContent();
+                control.updateValue();
+            }
         }
         #endregion
 
@@ -153,22 +178,32 @@ namespace Coffee.DigitalPlatform.Controls
             if (ValueControlType == ValueControlType.Short && controlType != typeof(ShortUpDown))
             {
                 var shortUpDown = createShortUpDown();
+                shortUpDown.BorderBrush = new SolidColorBrush(Colors.Red);
+                shortUpDown.BorderThickness = new Thickness(2);
                 Content = shortUpDown;
+                UpdateNumericUpDownWidth<short>(shortUpDown);
             }
             else if (ValueControlType == ValueControlType.Integer && controlType != typeof(IntegerUpDown))
             {
                 var intUpDown = createIntegerUpDown();
+                intUpDown.BorderBrush = new SolidColorBrush(Colors.Green);
+                intUpDown.BorderThickness = new Thickness(2);
                 Content = intUpDown;
+                UpdateNumericUpDownWidth<int>(intUpDown);
             }
             else if (ValueControlType == ValueControlType.Double & controlType != typeof(DoubleUpDown))
             {
                 var doubleUpDown = createDoubleUpDown();
+                doubleUpDown.BorderBrush = new SolidColorBrush(Colors.Blue);
+                doubleUpDown.BorderThickness = new Thickness(2);
                 Content = doubleUpDown;
+                UpdateNumericUpDownWidth<double>(doubleUpDown);
             }
             else if (ValueControlType == ValueControlType.Decimal & controlType != typeof(DecimalUpDown))
             {
                 var decimalUpDown = createDecimalUpDown();
                 Content = decimalUpDown;
+                UpdateNumericUpDownWidth<decimal>(decimalUpDown);
             }
         }
 
@@ -185,6 +220,7 @@ namespace Coffee.DigitalPlatform.Controls
                 Minimum = Minimum != null ? (short?)Convert.ToInt16(Minimum) : null,
                 Maximum = Maximum != null ? (short?)Convert.ToInt16(Maximum) : null,
             };
+            
             DependencyPropertyDescriptor.FromProperty(ShortUpDown.ValueProperty, typeof(ShortUpDown))
                 .AddValueChanged(shortUpDown, (s, e) =>
                 {
@@ -221,6 +257,7 @@ namespace Coffee.DigitalPlatform.Controls
                 Minimum = Minimum != null ? (int?)Convert.ToInt32(Minimum) : null,
                 Maximum = Maximum != null ? (int?)Convert.ToInt32(Maximum) : null,
             };
+
             DependencyPropertyDescriptor.FromProperty(IntegerUpDown.ValueProperty, typeof(IntegerUpDown))
                 .AddValueChanged(intUpDown, (s, e) =>
                 {
@@ -257,6 +294,7 @@ namespace Coffee.DigitalPlatform.Controls
                 Minimum = Minimum != null ? (int?)Convert.ToDouble(Minimum) : null,
                 Maximum = Maximum != null ? (int?)Convert.ToDouble(Maximum) : null,
             };
+
             DependencyPropertyDescriptor.FromProperty(DoubleUpDown.ValueProperty, typeof(DoubleUpDown))
                 .AddValueChanged(doubleUpDown, (s, e) =>
                 {
@@ -293,6 +331,7 @@ namespace Coffee.DigitalPlatform.Controls
                 Minimum = Minimum != null ? (decimal?)Convert.ToDecimal(Minimum) : null,
                 Maximum = Maximum != null ? (decimal?)Convert.ToDecimal(Maximum) : null,
             };
+
             DependencyPropertyDescriptor.FromProperty(DecimalUpDown.ValueProperty, typeof(DecimalUpDown))
                 .AddValueChanged(decimalUpDown, (s, e) =>
                 {
@@ -408,6 +447,104 @@ namespace Coffee.DigitalPlatform.Controls
             else if (Content is DecimalUpDown decimalUpDown)
             {
                 decimalUpDown.Maximum = Maximum != null ? (decimal?)Convert.ToDecimal(Maximum) : null;
+            }
+        }
+
+        private void UpdateNumericUpDownWidth<T>(CommonNumericUpDown<T> numElement) where T : struct, IFormattable, IComparable<T>
+        {
+            if (numElement == null) return;
+
+            double maxWidth = 0;
+            string numText = string.Empty;
+            var typeface = new Typeface(numElement.FontFamily, numElement.FontStyle,
+            numElement.FontWeight, numElement.FontStretch);
+
+            if (typeof(T) == typeof(byte))
+            {
+                numText = byte.MaxValue.ToString();
+            }
+            else if (typeof(T) == typeof(short))
+            {
+                string maxValue = short.MaxValue.ToString();
+                string minValue = short.MinValue.ToString();
+                if (maxValue.Length >= minValue.Length)
+                    numText = maxValue;
+                else
+                    numText = minValue;
+            }
+            else if (typeof(T) == typeof(ushort))
+            {
+                numText = ushort.MaxValue.ToString();
+            }
+            else if (typeof(T) == typeof(int))
+            {
+                string maxValue = int.MaxValue.ToString();
+                string minValue = int.MinValue.ToString();
+                if (maxValue.Length >= minValue.Length)
+                    numText = maxValue;
+                else
+                    numText = minValue;
+            }
+            else if (typeof(T) == typeof(uint))
+            {
+                numText = uint.MaxValue.ToString();
+            }
+            else if (typeof(T) == typeof(long))
+            {
+                string maxValue = long.MaxValue.ToString();
+                string minValue = long.MinValue.ToString();
+                if (maxValue.Length >= minValue.Length)
+                    numText = maxValue;
+                else
+                    numText = minValue;
+            }
+            else if (typeof(T) == typeof(ulong))
+            {
+                numText = ulong.MaxValue.ToString();
+            }
+            else if (typeof(T) == typeof(float))
+            {
+                string maxValue = float.MaxValue.ToString();
+                string minValue = float.MinValue.ToString();
+                if (maxValue.Length >= minValue.Length)
+                    numText = maxValue;
+                else
+                    numText = minValue;
+            }
+            else if (typeof(T) == typeof(double))
+            {
+                string maxValue = double.MaxValue.ToString();
+                string minValue = double.MinValue.ToString();
+                if (maxValue.Length >= minValue.Length)
+                    numText = maxValue;
+                else
+                    numText = minValue;
+            }
+            else if (typeof(T) == typeof(decimal))
+            {
+                string maxValue = decimal.MaxValue.ToString();
+                string minValue = decimal.MinValue.ToString();
+                if (maxValue.Length >= minValue.Length)
+                    numText = maxValue;
+                else
+                    numText = minValue;
+            }
+            numText = $"{numText}  ";
+            var formattedText = new FormattedText(numText, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                        typeface, numElement.FontSize, Brushes.Black, VisualTreeHelper.GetDpi(numElement).PixelsPerDip);
+                maxWidth = formattedText.Width;
+            
+            // 添加内边距和下拉按钮的宽度
+            maxWidth = maxWidth + numElement.ButtonSpinnerWidth + numElement.Padding.Left + numElement.Padding.Right;
+            maxWidth = Math.Max(maxWidth, numElement.MinWidth);
+            maxWidth = Math.Min(maxWidth, numElement.MaxWidth);
+            if (this.ActualWidth > 0)
+            {
+                numElement.Width = Math.Min((double)maxWidth, this.ActualWidth);
+            }
+            else
+            {
+                numElement.Width = maxWidth;
             }
         }
     }
