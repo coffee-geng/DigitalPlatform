@@ -24,7 +24,9 @@ namespace Coffee.DigitalPlatform.Controls
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return value;
+            if (value != null)
+                return value;
+            else return Binding.DoNothing;
         }
     }
 
@@ -45,10 +47,9 @@ namespace Coffee.DigitalPlatform.Controls
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            //if (value != null)
-            //    return value;
-            //else return Binding.DoNothing;
-            return value;
+            if (value != null)
+                return value;
+            else return Binding.DoNothing;
         }
     }
 }

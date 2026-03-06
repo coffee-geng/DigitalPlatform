@@ -40,6 +40,26 @@ namespace Coffee.DigitalPlatform.Models
                 }
             });
 
+            ReplaceLinkageActionCommand = new RelayCommand<ReplaceLinkageActionCommandParameter>(param =>
+            {
+                if (param == null)
+                    return;
+                int idx = -1;
+                if (param.OldAction != null)
+                {
+                    idx = NewLinkageActions.IndexOf(param.OldAction);
+                }
+                if (idx >= 0) //如果切换前有选中项，则替换前先移除
+                {
+                    NewLinkageActions.RemoveAt(idx);
+                    NewLinkageActions.Insert(idx, param.NewAction);
+                }
+                else //如果切换前没有选中项
+                {
+                    NewLinkageActions.Append(param.NewAction);
+                }
+            });
+
             NewLinkageActions.CollectionChanged += (s, e) =>
             {
                 if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add)
@@ -50,7 +70,7 @@ namespace Coffee.DigitalPlatform.Models
                         {
                             if (!action.HasValueChangedHandler())
                             {
-                                action.ValueChanged += Action_PropertyChanged;
+                                action.ValueChanged += OnVariableValueChanged;
 
                                 if (TempVariableValueDict.Any(p => p.Key.VarNum == action.Variable.VarNum && p.Key.DeviceNum == action.Variable.DeviceNum))
                                 {
@@ -70,7 +90,7 @@ namespace Coffee.DigitalPlatform.Models
                     {
                         if (action != null)
                         {
-                            (action as LinkageAction).ValueChanged -= Action_PropertyChanged;
+                            (action as LinkageAction).ValueChanged -= OnVariableValueChanged;
                         }
                     }
                 }
@@ -81,7 +101,7 @@ namespace Coffee.DigitalPlatform.Models
             };
         }
 
-        private void Action_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        private void OnVariableValueChanged(object? sender, PropertyChangedEventArgs e)
         {
             LinkageAction action = sender as LinkageAction;
             if (action != null && action.Variable != null)
@@ -255,6 +275,8 @@ namespace Coffee.DigitalPlatform.Models
 
         public RelayCommand<LinkageAction> RemoveLinkageActionCommand { get; private set; }
 
+        public RelayCommand<ReplaceLinkageActionCommandParameter> ReplaceLinkageActionCommand { get; private set; }
+
         #region ISaveState 接口实现
         private bool _isDirty = false;
         public bool IsDirty
@@ -353,5 +375,12 @@ namespace Coffee.DigitalPlatform.Models
             _isDirty = false;
         }
         #endregion
+    }
+
+    public class ReplaceLinkageActionCommandParameter
+    {
+        public LinkageAction OldAction { get; set; }
+
+        public LinkageAction NewAction { get; set; }
     }
 }

@@ -250,7 +250,7 @@
                                                                                 </Grid.ColumnDefinitions>
                                                                                 <ComboBox Grid.Column="0" HorizontalContentAlignment="Stretch" Margin="2,1,2,1" Text="请选择一个点位信息..."
                                                                                     ItemsSource="{Binding DataContext.NewDevice.Variables, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}}"
-                                                                                    SelectedItem="{Binding Variable}"
+                                                                                    SelectedItem="{Binding Variable, Mode=OneWay}"
                                                                                     Style="{StaticResource VariableComboBoxStyle}">
                                                                                     <ComboBox.ItemContainerStyle>
                                                                                         <Style TargetType="ComboBoxItem">
@@ -271,6 +271,19 @@
                                                                                             </Grid>
                                                                                         </DataTemplate>
                                                                                     </ComboBox.ItemTemplate>
+                                                                                    <i:Interaction.Triggers>
+                                                                                        <i:EventTrigger EventName="SelectionChanged">
+                                                                                            <i:InvokeCommandAction Command="{Binding DataContext.ReplaceLinkageActionCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl},AncestorLevel=2}}">
+                                                                                                <i:InvokeCommandAction.CommandParameter>
+                                                                                                    <MultiBinding Converter="{x:Static local:ReplaceLinkageActionCommandParameterConverter.Instance}">
+                                                                                                        <Binding Path="SelectedItem" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ComboBox}}"/>
+                                                                                                        <Binding Path="DataContext" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl},AncestorLevel=2}"/>
+                                                                                                        <Binding Path="DataContext" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl}}"/>
+                                                                                                    </MultiBinding>
+                                                                                                </i:InvokeCommandAction.CommandParameter>
+                                                                                            </i:InvokeCommandAction>
+                                                                                        </i:EventTrigger>
+                                                                                    </i:Interaction.Triggers>
                                                                                 </ComboBox>
                                                                                 <Grid Grid.Column="1" Height="28" Margin="2,1,2,1">
                                                                                     <TextBox x:Name="PART_ValueTextBox" HorizontalAlignment="Center" Height="28"

@@ -273,4 +273,58 @@ namespace Coffee.DigitalPlatform.Views
             throw new NotImplementedException();
         }
     }
+
+    public class ReplaceLinkageActionCommandParameterConverter : IMultiValueConverter
+    {
+        public static ReplaceLinkageActionCommandParameterConverter Instance { get; } = new ReplaceLinkageActionCommandParameterConverter();
+
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values == null || values.Length == 0)
+                return null;
+            if (values[0] == null || values[0] == DependencyProperty.UnsetValue)
+                return null;
+            if (!(values[0] is Variable @var))
+                return null;
+            var newAction = new LinkageAction() { Variable = @var };
+            if (values.Length > 1 && values[1] != null && values[1] != DependencyProperty.UnsetValue && values[1] is ControlInfoByTrigger controlInfo)
+            {
+                var v1 = controlInfo.TempVariableValueDict.Where(a => a.Key.VarNum == @var.VarNum && a.Key.DeviceNum == @var.DeviceNum).Select(p => p.Value).FirstOrDefault();
+                if (v1 != null)
+                {
+                    newAction.Value = v1;
+                }
+                else
+                {
+                    var v2 = controlInfo.NewLinkageActions.Where(a => a.Variable.VarNum == var.VarNum && a.Variable.DeviceNum == var.DeviceNum).Select(a => a.Value).FirstOrDefault();
+                    newAction.Value = v2;
+                }
+                if (values.Length >2 && values[2] != null && values[2] != DependencyProperty.UnsetValue && values[2] is LinkageAction oldAction)
+                {
+                    if (oldAction.Variable != null && (oldAction.Variable.VarNum != @var.VarNum || oldAction.Variable.DeviceNum != var.DeviceNum))
+                    {
+                        return new ReplaceLinkageActionCommandParameter() { NewAction = newAction, OldAction = oldAction };
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+                else
+                {
+                    return new ReplaceLinkageActionCommandParameter() { NewAction = newAction };
+                }
+            }
+            else
+            {
+                newAction.Value = @var.FinalValue;
+                return new ReplaceLinkageActionCommandParameter() { NewAction = newAction };
+            }
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }
