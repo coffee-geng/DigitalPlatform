@@ -13,6 +13,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
 using static Dapper.SqlMapper;
@@ -488,6 +489,7 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         #region 变量点位信息
         public ICommand PopupClosingCommand { get; set; }
+
         private void doClosingPopupCommand(DependencyObject sender)
         {
             var focusedElements = FocusHelper.GetAllKeyboardFocusedElements(sender);
