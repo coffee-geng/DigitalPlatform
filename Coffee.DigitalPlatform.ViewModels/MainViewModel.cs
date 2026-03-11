@@ -132,7 +132,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                 //页面切换前的视图（视图一定是继承UserControl的对象）
                 var oldPage = ViewContent as UserControl;
 
-                if (GlobalUserInfo.UserType == UserTypes.Operator && model.TargetView != "MonitorPage")
+                if ((GlobalUserInfo.UserType == null || GlobalUserInfo.UserType.TypeId == UserTypes.Operator) && model.TargetView != "MonitorPage")
                 {
                     if (callbackBeforeNavigate != null)
                     {
@@ -149,7 +149,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                     // 提示权限
                     this.Menus[0].CheckState = true;
                     // 提示没有权限操作
-                    if (ActionManager.ExecuteAndResult<object>("ShowRight", null))
+                    if (ActionManager.ExecuteAndResult<object>("ShowPermissionDialog", null))
                     {
                         // 执行重新登录
                         DoLogout();
@@ -178,6 +178,10 @@ namespace Coffee.DigitalPlatform.ViewModels
                             {
                                 context.Parameters.Add(pair.Key, pair.Value);
                             }
+                        }
+                        if (targetView != null)
+                        {
+                            context.Parameters.Add("TargetView", targetView);
                         }
                         callbackBeforeNavigate.Invoke(context);
                     }
@@ -248,7 +252,7 @@ namespace Coffee.DigitalPlatform.ViewModels
         /// </summary>
         public void ShowNonPermission()
         {
-            if (ActionManager.ExecuteAndResult<object>("ShowRight", null))
+            if (ActionManager.ExecuteAndResult<object>("ShowPermissionDialog", null))
             {
                 // 执行重新登录
                 DoLogout();

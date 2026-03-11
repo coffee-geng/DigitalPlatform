@@ -14,6 +14,9 @@ using Coffee.DigitalPlatform.Common;
 using System.Windows.Data;
 using Coffee.DigitalPlatform.CommWPF;
 using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json.Linq;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
@@ -244,14 +247,25 @@ namespace Coffee.DigitalPlatform.ViewModels
         private void loadUsers()
         {
             var userEntities = _localDataAccess.GetAllUsers();
-            UserList = userEntities.Select(u => new User()
+            IList<User> users = new List<User>();
+            foreach (var u in userEntities)
             {
-                UserName = u.UserName,
-                UserType = Enum.TryParse(typeof(UserTypes), u.UserType, out object? userType) ? (UserTypes)userType : UserTypes.Operator,
-                RealName = u.RealName,
-                PhoneNumber = u.PhoneNum,
-                Department = u.Department,
-            }).ToList();
+                var user = new User()
+                {
+                    UserName = u.UserName,
+                    RealName = u.RealName,
+                    PhoneNumber = u.PhoneNum,
+                    Department = u.Department
+                };
+                if (Enum.TryParse(typeof(UserTypes), u.UserType, out object? typeResult))
+                {
+                    UserTypes userType = (UserTypes)typeResult;
+                    string displayName = userType.GetType().GetField(Enum.GetName(typeof(UserTypes), userType))?.GetCustomAttribute<DisplayAttribute>()?.GetName();
+                    user.UserType = new UserType(userType, displayName);
+                }
+                users.Add(user);
+            }
+            UserList = users;
         }
 
         /// <summary>

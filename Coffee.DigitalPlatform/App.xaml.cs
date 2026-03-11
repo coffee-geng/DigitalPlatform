@@ -34,6 +34,7 @@ namespace Coffee.DigitalPlatform
             services.AddSingleton<MonitorComponentViewModel>();
 
             services.AddSingleton<AlarmViewModel>();
+            services.AddSingleton<SettingsViewModel>();
 
 
             var serviceProvider = services.BuildServiceProvider();

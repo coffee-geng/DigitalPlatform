@@ -32,11 +32,21 @@ namespace Coffee.DigitalPlatform.Views
             InitializeComponent();
 
             ActionManager.Register<object>("ShowConfigureComponentDialog", new Func<object, bool>(showConfigureComponentDialog));
+            ActionManager.Register<object>("ShowPermissionDialog", new Func<object, bool>(showPermissionDialog));
         }
 
         private bool showConfigureComponentDialog(object dataContext)
         {
             return showDialog(new ConfigureComponentDialog()
+            {
+                Owner = this,
+                DataContext = dataContext
+            });
+        }
+
+        private bool showPermissionDialog(object dataContext)
+        {
+            return showDialog(new PermissionDialog()
             {
                 Owner = this,
                 DataContext = dataContext

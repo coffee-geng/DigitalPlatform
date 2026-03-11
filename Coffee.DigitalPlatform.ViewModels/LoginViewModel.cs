@@ -1,4 +1,5 @@
-﻿using Coffee.DigitalPlatform.CommWPF;
+﻿using Coffee.DigitalPlatform.Common;
+using Coffee.DigitalPlatform.CommWPF;
 using Coffee.DigitalPlatform.IDataAccess;
 using Coffee.DigitalPlatform.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -50,11 +51,17 @@ namespace Coffee.DigitalPlatform.ViewModels
                 {
                     main.GlobalUserInfo.UserName = User.UserName;
                     main.GlobalUserInfo.Password = User.Password;
-                    main.GlobalUserInfo.RealName = User.RealName;
-                    main.GlobalUserInfo.UserType = User.UserType;
-                    main.GlobalUserInfo.Gender = User.Gender;
-                    main.GlobalUserInfo.Department = User.Department;
-                    main.GlobalUserInfo.PhoneNumber = User.PhoneNumber;
+                    main.GlobalUserInfo.RealName = data.RealName;
+                    if (!string.IsNullOrWhiteSpace(data.UserType) && Enum.TryParse(typeof(UserTypes), data.UserType, out object? userTypeValue))
+                    {
+                        main.GlobalUserInfo.UserType = new UserType((UserTypes)userTypeValue, EnumExtensions.GetDisplayName((UserTypes)userTypeValue));
+                    }
+                    if (!string.IsNullOrEmpty(data.Gender) && int.TryParse(data.Gender, out int gender))
+                    {
+                        main.GlobalUserInfo.Gender = gender;
+                    }
+                    main.GlobalUserInfo.Department = data.Department;
+                    main.GlobalUserInfo.PhoneNumber = data.PhoneNum;
                 }
                 (obj as Window).DialogResult = true;
             }

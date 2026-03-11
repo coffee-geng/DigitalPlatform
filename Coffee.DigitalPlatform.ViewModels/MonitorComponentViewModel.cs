@@ -47,13 +47,47 @@ namespace Coffee.DigitalPlatform.ViewModels
         }
 
         #region 设备状态统计
-        public models.Variable Temperature { get; set; }
-        public models.Variable Humidity { get; set; }
-        public models.Variable PM { get; set; }
-        public models.Variable Pressure { get; set; }
-        public models.Variable FlowRate { get; set; }
+        private models.Variable _temperature;
+        public models.Variable Temperature 
+        {
+            get { return _temperature; }
+            set { SetProperty(ref _temperature, value); }
+        }
 
-        public List<RankingItem> RankingList { get; set; }
+        private models.Variable _humidity;
+        public models.Variable Humidity
+        {
+            get { return _humidity; }
+            set { SetProperty(ref _humidity, value); }
+        }
+
+        private models.Variable _pm25;
+        public models.Variable PM25
+        {
+            get { return _pm25; }
+            set { SetProperty(ref _pm25, value); }
+        }
+
+        private models.Variable _pressure;
+        public models.Variable Pressure
+        {
+            get { return _pressure; }
+            set { SetProperty(ref _pressure, value); }
+        }
+
+        private models.Variable _flowrate;
+        public models.Variable FlowRate
+        {
+            get { return _flowrate; }
+            set { SetProperty(ref _flowrate, value); }
+        }
+
+        private List<RankingItem> _rankingList;
+        public List<RankingItem> RankingList
+        {
+            get { return _rankingList; }
+            set { SetProperty(ref _rankingList, value); }
+        }
 
         //用气排行
         private void initGasRankList()
@@ -414,7 +448,7 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         private void showConfigureComponentDialog()
         {
-            if (_mainViewModel.GlobalUserInfo == null || _mainViewModel.GlobalUserInfo.UserType == Common.UserTypes.Operator)
+            if (_mainViewModel.GlobalUserInfo == null || (_mainViewModel.GlobalUserInfo.UserType == null || _mainViewModel.GlobalUserInfo.UserType.TypeId == Common.UserTypes.Operator))
             {
                 // 提示没有权限操作
                 _mainViewModel.ShowNonPermission();
@@ -557,6 +591,10 @@ namespace Coffee.DigitalPlatform.ViewModels
             alarmHistoryQueue.Clear();
             var recentAlarmHistoryRecords = _localDataAccess.ReadRecentAlarms();
             recentAlarmHistoryRecords.SelectMany(p => p.Value).ToList().ForEach(p => alarmHistoryQueue.Enqueue(p));
+
+            //从数据库读取监测配置信息
+            var settingViewModel = ViewModelLocator.Instance.SettingsViewModel;
+            var monitorInfoList = settingViewModel.MonitorList;
 
             cts = new CancellationTokenSource();
             foreach(var device in DeviceList)
@@ -759,6 +797,39 @@ namespace Coffee.DigitalPlatform.ViewModels
                                         }
                                     }
                                 }
+                            }
+                            #endregion
+
+                            #region Dashboard 设备监控
+                            if (monitorInfoList != null)
+                            {
+                                foreach(var variable in device.Variables)
+                                {
+                                    var monitorInfo = monitorInfoList.Where(p => p.DeviceNum == device.DeviceNum && p.VariableNum == variable.VarNum).FirstOrDefault();
+                                    if (monitorInfo == null)
+                                        continue;
+                                    if (monitorInfo.InfoNum == "B005")
+                                    {
+                                        Temperature = variable;
+                                    }
+                                    else if (monitorInfo.InfoNum == "B006")
+                                    {
+                                        Humidity = variable;
+                                    }
+                                    else if (monitorInfo.InfoNum == "B007")
+                                    {
+                                        PM25 = variable;
+                                    }
+                                    else if (monitorInfo.InfoNum == "B008")
+                                    {
+                                        Pressure = variable;
+                                    }
+                                    else if (monitorInfo.InfoNum == "B009")
+                                    {
+                                        FlowRate = variable;
+                                    }
+                                }
+                                
                             }
                             #endregion
                         }

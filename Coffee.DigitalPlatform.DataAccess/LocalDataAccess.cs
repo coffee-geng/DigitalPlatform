@@ -16,6 +16,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
 using static Dapper.SqlMapper;
@@ -202,12 +203,16 @@ namespace Coffee.DigitalPlatform.DataAccess
         #region 登录逻辑
         public UserEntity Login(string username, string password)
         {
-            // 不能拼接 ，Sql注入攻击
+            SqlMapper.SetTypeMap(typeof(UserEntity), new ColumnAttributeTypeMapper<UserEntity>());
+
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+                return null;
+
             string userSql = "select * from sys_users where user_name=@user_name and password=@password";
 
             Dictionary<string, object> paramDict = new Dictionary<string, object>();
             paramDict.Add("@user_name", username);
-            paramDict.Add("@password", password);
+            paramDict.Add("@password", Utilities.StringToMD5(password));
 
             var result = this.SqlQuery<UserEntity>(userSql, paramDict);
             if (result == null || !result.Any())
@@ -217,10 +222,16 @@ namespace Coffee.DigitalPlatform.DataAccess
         }
         public void ResetPassword(string username)
         {
-            string sql = $"update sys_users set password='123456' where user_name=@username";
-            Dictionary<string, object> paramDict = new Dictionary<string, object>();
-            paramDict.Add("@username", username);
+            if (string.IsNullOrWhiteSpace(username))
+                return;
 
+            SqlMapper.SetTypeMap(typeof(UserEntity), new ColumnAttributeTypeMapper<UserEntity>());
+
+            string resetPwd = "123456";
+            string sql = $"update sys_users set password=@Password where user_name=@Username";
+            Dictionary<string, object> paramDict = new Dictionary<string, object>();
+            paramDict.Add("@Username", username);
+            paramDict.Add("@Password", Utilities.StringToMD5(resetPwd));
             this.SqlExecute(sql, paramDict);
         }
 
@@ -1539,6 +1550,120 @@ namespace Coffee.DigitalPlatform.DataAccess
             SqlExecute(sqlCommands);
         }
 
+        #region 系统配置信息
+        public IEnumerable<SettingInfoEntity> GetSettingInfos(string settingType = null)
+        {
+            SqlMapper.SetTypeMap(typeof(SettingInfoEntity), new ColumnAttributeTypeMapper<SettingInfoEntity>());
+            StringBuilder sb = new StringBuilder();
+            sb.Append("SELECT * FROM setting_info");
+            if (!string.IsNullOrWhiteSpace(settingType))
+            {
+                sb.Append($" WHERE type={settingType}");
+            }
+
+            return SqlQuery<SettingInfoEntity>(sb.ToString());
+        }
+
+        public void SaveSettingInfos(IEnumerable<SettingInfoEntity> newSettingInfos)
+        {
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+            IEnumerable<SettingInfoEntity> oldSettingInfos = GetSettingInfos();
+
+            var settingUpdateStateDict = checkSettingInfosForUpdating(oldSettingInfos, newSettingInfos);
+            foreach (var pair in settingUpdateStateDict)
+            {
+                if (pair.Value == ItemUpdateStates.Added || pair.Value == ItemUpdateStates.Modified)
+                {
+                    var info = pair.Key;
+                    var sqlCommandsForAdd = CreateSqlCommandsForAddOrModifySetting(info);
+                    sqlCommands.AddRange(sqlCommandsForAdd);
+                }
+                else if (pair.Value == ItemUpdateStates.Deleted)
+                {
+                    var info = pair.Key;
+                    var sqlCommandsForDelete = CreateSqlCommandsForDeleteSetting(info.InfoNum);
+                    sqlCommands.AddRange(sqlCommandsForDelete);
+                }
+            }
+
+            SqlExecute(sqlCommands);
+        }
+
+        private Dictionary<SettingInfoEntity, ItemUpdateStates> checkSettingInfosForUpdating(IEnumerable<SettingInfoEntity> sourceList, IEnumerable<SettingInfoEntity> targetList)
+        {
+            if (sourceList == null || !sourceList.Any())
+                return targetList != null ? targetList.ToDictionary(a => a, a => ItemUpdateStates.Added) : new Dictionary<SettingInfoEntity, ItemUpdateStates>();
+            if (targetList == null || !targetList.Any())
+            {
+                if (sourceList != null && sourceList.Any())
+                    return sourceList.ToDictionary(a => a, a => ItemUpdateStates.Deleted);
+                else
+                    return new Dictionary<SettingInfoEntity, ItemUpdateStates>();
+            }
+            Dictionary<SettingInfoEntity, ItemUpdateStates> itemUpdateStateDict = new Dictionary<SettingInfoEntity, ItemUpdateStates>();
+
+            var settingsForRemove = sourceList.Except(targetList, new SettingInfoByNumComparer()).ToList();
+            settingsForRemove.ForEach(s => itemUpdateStateDict.Add(s, ItemUpdateStates.Deleted));
+            var settingsForAdd = targetList.Except(sourceList, new SettingInfoByNumComparer()).ToList();
+            settingsForAdd.ForEach(s => itemUpdateStateDict.Add(s, ItemUpdateStates.Added));
+
+            var otherSettings = sourceList.Intersect(targetList, new SettingInfoByNumComparer()).ToList(); //包括属性变更或未变更的系统配置信息
+            foreach (var settingInfo in otherSettings)
+            {
+                var targetInfo = targetList.FirstOrDefault(s => string.Equals(s.InfoNum, settingInfo.InfoNum, StringComparison.OrdinalIgnoreCase));
+                if (targetInfo == null)
+                    continue;
+                if (!targetInfo.Equals(settingInfo))
+                {
+                    itemUpdateStateDict.Add(targetInfo, ItemUpdateStates.Modified);
+                }
+                else
+                {
+                    itemUpdateStateDict.Add(targetInfo, ItemUpdateStates.Unchanged);
+                }
+            }
+
+            return itemUpdateStateDict;
+        }
+
+        public IList<SqlCommand> CreateSqlCommandsForDeleteSetting(string infoNum)
+        {
+            if (string.IsNullOrEmpty(infoNum))
+                return Enumerable.Empty<SqlCommand>().ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var cmd = new SqlCommand("DELETE FROM setting_info WHERE info_num=@InfoNum", new Dictionary<string, object>()
+                {
+                    { "@InfoNum", infoNum }
+                });
+            sqlCommands.Add(cmd);
+            return sqlCommands;
+        }
+
+        public IList<SqlCommand> CreateSqlCommandsForAddOrModifySetting(SettingInfoEntity settingInfo)
+        {
+            if (settingInfo == null)
+                return Enumerable.Empty<SqlCommand>().ToList();
+            SqlCommand cmd = new SqlCommand(@"INSERT INTO setting_info(info_num, type, header, content, device_num, var_num, value, value_type) 
+                                                VALUES (@InfoNum, @Type, @Title, @Description, @DeviceNum, @VariableNum, @Value, @ValueType)
+                                                ON CONFLICT(info_num) DO UPDATE
+                                                SET type=@Type, header=@Title, content=@Description, device_num=@DeviceNum, var_num=@VariableNum, value=@Value, value_type=@ValueType", new Dictionary<string, object>()
+                                                {
+                                                    { "@InfoNum", settingInfo.InfoNum },
+                                                    { "@Type", settingInfo.Type },
+                                                    { "@Title", settingInfo.Title },
+                                                    { "@Description", settingInfo.Description },
+                                                    { "@DeviceNum", settingInfo.DeviceNum },
+                                                    { "@VariableNum", settingInfo.VariableNum },
+                                                    { "@Value", settingInfo.Value },
+                                                    {"@ValueType", settingInfo.ValueType }
+                                                });
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            sqlCommands.Add(cmd);
+            return sqlCommands;
+        }
+        #endregion
+
         internal class DeviceByNumComparer : IEqualityComparer<DeviceEntity>
         {
             public bool Equals(DeviceEntity x, DeviceEntity y)
@@ -1629,6 +1754,25 @@ namespace Coffee.DigitalPlatform.DataAccess
                     hash = hash * 23 + (obj.LinkageDeviceNum?.GetHashCode() ?? 0);
                     return hash;
                 }
+            }
+        }
+
+        internal class SettingInfoByNumComparer : IEqualityComparer<SettingInfoEntity>
+        {
+            public bool Equals(SettingInfoEntity? x, SettingInfoEntity? y)
+            {
+                if (ReferenceEquals(x, y))
+                    return true;
+                if (x == null || y == null) 
+                    return false;
+                return x.InfoNum == y.InfoNum;
+            }
+
+            public int GetHashCode([DisallowNull] SettingInfoEntity obj)
+            {
+                if (obj == null || string.IsNullOrEmpty(obj.InfoNum))
+                    return 0;
+                return obj.InfoNum.GetHashCode();
             }
         }
 

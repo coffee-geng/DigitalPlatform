@@ -103,5 +103,10 @@ namespace Coffee.DigitalPlatform.IDataAccess
         #endregion
 
         void CleanUpOutdatedConditions(IList<string> aliveConditionNumList, IEnumerable<ConditionEntity>? oldTopConditions);
+
+        #region 系统配置信息
+        IEnumerable<SettingInfoEntity> GetSettingInfos(string type = null);
+        void SaveSettingInfos(IEnumerable<SettingInfoEntity> settingInfos);
+        #endregion
     }
 }

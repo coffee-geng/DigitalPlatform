@@ -11,6 +11,9 @@
     <Compile Update="Dialogs\ControlInfoByTriggerDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Dialogs\PermissionDialog.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Dialogs\VariableAlarmDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -26,6 +29,9 @@
     <Compile Update="Pages\MonitorPage.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Pages\SettingsPage.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Controls\DataPager.xaml">
@@ -35,6 +41,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Dialogs\ControlInfoByTriggerDialog.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Dialogs\PermissionDialog.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Dialogs\VariableAlarmDialog.xaml">
@@ -50,6 +59,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Pages\MonitorPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Pages\SettingsPage.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

@@ -157,7 +157,7 @@
                                 <TextBlock Text="&#xe660;" FontFamily="{StaticResource Iconfont}" Foreground="#11FFFFFF" FontSize="50" 
                                            HorizontalAlignment="Left" Margin="-20,0,0,0"/>
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding Temperature.Value}" FontSize="17" Foreground="#5db5cc" FontWeight="Bold" Margin="0,5"/>
+                                    <TextBlock Text="{Binding Temperature.FinalValue}" FontSize="17" Foreground="#5db5cc" FontWeight="Bold" Margin="0,5"/>
                                     <TextBlock Text="℃" FontSize="11" Foreground="#885db5cc" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <TextBlock Text="车间温度" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="1" FontSize="10" Foreground="#888"/>
@@ -178,7 +178,7 @@
                                 <TextBlock Text="&#xe60a;" FontFamily="{StaticResource Iconfont}" Foreground="#22FFFFFF" FontSize="50" 
                                            HorizontalAlignment="Left" Margin="-20,0,0,0"/>
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <TextBlock Text="60" FontSize="17" Foreground="#4c67e6" FontWeight="Bold" Margin="0,5"/>
+                                    <TextBlock Text="{Binding Humidity.FinalValue}" FontSize="17" Foreground="#4c67e6" FontWeight="Bold" Margin="0,5"/>
                                     <TextBlock Text="%" FontSize="11" Foreground="#884c67e6" HorizontalAlignment="Center"/>
                                 </StackPanel>
                                 <TextBlock Text="车间湿度" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="1" FontSize="10" Foreground="#888"/>
@@ -199,7 +199,7 @@
                                 <TextBlock Text="&#xe601;" FontFamily="{StaticResource Iconfont}" Foreground="#22FFFFFF" FontSize="50" 
                                            HorizontalAlignment="Left" Margin="-20,0,0,0"/>
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <TextBlock Text="21.5" FontSize="17" Foreground="#5db5cc" FontWeight="Bold" Margin="0,5"/>
+                                    <TextBlock Text="{Binding PM25.FinalValue}" FontSize="17" Foreground="#5db5cc" FontWeight="Bold" Margin="0,5"/>
                                     <TextBlock Text="μg/m³" FontSize="10" Foreground="#885db5cc" HorizontalAlignment="Center"/>
                                 </StackPanel>
 
@@ -513,9 +513,9 @@
             <GroupBox Header="管道信息" Grid.Row="1">
                 <UniformGrid Rows="1" Grid.Row="1" Margin="10,30,10,10">
                     <component:Meter Width="90" Height="90" Foreground="#80E0EB"
-                               Header="母管压力" Unit="MPa" Value="25.01"/>
+                               Header="母管压力" Unit="MPa" Value="{Binding Pressure.FinalValue}"/>
                     <component:Meter Width="90" Height="90" Foreground="Orange"
-                               Header="瞬时流量" Unit="Nm³/min" Value="40.62"/>
+                               Header="瞬时流量" Unit="Nm³/min" Value="{Binding FlowRate.FinalValue}"/>
                 </UniformGrid>
             </GroupBox>
 
