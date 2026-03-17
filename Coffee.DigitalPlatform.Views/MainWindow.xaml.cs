@@ -33,6 +33,8 @@ namespace Coffee.DigitalPlatform.Views
 
             ActionManager.Register<object>("ShowConfigureComponentDialog", new Func<object, bool>(showConfigureComponentDialog));
             ActionManager.Register<object>("ShowPermissionDialog", new Func<object, bool>(showPermissionDialog));
+            ActionManager.Register<object>("ShowConfigTrendDialog", new Func<object, bool>(showShowConfigTrendDialog));
+            ActionManager.Register<object>("ShowConfigAxisDialog", new Func<object, bool>(showShowConfigAxisDialog));
         }
 
         private bool showConfigureComponentDialog(object dataContext)
@@ -47,6 +49,24 @@ namespace Coffee.DigitalPlatform.Views
         private bool showPermissionDialog(object dataContext)
         {
             return showDialog(new PermissionDialog()
+            {
+                Owner = this,
+                DataContext = dataContext
+            });
+        }
+
+        private bool showShowConfigTrendDialog(object dataContext)
+        {
+            return showDialog(new TrendDeviceChooseDialog()
+            {
+                Owner = this,
+                DataContext = dataContext
+            });
+        }
+
+        private bool showShowConfigAxisDialog(object dataContext)
+        {
+            return showDialog(new TrendAxisDialog()
             {
                 Owner = this,
                 DataContext = dataContext

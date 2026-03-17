@@ -14,6 +14,12 @@
     <Compile Update="Dialogs\PermissionDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Dialogs\TrendAxisDialog.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Dialogs\TrendDeviceChooseDialog.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Dialogs\VariableAlarmDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -32,6 +38,9 @@
     <Compile Update="Pages\SettingsPage.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Pages\TrendPage.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Controls\DataPager.xaml">
@@ -44,6 +53,12 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Dialogs\PermissionDialog.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Dialogs\TrendAxisDialog.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Dialogs\TrendDeviceChooseDialog.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Dialogs\VariableAlarmDialog.xaml">
@@ -62,6 +77,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Pages\SettingsPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Pages\TrendPage.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

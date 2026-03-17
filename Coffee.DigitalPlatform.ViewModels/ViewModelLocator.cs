@@ -29,5 +29,7 @@ namespace Coffee.DigitalPlatform.ViewModels
         public AlarmViewModel AlarmViewModel => Provider.GetService<AlarmViewModel>();
 
         public SettingsViewModel SettingsViewModel => Provider.GetService<SettingsViewModel>();
+
+        public TrendViewModel TrendViewModel => Provider.GetService<TrendViewModel>();
     }
 }
