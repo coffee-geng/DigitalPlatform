@@ -55,6 +55,17 @@ namespace Coffee.DigitalPlatform
             .CreateLogger();
             return new SerilogLoggerFactory().AddSerilog(Log.Logger);
         }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            var locator = this.TryFindResource("locator") as ViewModelLocator;
+            if (locator != null)
+            {
+                locator.TrendViewModel?.Dispose();
+            }
+               
+            base.OnExit(e);
+        }
     }
 
 }

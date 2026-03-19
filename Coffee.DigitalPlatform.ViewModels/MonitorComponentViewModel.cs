@@ -46,6 +46,16 @@ namespace Coffee.DigitalPlatform.ViewModels
             ManualControlCommand = new RelayCommand<ControlInfoByManual>(doManualControlCommand);
         }
 
+        #region 用户信息
+        public User GlobalUserInfo
+        {
+            get
+            {
+                return _mainViewModel.GlobalUserInfo;
+            }
+        }
+        #endregion
+
         #region 设备状态统计
         private models.Variable _temperature;
         public models.Variable Temperature 

@@ -1664,6 +1664,210 @@ namespace Coffee.DigitalPlatform.DataAccess
         }
         #endregion
 
+        #region 趋势图
+        //弃用：读取趋势图信息时多次读取数据库
+        //public IEnumerable<TrendEntity> ReadTrends()
+        //{
+        //    SqlMapper.SetTypeMap(typeof(TrendEntity), new ColumnAttributeTypeMapper<TrendEntity>());
+        //    SqlMapper.AddTypeHandler(typeof(bool), new StringToBooleanHandler());
+        //    IEnumerable<TrendEntity> result = SqlQuery<TrendEntity>(@"SELECT * FROM trend");
+        //    foreach(var trend in result)
+        //    {
+        //        var axesList = GetAxisCollectionForTrend(trend.TrendNum);
+        //        if (axesList != null)
+        //        {
+        //            string type_axisX = Enum.GetName(typeof(AxisTypes), AxisTypes.AxisX);
+        //            string type_axisY = Enum.GetName(typeof(AxisTypes), AxisTypes.AxisY);
+        //            trend.AxisXList = axesList.Where(a => a.AxisType == type_axisX);
+        //            trend.AxisYList = axesList.Where(a => a.AxisType == type_axisY);
+        //        }
+        //        trend.Series = GetSeriesCollectionForTrend(trend.TrendNum);
+        //    }
+        //    return result ?? Enumerable.Empty<TrendEntity>();
+        //}
+
+        //从数据库一次性读取趋势图信息
+        public IEnumerable<TrendEntity> ReadTrends()
+        {
+            SqlMapper.SetTypeMap(typeof(TrendEntity), new ColumnAttributeTypeMapper<TrendEntity>());
+            SqlMapper.AddTypeHandler(typeof(bool), new StringToBooleanHandler());
+            IEnumerable<TrendEntity> result = SqlQuery<TrendEntity>(@"SELECT * FROM trend");
+
+            Dictionary<string, IList<AxisEntity>> axisDict = getAxisCollection();
+            Dictionary<string, IList<SeriesEntity>> seriesDict = getSeriesCollection();
+            foreach (var trend in result)
+            {
+                if (axisDict.TryGetValue(trend.TrendNum, out IList<AxisEntity> axesList))
+                {
+                    string type_axisX = Enum.GetName(typeof(AxisTypes), AxisTypes.AxisX);
+                    string type_axisY = Enum.GetName(typeof(AxisTypes), AxisTypes.AxisY);
+                    trend.AxisX = axesList.FirstOrDefault(a => a.AxisType == type_axisX);
+                    trend.AxisYList = axesList.Where(a => a.AxisType == type_axisY);
+                }
+                if (seriesDict.TryGetValue(trend.TrendNum, out IList<SeriesEntity> seriesList))
+                {
+                    trend.Series = seriesList;
+                }
+            }
+            return result ?? Enumerable.Empty<TrendEntity>();
+        }
+
+        public void SaveTrends(IEnumerable<TrendEntity> trends)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<AxisEntity> GetAxisCollectionForTrend(string trendNum, AxisTypes? axisType = null)
+        {
+            if (string.IsNullOrWhiteSpace(trendNum))
+                return Enumerable.Empty<AxisEntity>();
+            SqlMapper.SetTypeMap(typeof(AxisEntity), new ColumnAttributeTypeMapper<AxisEntity>());
+            SqlMapper.AddTypeHandler(typeof(bool), new StringToBooleanHandler());
+            StringBuilder sb = new StringBuilder();
+            sb.Append(@"SELECT * FROM axis WHERE trend_num=@TrendNum");
+            var paramDict = new Dictionary<string, object>()
+            {
+                { "TrendNum", trendNum }
+            };
+            if (axisType.HasValue)
+            {
+                sb.Append(@" AND axis_type=@AxisType");
+                paramDict.Add("AxisType", Enum.GetName(typeof(AxisTypes), axisType.Value));
+            }
+            IEnumerable<AxisEntity> result = SqlQuery<AxisEntity>(sb.ToString(), paramDict);
+            if (result != null && result.Any())
+            {
+                foreach (var axis in result)
+                {
+                    var sections = GetSectionCollectionForAxis(axis.AxisNum);
+                    axis.Sections = sections;
+                }
+            }
+            return result ?? Enumerable.Empty<AxisEntity>();
+        }
+
+        public IEnumerable<SeriesEntity> GetSeriesCollectionForTrend(string trendNum)
+        {
+            if (string.IsNullOrWhiteSpace(trendNum))
+                return Enumerable.Empty<SeriesEntity>();
+            SqlMapper.SetTypeMap(typeof(SeriesEntity), new ColumnAttributeTypeMapper<SeriesEntity>());
+            IEnumerable<SeriesEntity> result = SqlQuery<SeriesEntity>(@"SELECT * FROM series WHERE trend_num=@TrendNum", new Dictionary<string, object>()
+            {
+                { "TrendNum", trendNum }
+            });
+            return result ?? Enumerable.Empty<SeriesEntity>();
+        }
+
+        public IEnumerable<SectionEntity> GetSectionCollectionForAxis(string axisNum)
+        {
+            if (string.IsNullOrWhiteSpace(axisNum))
+                return Enumerable.Empty<SectionEntity>();
+            SqlMapper.SetTypeMap(typeof(SectionEntity), new ColumnAttributeTypeMapper<SectionEntity>());
+            IEnumerable<SectionEntity> result = SqlQuery<SectionEntity>(@"SELECT * FROM section WHERE axis_num=@AxisNum", new Dictionary<string, object>()
+            {
+                { "AxisNum", axisNum }
+            });
+            return result;
+        }
+
+        public void UpdateAxisCollectionForTrend(IEnumerable<AxisEntity> axisXEntities, string trendNum, AxisTypes? axisType = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void UpdateSeriesCollectionForTrend(IEnumerable<SeriesEntity> seriesEntities, string trendNum)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void UpdateSectionCollectionForAxis(IEnumerable<SectionEntity> sectionEntities, string axisNum)
+        {
+            throw new NotImplementedException();
+        }
+
+        private Dictionary<string, IList<AxisEntity>> getAxisCollection()
+        {
+            SqlMapper.SetTypeMap(typeof(AxisEntity), new ColumnAttributeTypeMapper<AxisEntity>());
+            SqlMapper.SetTypeMap(typeof(SectionEntity), new ColumnAttributeTypeMapper<SectionEntity>());
+            SqlMapper.AddTypeHandler(typeof(bool), new StringToBooleanHandler());
+
+            IEnumerable<AxisEntity> axisEntities = SqlQuery<AxisEntity>(@"SELECT * FROM axis");
+            IEnumerable<SectionEntity> sectionEntities = SqlQuery<SectionEntity>(@"SELECT * FROM section");
+            Dictionary<string, IList<AxisEntity>> axisDict = new Dictionary<string, IList<AxisEntity>>();//字典的键是TrendNum
+            Dictionary<string, IList<SectionEntity>> sectionDict = new Dictionary<string, IList<SectionEntity>>();//字典的键是AxisNum
+
+            if (sectionEntities != null && sectionEntities.Any())
+            {
+                foreach (var sectionEntity in sectionEntities)
+                {
+                    if (string.IsNullOrWhiteSpace(sectionEntity.AxisNum))
+                        continue;
+                    if (sectionDict.TryGetValue(sectionEntity.AxisNum, out IList<SectionEntity> list))
+                    {
+                        list.Add(sectionEntity);
+                    }
+                    else
+                    {
+                        sectionDict.Add(sectionEntity.AxisNum, new List<SectionEntity>() { sectionEntity });
+                    }
+                }
+            }
+
+            if (axisEntities != null && axisEntities.Any())
+            {
+                foreach (var axisEntity in axisEntities)
+                {
+                    if (string.IsNullOrWhiteSpace(axisEntity.TrendNum))
+                        continue;
+                    if (!string.IsNullOrWhiteSpace(axisEntity.AxisNum))
+                    {
+                        if (sectionDict.TryGetValue(axisEntity.AxisNum, out IList<SectionEntity> sectionList))
+                        {
+                            axisEntity.Sections = sectionList;
+                        }
+                    }
+                    if (axisDict.TryGetValue(axisEntity.TrendNum, out IList<AxisEntity> list))
+                    {
+                        list.Add(axisEntity);
+                    }
+                    else
+                    {
+                        axisDict.Add(axisEntity.TrendNum, new List<AxisEntity>() { axisEntity });
+                    }
+                }
+            }
+
+            return axisDict;
+        }
+
+        private Dictionary<string, IList<SeriesEntity>> getSeriesCollection()
+        {
+            SqlMapper.SetTypeMap(typeof(SeriesEntity), new ColumnAttributeTypeMapper<SeriesEntity>());
+            SqlMapper.AddTypeHandler(typeof(bool), new StringToBooleanHandler());
+
+            IEnumerable<SeriesEntity> seriesEntities = SqlQuery<SeriesEntity>(@"SELECT * FROM series");
+            Dictionary<string, IList<SeriesEntity>> seriesDict = new Dictionary<string, IList<SeriesEntity>>();//字典的键是TrendNum
+
+            if (seriesEntities != null && seriesEntities.Any())
+            {
+                foreach (var seriesEntity in seriesEntities)
+                {
+                    if (string.IsNullOrWhiteSpace(seriesEntity.TrendNum))
+                        continue;
+                    if (seriesDict.TryGetValue(seriesEntity.TrendNum, out IList<SeriesEntity> list))
+                    {
+                        list.Add(seriesEntity);
+                    }
+                    else
+                    {
+                        seriesDict.Add(seriesEntity.TrendNum, new List<SeriesEntity>() { seriesEntity });
+                    }
+                }
+            }
+            return seriesDict;
+        }
+        #endregion
+
         internal class DeviceByNumComparer : IEqualityComparer<DeviceEntity>
         {
             public bool Equals(DeviceEntity x, DeviceEntity y)

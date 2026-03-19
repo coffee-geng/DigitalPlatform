@@ -74,7 +74,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             }
             else if (CurrentTrend != null)
             {
-                trendVariable.AxisXNum = CurrentTrend.AxisXCollection.FirstOrDefault()?.AxisNum;
+                trendVariable.AxisXNum = CurrentTrend.AxisX?.AxisNum;
                 trendVariable.AxisYNum = CurrentTrend.AxisYCollection.FirstOrDefault()?.AxisNum;
                 trendVariable.Color = BrushNames[new Random().Next(0, BrushNames.Count - 1)];
             }
@@ -112,30 +112,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             {
                 if (series == null) //如果当前趋势图中还有没参数（设备和变量）指定相关序列，则添加序列
                 {
-                    TrendSeriesInfo seriesInfo = null;
-                    if (trendVariable.VariableType == typeof(bool))
-                        seriesInfo = createTrendLineSeries<bool>(trendVariable);
-                    else if (trendVariable.VariableType == typeof(byte))
-                        seriesInfo = createTrendLineSeries<byte>(trendVariable);
-                    else if (trendVariable.VariableType == typeof(short))
-                        seriesInfo = createTrendLineSeries<short>(trendVariable);
-                    else if (trendVariable.VariableType == typeof(ushort))
-                        seriesInfo = createTrendLineSeries<ushort>(trendVariable);
-                    else if (trendVariable.VariableType == typeof(int))
-                        seriesInfo = createTrendLineSeries<int>(trendVariable);
-                    else if (trendVariable.VariableType == typeof(uint))
-                        seriesInfo = createTrendLineSeries<uint>(trendVariable);
-                    else if (trendVariable.VariableType == typeof(long))
-                        seriesInfo = createTrendLineSeries<long>(trendVariable);
-                    else if (trendVariable.VariableType == typeof(ulong))
-                        seriesInfo = createTrendLineSeries<ulong>(trendVariable);
-                    else if (trendVariable.VariableType == typeof(float))
-                        seriesInfo = createTrendLineSeries<float>(trendVariable);
-                    else if (trendVariable.VariableType == typeof(double))
-                        seriesInfo = createTrendLineSeries<double>(trendVariable);
-                    else if (trendVariable.VariableType == typeof(decimal))
-                        seriesInfo = createTrendLineSeries<decimal>(trendVariable);
-
+                    var seriesInfo = TrendHelper.createTrendSeries(trendVariable);
                     if (seriesInfo != null)
                     {
                         CurrentTrend.Series.Add(seriesInfo);
@@ -149,20 +126,6 @@ namespace Coffee.DigitalPlatform.ViewModels
                     CurrentTrend.Series.Remove(series);
                 }
             }
-        }
-
-        private TrendLineSeriesInfo<T> createTrendLineSeries<T>(TrendVariableInfo trendVariable)
-        {
-            var seriesInfo = new TrendLineSeriesInfo<T>()
-            {
-                TrendDeviceNum = trendVariable.DeviceNum,
-                TrendVariableNum = trendVariable.VariableNum,
-                Title = trendVariable.VariableName,
-                AxisXNum = trendVariable.AxisXNum,
-                AxisYNum = trendVariable.AxisYNum,
-                Color = trendVariable.Color,
-            };
-            return seriesInfo;
         }
 
         private void onTrendVariablePropertyChanged(TrendVariableInfo trendVariable, string propertyName)

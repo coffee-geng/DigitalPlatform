@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using LiveCharts;
+using LiveCharts.Defaults;
 using LiveCharts.Wpf;
 using Newtonsoft.Json.Linq;
 using System;
@@ -26,19 +27,10 @@ namespace Coffee.DigitalPlatform.Models
         public TrendChartInfo()
         {
             ChartNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
-
-            AxisXCollection.CollectionChanged += AxisCollection_CollectionChanged;
-            AxisYCollection.CollectionChanged += AxisCollection_CollectionChanged;
-            Series.CollectionChanged += Series_CollectionChanged;
-
-            AddAxisXCommand = new RelayCommand(doAddAxisXCommand);
-            AddAxisYCommand = new RelayCommand(doAddAxisYCommand);
-            RemoveAxisXCommand = new RelayCommand<TrendAxisInfo> (doRemoveAxisXCommand, canRemoveAxisXCommand);
-            RemoveAxisYCommand = new RelayCommand<TrendAxisInfo>(doRemoveAxisYCommand, canRemoveAxisYCommand);
+            initConstructor();
 
             //添加默认的轴
-            TrendAxisInfo axixX = new TrendAxisInfo() { IsShowSeperator = true, LabelRotation = 45 };
-            AxisXCollection.Add(axixX);
+            AxisX = new TrendAxisInfo() { IsShowSeperator = true, LabelRotation = 45 };
 
             TrendAxisInfo axixY = new TrendAxisInfo()
             {
@@ -47,17 +39,54 @@ namespace Coffee.DigitalPlatform.Models
             AxisYCollection.Add(axixY);
         }
 
+        //从数据库加载的数据
+        public TrendChartInfo(string chartNum)
+        {
+            if (string.IsNullOrWhiteSpace(chartNum)) 
+                throw new ArgumentNullException(nameof(chartNum));
+            ChartNum = chartNum;
+            initConstructor();
+        }
+
+        private void initConstructor()
+        {
+            AxisYCollection.CollectionChanged += AxisCollection_CollectionChanged;
+            Series.CollectionChanged += Series_CollectionChanged;
+
+            AddAxisYCommand = new RelayCommand(doAddAxisYCommand);
+            RemoveAxisYCommand = new RelayCommand<TrendAxisInfo>(doRemoveAxisYCommand, canRemoveAxisYCommand);
+        }
+
+        //确保当前趋势图至少有一个X轴和Y轴
+        public void EnsureAxis()
+        {
+            if (AxisX == null)
+            {
+                //添加默认的x轴
+                AxisX = new TrendAxisInfo() 
+                { 
+                    Minimum = 0,
+                    Maximum = 20,
+                    IsShowSeperator = true,
+                    LabelRotation = 45,
+                };
+            }
+            if (AxisYCollection == null || !AxisYCollection.Any())
+            {
+                //添加默认的y轴
+                TrendAxisInfo axixY = new TrendAxisInfo()
+                {
+                    IsShowSeperator = true
+                };
+                AxisYCollection.Add(axixY);
+            }
+        }
+
         private void AxisCollection_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             if (sender == null || sender is not ObservableCollection<TrendAxisInfo>)
                 return;
-            AxesCollection rawAxisCollection = null;
-            if (sender == AxisXCollection)
-                rawAxisCollection = RawAxisXCollection;
-            else if (sender == AxisYCollection)
-                rawAxisCollection = RawAxisYCollection;
-            if (rawAxisCollection == null)
-                return;
+            AxesCollection rawAxisCollection = RawAxisYCollection;
 
             if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add)
             {
@@ -188,10 +217,20 @@ namespace Coffee.DigitalPlatform.Models
         private LegendLocation _legendLocation = LegendLocation.None;
         public LegendLocation LegendLocation { get; set; } = LegendLocation.None;
 
-        private ObservableCollection<TrendAxisInfo> _axisXCollection = new ObservableCollection<TrendAxisInfo>();
-        public ObservableCollection<TrendAxisInfo> AxisXCollection
+        private TrendAxisInfo _axisX;
+        public TrendAxisInfo AxisX 
         {
-            get { return _axisXCollection; }
+            get { return _axisX; }
+            set
+            {
+                if (value == null || value.RawAxis == null)
+                    throw new NullReferenceException($"趋势图不能没有X轴！");
+                if (SetProperty(ref _axisX, value))
+                {
+                    RawAxisXCollection.Clear();
+                    RawAxisXCollection.Add(value.RawAxis);
+                }
+            }
         }
 
         private ObservableCollection<TrendAxisInfo> _axisYCollection = new ObservableCollection<TrendAxisInfo>();
@@ -200,19 +239,9 @@ namespace Coffee.DigitalPlatform.Models
             get { return _axisYCollection; }
         }
 
-        public RelayCommand AddAxisXCommand { get; set; }
-
         public RelayCommand AddAxisYCommand { get; set; }
 
-        public RelayCommand<TrendAxisInfo> RemoveAxisXCommand { get; set; }
-
         public RelayCommand<TrendAxisInfo> RemoveAxisYCommand { get; set; }
-
-        private void doAddAxisXCommand()
-        {
-            var axisX = new TrendAxisInfo();
-            AxisXCollection.Add(axisX);
-        }
 
         private void doAddAxisYCommand()
         {
@@ -220,34 +249,11 @@ namespace Coffee.DigitalPlatform.Models
             AxisYCollection.Add(axisY);
         }
 
-        private void doRemoveAxisXCommand(TrendAxisInfo axisInfo)
-        {
-            if (canRemoveAxisXCommand(axisInfo))
-            {
-                AxisXCollection.Remove(axisInfo);
-            }
-        }
-
         private void doRemoveAxisYCommand(TrendAxisInfo axisInfo)
         {
             if (canRemoveAxisYCommand(axisInfo))
             {
                 AxisYCollection.Remove(axisInfo);
-            }
-        }
-
-        private bool canRemoveAxisXCommand(TrendAxisInfo axisInfo)
-        {
-            if  (axisInfo != null)
-            {
-                int idx = AxisXCollection.IndexOf(axisInfo);
-                if (idx < 0)
-                    return false;
-                else return AxisXCollection.Count > 1 ? true : false; //最少保留一个横轴
-            }
-            else
-            {
-                return false;
             }
         }
 
@@ -279,18 +285,15 @@ namespace Coffee.DigitalPlatform.Models
         #region Refresh
         public TimeSpan RefreshSpan { get; set; } = TimeSpan.FromSeconds(1);
 
-        CancellationTokenSource cts = new CancellationTokenSource();
+        private Dictionary<string, Tuple<Task, CancellationTokenSource>> _seriesTaskDict = new Dictionary<string, Tuple<Task, CancellationTokenSource>>(); //每个关联趋势图序列的设备一个刷新任务
 
-        IList<Task> seriesTasks = new List<Task>(); //每个序列一个刷新任务
+        //多线程共享变量，字典保存当前正在使用的序列及其关联的点位信息
+        private Dictionary<TrendSeriesInfo, Variable> _seriesVariableDict = new Dictionary<TrendSeriesInfo, Variable>();
+
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
 
         public void BeginRefreshSeries()
         {
-            if (!cts.TryReset())
-            {
-                StopRefreshSeries();
-                cts = new CancellationTokenSource();
-            }
-
             //根据当前趋势图使用的设备编号，从设备监控模块中获取设备及其点位变量的状态信息
             var deviceNumList = Series.Select(s => s.TrendDeviceNum).Distinct();
             IList<Device> deviceList = new List<Device>();
@@ -324,62 +327,164 @@ namespace Coffee.DigitalPlatform.Models
                     }
                 }
             }
+            
+            if (_lock.TryEnterWriteLock(2000))
+            {
+                try
+                {
+                    _seriesVariableDict = seriesVariableDict;
+                }
+                finally
+                {
+                    _lock.ExitWriteLock();
+                }
+            }
+
 
             //每个设备监听开启一个线程
             foreach (var device in deviceList)
             {
-                var task = Task.Run(async () =>
+                var seriesList = Series.Where(s => s.TrendDeviceNum == device.DeviceNum).ToList();
+                bool hasSeriesOnDevice = false;
+                foreach (var series in seriesList)
                 {
-                    while (!cts.IsCancellationRequested)
+                    if (seriesVariableDict.ContainsKey(series))
                     {
-                        await Application.Current.Dispatcher.InvokeAsync(() =>
-                        {
-                            var axix1 = AxisXCollection.FirstOrDefault();
-                            if (axix1 != null)
-                            {
-                                axix1.AddLabel(DateTime.Now.ToString("HH:mm:ss"));
-                                if (axix1.Labels.Count > 30)
-                                {
-                                    axix1.RemoveLabelAt(0);
-                                }
-                            }
-                        });
-
-                        var seriesList = Series.Where(s => s.TrendDeviceNum == device.DeviceNum).ToList();
-                        Dictionary<TrendSeriesInfo, object> seriesValueDict = new Dictionary<TrendSeriesInfo, object>();
-                        foreach (var series in seriesList)
-                        {
-                            if (seriesVariableDict.TryGetValue(series, out var variable))
-                            {
-                                seriesValueDict.Add(series, variable.FinalValue);
-                            }
-                        }
-
-                        await Application.Current.Dispatcher.InvokeAsync(() =>
-                        {
-                            foreach(var pair in seriesValueDict)
-                            {
-                                var series = pair.Key;
-                                series.AddValue(pair.Value);
-                                if (series.GetValueCount() > 30)
-                                {
-                                    series.RemoveFirstValue();
-                                }
-                            }
-                        });
-                        await Task.Delay(RefreshSpan);
+                        hasSeriesOnDevice = true;
+                        break;
                     }
-                });
-                seriesTasks.Add(task);
+                }
+                //只有当设备与选中的趋势图序列有关联时，才启动监听线程
+                if (!hasSeriesOnDevice)
+                    continue;
+
+                if (!_seriesTaskDict.ContainsKey(device.DeviceNum))
+                {
+                    var cts = new CancellationTokenSource();
+                    var token = cts.Token;
+                    var task = Task.Run(async () =>
+                    {
+                        
+                        while (true)
+                        {
+                            //if (!_seriesTaskDict.TryGetValue(device.DeviceNum, out Tuple<Task, CancellationTokenSource> pair))
+                            //    break;
+                            //var cts = pair.Item2;
+                            //if (cts.IsCancellationRequested)
+                            //    break;
+                            if (token.IsCancellationRequested)
+                                break;
+
+                            Dictionary<TrendSeriesInfo, object> seriesValueDict = new Dictionary<TrendSeriesInfo, object>();
+                            if (_lock.TryEnterReadLock(2000))
+                            {
+                                try
+                                {
+                                    var seriesList = Series.Where(s => s.TrendDeviceNum == device.DeviceNum).ToList();
+                                    foreach (var series in seriesList)
+                                    {
+                                        if (_seriesVariableDict.TryGetValue(series, out var variable))
+                                        {
+                                            seriesValueDict.Add(series, variable.FinalValue);
+                                        }
+                                    }
+                                }
+                                finally
+                                {
+                                    _lock.ExitReadLock();
+                                }
+                            }
+                            else
+                            {
+                                continue;
+                            }
+
+                            var axisX = AxisX;
+                            int minX = (int)Math.Ceiling(axisX.Minimum);
+                            int maxX = (int)Math.Ceiling(axisX.Maximum);
+
+                            await Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                int labelCount = axisX.GetLableCount();
+                                if (labelCount < maxX - minX)
+                                {
+                                    axisX.AddLabel(DateTime.Now.ToString("HH:mm:ss"));
+                                }
+                                else
+                                {
+                                    for (int i = 0; i < labelCount; i++)
+                                    {
+                                        if (i < labelCount - 1)
+                                        {
+                                            axisX.UpdateLabelAt(i, axisX.GetLabelAt(i + 1));
+                                        }
+                                        else
+                                        {
+                                            axisX.UpdateLabelAt(i, DateTime.Now.ToString("HH:mm:ss"));
+                                        }
+                                    }
+                                }
+                            });
+
+                            await Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                foreach (var pair in seriesValueDict)
+                                {
+                                    var series = pair.Key;
+                                    if (pair.Value == null)
+                                        continue;
+                                    int deltaX = series.GetValueCount();
+                                    series.AddValue(pair.Value, minX + deltaX);
+                                    if (minX + deltaX > maxX)
+                                    {
+                                        series.RemoveFirstValue();
+                                        series.RefreshValuePositions(-1, SeriesValuePostionRefreshTypes.Range, 0, series.GetValueCount());
+                                    }
+                                }
+                            });
+                            await Task.Delay(RefreshSpan);
+                        }
+                    }, cts.Token);
+                    _seriesTaskDict.Add(device.DeviceNum, new Tuple<Task, CancellationTokenSource>(task, cts));
+                }
+            }
+
+            var keysInDict = _seriesTaskDict.Keys.ToList();
+            var deviceNames = deviceList.Select(d => d.DeviceNum).ToList();
+            var removingTaskList = new List<Tuple<Task, string>>();
+            foreach (var key in keysInDict)
+            {
+                if (deviceNames.Contains(key))
+                    continue;
+                if (!_seriesTaskDict.TryGetValue(key, out Tuple<Task, CancellationTokenSource> tuple))
+                    continue;
+                var cts = tuple.Item2;
+                cts.Cancel();
+                removingTaskList.Add(new Tuple<Task, string>(tuple.Item1, key));
+            }
+
+            Task.WaitAll(removingTaskList.Select(t=>t.Item1).ToArray());
+            foreach (var item in removingTaskList)
+            {
+                _seriesTaskDict.Remove(item.Item2);
             }
         }
 
         public void StopRefreshSeries()
         {
-            cts.Cancel();
-            if (seriesTasks != null)
+            if (_seriesTaskDict != null && _seriesTaskDict.Any())
             {
-                Task.WaitAll(seriesTasks.ToArray());
+                var removingTaskList = new List<Task>();
+                foreach (var item in _seriesTaskDict)
+                {
+                    var cts = item.Value.Item2 as CancellationTokenSource;
+                    var task = item.Value.Item1 as Task;
+                    removingTaskList.Add(task);
+                    cts.Cancel();
+                }
+
+                Task.WaitAll(removingTaskList.ToArray());
+                _seriesTaskDict.Clear();
             }
         }
 
@@ -398,12 +503,27 @@ namespace Coffee.DigitalPlatform.Models
     {
         public TrendAxisInfo(bool hasDefaultMinOrMax = true)
         {
+            AxisNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
+
+            initConstructor(hasDefaultMinOrMax);
+        }
+
+        public TrendAxisInfo(string axisNum, bool hasDefaultMinOrMax = true)
+        {
+            if (string.IsNullOrWhiteSpace(axisNum))
+                throw new ArgumentNullException(nameof(axisNum));
+            AxisNum = axisNum;
+
+            initConstructor(hasDefaultMinOrMax);
+        }
+
+        private void initConstructor(bool hasDefaultMinOrMax)
+        {
             AddSectionCommand = new RelayCommand(doAddSectionCommand);
             RemoveSectionCommand = new RelayCommand<TrendSectionInfo>(doRemoveSectionCommand, canRemoveSectionCommand);
 
             _sections.CollectionChanged += _sections_CollectionChanged;
-            
-            AxisNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
+
             RawAxis = new Axis()
             {
                 LabelFormatter = new Func<double, string>(d => d.ToString("00")),
@@ -424,7 +544,6 @@ namespace Coffee.DigitalPlatform.Models
                 };
             }
 
-            Labels = new List<string>();
             RawAxis.Labels = new List<string>();
         }
 
@@ -636,7 +755,22 @@ namespace Coffee.DigitalPlatform.Models
             }
         }
 
-        public IList<string> Labels { get; }
+        public IReadOnlyCollection<string> Labels
+        {
+            get { return new ReadOnlyCollection<string>(RawAxis.Labels); }
+        }
+
+        public string GetLabelAt(int index)
+        {
+            if (index < 0 || index >= RawAxis.Labels.Count)
+                return null;
+            return RawAxis.Labels[index];
+        }
+
+        public int GetLableCount()
+        {
+            return RawAxis.Labels.Count;
+        }
 
         public void AddLabel(string label)
         {
@@ -656,6 +790,13 @@ namespace Coffee.DigitalPlatform.Models
         public void RemoveLabelAt(int index)
         {
             RawAxis.Labels.RemoveAt(index);
+        }
+
+        public void UpdateLabelAt(int index, string newLabel)
+        {
+            if (index < 0 || index >= RawAxis.Labels.Count)
+                return;
+            RawAxis.Labels[index] = newLabel;
         }
 
         private ObservableCollection<TrendSectionInfo> _sections = new ObservableCollection<TrendSectionInfo>();
@@ -687,7 +828,7 @@ namespace Coffee.DigitalPlatform.Models
             return sectionInfo != null;
         }
 
-        internal Axis RawAxis { get; }
+        internal Axis RawAxis { get; private set; }
 
         public void UpdateUI()
         {
@@ -766,6 +907,14 @@ namespace Coffee.DigitalPlatform.Models
     public abstract class TrendSeriesInfo : ObservableObject, ITrendRender
     {
         private object lockObj = new object();
+
+        // 是否根据用户需要沿着X轴定位序列值
+        protected TrendSeriesInfo(bool isPositionOnAxisX = false)
+        {
+            _isPositionOnAxisX = isPositionOnAxisX;   
+        }
+
+        protected bool _isPositionOnAxisX;
 
         public string TrendDeviceNum { get; set; }
 
@@ -849,12 +998,55 @@ namespace Coffee.DigitalPlatform.Models
             }
         }
 
-        public void AddValue(object value)
+        public virtual void AddValue(object value, double? valuePosX = null)
         {
-            RawSeries.Values.Add(value);
+            if (_isPositionOnAxisX)
+            {
+                if (valuePosX.HasValue)
+                {
+                    AddValue(valuePosX.Value, value);
+                }
+                else
+                {
+                    throw new Exception("自定义X轴坐标模式下必须指定当前值在X轴的坐标！");
+                }
+            }
+            else
+            {
+                RawSeries.Values.Add(value);
+            }
         }
 
-        public bool RemoveValueAt(int index)
+        protected virtual void AddValue(double valueX, object valueY)
+        {
+            double dVal = 0.0;
+            if (valueY != null)
+            {
+                if (valueY.GetType() == typeof(bool))
+                {
+                    dVal = (bool)valueY ? 1.0 : 0.0;
+                }
+                else if (valueY.GetType() == typeof(bool?))
+                {
+                    dVal = ((valueY as bool?).HasValue && (valueY as bool?).Value) ? 1.0 : 0.0;
+                }
+                else if (valueY is double)
+                {
+                    dVal = (double)valueY;
+                }
+                else
+                {
+                    if (double.TryParse(valueY.ToString(), out double d))
+                    {
+                        dVal = d;
+                    }
+                }
+            }
+
+            RawSeries.Values.Add(new LiveCharts.Defaults.ObservablePoint(valueX, dVal));
+        }
+
+        public virtual bool RemoveValueAt(int index)
         {
             lock (lockObj)
             {
@@ -865,20 +1057,48 @@ namespace Coffee.DigitalPlatform.Models
             }
         }
 
-        public bool RemoveFirstValue()
+        public virtual bool RemoveFirstValue()
         {
             return RemoveValueAt(0);
         }
 
-        public bool RemoveLastValue()
+        public virtual bool RemoveLastValue()
         {
             int lastIndex = RawSeries.Values.Count - 1;
             return RemoveValueAt(lastIndex);
         }
 
-        public int GetValueCount()
+        public virtual int GetValueCount()
         {
             return RawSeries.Values.Count;
+        }
+
+        public virtual void RefreshValuePositions(double deltaX, SeriesValuePostionRefreshTypes posRefreshType = SeriesValuePostionRefreshTypes.All, int start = 0, int length = 1)
+        {
+            if (!_isPositionOnAxisX)
+                return;
+            if (posRefreshType == SeriesValuePostionRefreshTypes.Range)
+            {
+                for(int i = 0; i < RawSeries.Values.Count; i++)
+                {
+                    if (i < start || i >= start + length)
+                        continue;
+                    if (RawSeries.Values[i] is ObservablePoint point)
+                    {
+                        point.X += deltaX;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var item in RawSeries.Values)
+                {
+                    if (item is ObservablePoint point)
+                    {
+                        point.X += deltaX;
+                    }
+                }
+            }
         }
 
         public Func<string, int> FindAxisXIndex { get; set; }
@@ -897,11 +1117,11 @@ namespace Coffee.DigitalPlatform.Models
 
     public class TrendLineSeriesInfo<T> : TrendSeriesInfo
     {
-        public TrendLineSeriesInfo()
+        public TrendLineSeriesInfo(bool isPositionOnAxisX = false) : base(isPositionOnAxisX)
         {
             _rawSeries = new LineSeries()
             {
-                Values = new ChartValues<T>(),
+                Values = isPositionOnAxisX ? new ChartValues<ObservableObject>() : new ChartValues<T>(),
                 Fill = Brushes.Transparent,
                 Stroke = Brushes.Black,
                 StrokeThickness = 2,
@@ -922,5 +1142,67 @@ namespace Coffee.DigitalPlatform.Models
                 return typeof(T);
             }
         }
+    }
+
+    public class TrendStepLineSeriesInfo<T> : TrendSeriesInfo
+    {
+        public TrendStepLineSeriesInfo(bool isPositionOnAxisX = false) : base(isPositionOnAxisX)
+        {
+            _rawSeries = new StepLineSeries()
+            {
+                Values = isPositionOnAxisX ? new ChartValues<ObservableObject>() : new ChartValues<double>(),
+                Fill = Brushes.Transparent,
+                Stroke = Brushes.Black,
+                StrokeThickness = 2,
+                PointGeometrySize = 8,
+                PointGeometry = DefaultGeometries.Diamond
+            };
+        }
+
+        private readonly StepLineSeries _rawSeries;
+
+        internal override Series RawSeries
+        {
+            get { return _rawSeries; }
+        }
+
+        public Type ValueType
+        {
+            get
+            {
+                return typeof(T);
+            }
+        }
+
+        public override void AddValue(object value, double? valuePosX = null)
+        {
+            double dVal = 0.0;
+            if (ValueType == typeof(bool))
+            {
+                dVal = (bool)value ? 1.0 : 0.0;
+            }
+            else if (ValueType == typeof(bool?))
+            {
+                dVal = value != null ? (((value as bool?).HasValue && (value as bool?).Value) ? 1.0 : 0.0) : 0.0;
+            }
+            else if (value is double)
+            {
+                dVal = (double)value;
+            }
+            else
+            {
+                if (value != null && double.TryParse(value.ToString(), out double d))
+                {
+                    dVal = d;
+                }
+            }
+            base.AddValue(dVal);
+        }
+    }
+
+    public enum SeriesValuePostionRefreshTypes
+    {
+        All,
+        Range
     }
 }

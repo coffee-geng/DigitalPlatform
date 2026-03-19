@@ -154,4 +154,29 @@ namespace Coffee.DigitalPlatform.Entities.Converter
             return DateTime.TryParse(value.ToString(), out DateTime dateTime) ? dateTime : null;
         }
     }
+
+    public class StringToBooleanHandler : SqlMapper.TypeHandler<bool>
+    {
+        public override bool Parse(object value)
+        {
+            if (value == null || value == DBNull.Value)
+                return false;
+
+            string stringValue = value.ToString().Trim().ToLower();
+
+            // 定义所有被视为 true 的字符串值
+            return stringValue == "true"
+                || stringValue == "1"
+                || stringValue == "yes"
+                || stringValue == "active"
+                || stringValue == "y"
+                || stringValue == "t";
+        }
+
+        public override void SetValue(IDbDataParameter parameter, bool value)
+        {
+            // 将布尔值存回数据库时的处理
+            parameter.Value = value ? "true" : "false";
+        }
+    }
 }

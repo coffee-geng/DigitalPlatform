@@ -108,5 +108,29 @@ namespace Coffee.DigitalPlatform.IDataAccess
         IEnumerable<SettingInfoEntity> GetSettingInfos(string type = null);
         void SaveSettingInfos(IEnumerable<SettingInfoEntity> settingInfos);
         #endregion
+
+        #region 趋势图
+        IEnumerable<TrendEntity> ReadTrends();
+
+        void SaveTrends(IEnumerable<TrendEntity> trends);
+
+        IEnumerable<AxisEntity> GetAxisCollectionForTrend(string trendNum, AxisTypes? axisType = null);
+
+        IEnumerable<SeriesEntity> GetSeriesCollectionForTrend(string trendNum);
+
+        IEnumerable<SectionEntity> GetSectionCollectionForAxis(string axisNum);
+
+        void UpdateAxisCollectionForTrend(IEnumerable<AxisEntity> axisXEntities, string trendNum, AxisTypes? axisType = null);
+
+        void UpdateSeriesCollectionForTrend(IEnumerable<SeriesEntity> seriesEntities, string trendNum);
+
+        void UpdateSectionCollectionForAxis(IEnumerable<SectionEntity> sectionEntities, string axisNum);
+        #endregion
+    }
+
+    public enum AxisTypes
+    {
+        AxisX,
+        AxisY
     }
 }

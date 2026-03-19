@@ -1,4 +1,6 @@
 ﻿using Coffee.DigitalPlatform.CommWPF;
+using Coffee.DigitalPlatform.Entities;
+using Coffee.DigitalPlatform.IDataAccess;
 using Coffee.DigitalPlatform.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,19 +15,16 @@ using System.Threading.Tasks;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
-    public class TrendViewModel : ObservableObject, INavigationService
+    public class TrendViewModel : ObservableObject, INavigationService, IDisposable
     {
-        public TrendViewModel(MonitorComponentViewModel monitorViewModel)
+        public TrendViewModel(MonitorComponentViewModel monitorViewModel, ILocalDataAccess localDataAccess)
         {
             if (monitorViewModel == null)
                 throw new ArgumentNullException(nameof(monitorViewModel));
-
+            if (localDataAccess == null)
+                throw new ArgumentNullException(nameof(localDataAccess));
             _monitorViewModel = monitorViewModel;
-            Trends.Add(new TrendChartInfo()
-            {
-                IsSelected = true,
-            });
-            CurrentTrend = Trends.FirstOrDefault();
+            _localDataAccess = localDataAccess;
 
             AddTrendCommand = new RelayCommand(doAddTrendCommand);
             RemoveTrendCommand = new RelayCommand<TrendChartInfo>(doRemoveTrendCommand, canRemoveTrendCommand);
@@ -48,6 +47,8 @@ namespace Coffee.DigitalPlatform.ViewModels
         }
 
         private MonitorComponentViewModel _monitorViewModel;
+
+        private ILocalDataAccess _localDataAccess;
 
         public ObservableCollection<TrendChartInfo> Trends { get; } = new ObservableCollection<TrendChartInfo>();
 
@@ -141,11 +142,128 @@ namespace Coffee.DigitalPlatform.ViewModels
             return CurrentTrend != null;
         }
 
+        IEnumerable<TrendChartInfo> entityToModel(IEnumerable<TrendEntity> trendEntities)
+        {
+            if (trendEntities == null || !trendEntities.Any())
+                return Enumerable.Empty<TrendChartInfo>();
+            IList<TrendChartInfo> trends = new List<TrendChartInfo>();
+            foreach (var trendEntity in trendEntities)
+            {
+                var trend = new TrendChartInfo(trendEntity.TrendNum)
+                {
+                    Header = trendEntity.Header,
+                    IsShowLegend = trendEntity.IsShowLegend
+                };
+
+                var funcAxis = new Func<AxisEntity, TrendAxisInfo>(axisEntity =>
+                {
+                    var axis = new TrendAxisInfo(axisEntity.AxisNum)
+                    {
+                        Title = axisEntity.Title,
+                        IsShowTitle = axisEntity.IsShowTitle,
+                        IsShowSeperator = axisEntity.IsShowSeperator,
+                        LabelFormatter = axisEntity.LabelFormatter,
+                    };
+                    if (Enum.TryParse(typeof(LiveCharts.AxisPosition), axisEntity.Position, out object? position))
+                    {
+                        axis.AxisPosition = (LiveCharts.AxisPosition)position;
+                    }
+                    if (double.TryParse(axisEntity.Minimum, out var minimum))
+                    {
+                        axis.Minimum = minimum;
+                    }
+                    if (double.TryParse(axisEntity.Maximum, out var maximum))
+                    {
+                        axis.Maximum = maximum;
+                    }
+
+                    if (axisEntity.Sections != null && axisEntity.Sections.Count() > 0)
+                    {
+                        foreach (var sectionEntity in axisEntity.Sections)
+                        {
+                            var section = new TrendSectionInfo()
+                            {
+                                Value = double.Parse(sectionEntity.Value.ToString()),
+                                Color = sectionEntity.Color
+                            };
+                            axis.Sections.Add(section);
+                        }
+                    }
+                    return axis;
+                });
+                if (trendEntity.AxisX != null)
+                {
+                    trend.AxisX = funcAxis.Invoke(trendEntity.AxisX);
+                }
+                if (trendEntity.AxisYList != null && trendEntity.AxisYList.Any())
+                {
+                    foreach (var axisYEntity in trendEntity.AxisYList)
+                    {
+                        var axisY = funcAxis.Invoke(axisYEntity);
+                        trend.AxisYCollection.Add(axisY);
+                    }
+                }
+                trend.EnsureAxis();
+
+                foreach(var seriesEntity in trendEntity.Series)
+                {
+                    var series = createTrendSeries(seriesEntity, seriesEntity.AxisNum);
+                    trend.Series.Add(series);
+                }
+
+                trends.Add(trend);
+            }
+            return trends;
+        }
+
+        private TrendSeriesInfo createTrendSeries(SeriesEntity seriesEntity, string axisYNum)
+        {
+            if (seriesEntity == null || string.IsNullOrWhiteSpace(seriesEntity.DeviceNum) || string.IsNullOrWhiteSpace(seriesEntity.VarNum))
+                return null;
+            if (_monitorViewModel.DeviceList == null)
+                return null;
+            var device = _monitorViewModel.DeviceList.Where(d => d.DeviceNum == seriesEntity.DeviceNum).FirstOrDefault();
+            if (device == null)
+                return null;
+            var variable = device.Variables.Where(@var => var.VarNum == seriesEntity.VarNum).FirstOrDefault();
+            if (variable == null)
+                return null;
+            var trendVariable = new TrendVariableInfo()
+            {
+                AxisYNum = axisYNum,
+                DeviceNum = device.DeviceNum,
+                VariableNum = variable.VarNum,
+                VariableName = variable.VarName,
+                VariableType = variable.VarType,
+                Color = seriesEntity.Color
+            };
+            return TrendHelper.createTrendSeries(trendVariable);
+        }
+
         public void OnNavigateTo(NavigationContext context = null)
         {
-            if (Trends == null || !Trends.Any())
-                return;
-            foreach(var trendInfo in Trends)
+            var trendEntities = _localDataAccess.ReadTrends();
+            if (trendEntities.Any())
+            {
+                Trends.Clear();
+                var trendInfos = entityToModel(trendEntities);
+                var firstItem = trendInfos.First();
+                foreach(var trendInfo in trendInfos)
+                {
+                    trendInfo.IsSelected = trendInfo == firstItem;
+                    Trends.Add(trendInfo);
+                }
+            }
+            else if (!Trends.Any()) //保证最少有一个趋势图
+            {
+                Trends.Add(new TrendChartInfo()
+                {
+                    IsSelected = true,
+                });
+            }
+            CurrentTrend = Trends.FirstOrDefault();
+
+            foreach (var trendInfo in Trends)
             {
                 trendInfo.BeginRefreshSeries();
             }
@@ -154,6 +272,17 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         public void OnNavigateFrom(NavigationContext context = null)
         {
+            if (Trends == null || !Trends.Any())
+                return;
+            foreach (var trendInfo in Trends)
+            {
+                trendInfo.StopRefreshSeries();
+            }
+        }
+
+        public void Dispose()
+        {
+            //页面切换或者关闭窗口都需要释放Task
             if (Trends == null || !Trends.Any())
                 return;
             foreach (var trendInfo in Trends)
