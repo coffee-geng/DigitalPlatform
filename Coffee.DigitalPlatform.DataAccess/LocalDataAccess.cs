@@ -1712,9 +1712,131 @@ namespace Coffee.DigitalPlatform.DataAccess
             return result ?? Enumerable.Empty<TrendEntity>();
         }
 
-        public void SaveTrends(IEnumerable<TrendEntity> trends)
+        public void SaveTrends(IEnumerable<TrendEntity> newTrends)
         {
-            throw new NotImplementedException();
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+            IEnumerable<TrendEntity> oldTrends = ReadTrends();
+
+            var trendUpdateStateDict = checkTrendsForUpdating(oldTrends, newTrends);
+            foreach (var pair in trendUpdateStateDict)
+            {
+                if (pair.Value == ItemUpdateStates.Added || pair.Value == ItemUpdateStates.Modified)
+                {
+                    var trendEntity = pair.Key;
+                    var oldTrendEntity = oldTrends?.FirstOrDefault(t => t.TrendNum == trendEntity.TrendNum);
+
+                    var newAxisEntities = new List<AxisEntity>();     // 当前趋势图在修改后应用的Axis对象
+                    var newSeriesEntities = new List<SeriesEntity>(); // 当前趋势图在修改后应用的Series对象
+                    var oldAxisEntities = new List<AxisEntity>();     // 当前趋势图在修改前曾经应用的Axis对象
+                    var oldSeriesEntities = new List<SeriesEntity>(); // 当前趋势图在修改前曾经应用的Series对象
+
+                    if (trendEntity.AxisYList != null && trendEntity.AxisYList.Any())
+                    {
+                        newAxisEntities.AddRange(trendEntity.AxisYList);
+                    }
+                    if (trendEntity.AxisX != null)
+                    {
+                        newAxisEntities.Add(trendEntity.AxisX);
+                    }
+                    if (trendEntity.Series != null && trendEntity.Series.Any())
+                    {
+                        newSeriesEntities.AddRange(trendEntity.Series);
+                    }
+
+                    if (oldTrendEntity != null)
+                    {
+                        if (oldTrendEntity.AxisYList != null && oldTrendEntity.AxisYList.Any())
+                        {
+                            oldAxisEntities.AddRange(oldTrendEntity.AxisYList);
+                        }
+                        if (oldTrendEntity.AxisX != null)
+                        {
+                            oldAxisEntities.Add(oldTrendEntity.AxisX);
+                        }
+                        if (oldTrendEntity.Series != null && oldTrendEntity.Series.Any())
+                        {
+                            oldSeriesEntities.AddRange(oldTrendEntity.Series);
+                        }
+                    }
+
+                    var sqlCommandsForAddModifyTrend = CreateSqlCommandsForAddOrModifyTrend(trendEntity);
+
+                    if (sqlCommandsForAddModifyTrend != null && sqlCommandsForAddModifyTrend.Any())
+                    {
+                        //计算出哪些Axis或Series对象有变更
+                        Dictionary<AxisEntity, ItemUpdateStates> axisUpdateStateDict = checkAxesForUpdating(oldAxisEntities, newAxisEntities);
+                        Dictionary<SeriesEntity, ItemUpdateStates> seriesUpdateStateDict = checkSeriesForUpdating(oldSeriesEntities, newSeriesEntities);
+
+                        var axisListForAdd = axisUpdateStateDict.Where(p => p.Value == ItemUpdateStates.Added || p.Value == ItemUpdateStates.Modified).Select(p => p.Key);
+                        var axisListForDelete = axisUpdateStateDict.Where(p => p.Value == ItemUpdateStates.Deleted).Select(p => p.Key);
+
+                        var seriesListForAdd = seriesUpdateStateDict.Where(p => p.Value == ItemUpdateStates.Added || p.Value == ItemUpdateStates.Modified).Select(p => p.Key);
+                        var seriesListForDelete = seriesUpdateStateDict.Where(p => p.Value == ItemUpdateStates.Deleted).Select(p => p.Key);
+
+                        var sqlCommandsForDeleteAxes = CreateSqlCommandsForDeleteAxes(axisListForDelete);
+                        var sqlCommandsForAddModifyAxes = CreateSqlCommandsForAddOrModifyTrendAxes(axisListForAdd, trendEntity);
+
+                        var sqlCommandsFordeleteSeries = CreateSqlCommandsForDeleteSeries(seriesListForDelete.Select(s => (s.TrendNum, s.DeviceNum, s.VarNum)));
+                        var sqlCommandsForAddModifySeries = CreateSqlCommandsAddOrModifyTrendSeries(trendEntity.Series, trendEntity.TrendNum);
+
+                        //在新增或修改Trend之前，需要先检查是否有与其相关的Axis或Series对象要添加或修改
+                        if (sqlCommandsForDeleteAxes != null && sqlCommandsForDeleteAxes.Any())
+                        {
+                            sqlCommands.AddRange(sqlCommandsForDeleteAxes);
+                        }
+                        if (sqlCommandsFordeleteSeries != null && sqlCommandsFordeleteSeries.Any())
+                        {
+                            sqlCommands.AddRange(sqlCommandsFordeleteSeries);
+                        }
+                        if (sqlCommandsForAddModifyAxes != null && sqlCommandsForAddModifyAxes.Any())
+                        {
+                            sqlCommands.AddRange(sqlCommandsForAddModifyAxes);
+                        }
+                        if (sqlCommandsForAddModifySeries != null && sqlCommandsForAddModifySeries.Any())
+                        {
+                            sqlCommands.AddRange(sqlCommandsForAddModifySeries);
+                        }
+                    }
+                }
+                else if (pair.Value == ItemUpdateStates.Deleted)
+                {
+                    var info = pair.Key;
+                    var sqlCommandsForDeleteTrend = CreateSqlCommandsForDeleteTrend(info.TrendNum);
+                    if (sqlCommandsForDeleteTrend != null && sqlCommandsForDeleteTrend.Any())
+                    {
+                        //在删除Trend前需先检查是否有与其有关的Axis要级联删除
+                        List<AxisEntity> axisList = new List<AxisEntity>();
+                        if (info.AxisYList != null && info.AxisYList.Any())
+                        {
+                            axisList.AddRange(info.AxisYList);
+                        }
+                        if (info.AxisX != null)
+                        {
+                            axisList.Add(info.AxisX);
+                        }
+                        var sqlCommandsForDeleteAxes = CreateSqlCommandsForDeleteAxes(axisList);
+
+                        //在删除Trend前需先检查是否有与其有关的Series要级联删除
+                        IList<SqlCommand> sqlCommandsForDeleteSeries = null;
+                        if (info.Series != null && info.Series.Any())
+                        {
+                            sqlCommandsForDeleteSeries = CreateSqlCommandsForDeleteSeries(info.Series.Select(s => (info.TrendNum, s.DeviceNum, s.VarNum)));
+                        }
+
+                        if (sqlCommandsForDeleteAxes != null && sqlCommandsForDeleteAxes.Any())
+                        {
+                            sqlCommands.AddRange(sqlCommandsForDeleteAxes);
+                        }
+                        if (sqlCommandsForDeleteSeries != null && sqlCommandsForDeleteSeries.Any())
+                        {
+                            sqlCommands.AddRange(sqlCommandsForDeleteSeries);
+                        }
+                        sqlCommands.AddRange(sqlCommandsForDeleteTrend);
+                    }
+                }
+            }
+
+            SqlExecute(sqlCommands);
         }
 
         public IEnumerable<AxisEntity> GetAxisCollectionForTrend(string trendNum, AxisTypes? axisType = null)
@@ -1770,19 +1892,498 @@ namespace Coffee.DigitalPlatform.DataAccess
             return result;
         }
 
-        public void UpdateAxisCollectionForTrend(IEnumerable<AxisEntity> axisXEntities, string trendNum, AxisTypes? axisType = null)
+        private IList<SqlCommand> CreateSqlCommandsForAddOrModifyTrend(TrendEntity trendEntity)
         {
-            throw new NotImplementedException();
+            if (trendEntity == null)
+                throw new ArgumentNullException(nameof(trendEntity));
+            
+            SqlMapper.SetTypeMap(typeof(TrendEntity), new ColumnAttributeTypeMapper<TrendEntity>());
+            SqlMapper.AddTypeHandler(typeof(bool), new StringToBooleanHandler());
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+
+            SqlCommand cmd = new SqlCommand(@"INSERT INTO trend(trend_num, trend_header, show_legend) 
+                                                VALUES (@TrendNum, @Header, @IsShowLegend)
+                                                ON CONFLICT(trend_num) DO UPDATE
+                                                SET trend_header=@Header, show_legend=@IsShowLegend", new Dictionary<string, object>()
+                                                {
+                                                    { "@TrendNum", trendEntity.TrendNum },
+                                                    { "@Header", trendEntity.Header },
+                                                    { "@IsShowLegend", trendEntity.IsShowLegend }
+                                                });
+            sqlCommands.Add(cmd);
+            return sqlCommands;
         }
 
-        public void UpdateSeriesCollectionForTrend(IEnumerable<SeriesEntity> seriesEntities, string trendNum)
+        /// <summary>
+        /// 生成新增或修改坐标轴的sql命名。
+        /// </summary>
+        /// <param name="axisEntities">新增或者修改后的坐标轴实体集合</param>
+        /// <param name="trendEntity">进行坐标轴增改动作的趋势图对象。注意：增改前后都是同一个对象</param>
+        private IList<SqlCommand> CreateSqlCommandsForAddOrModifyTrendAxes(IEnumerable<AxisEntity> axisEntities, TrendEntity trendEntity)
         {
-            throw new NotImplementedException();
+            if (trendEntity == null || string.IsNullOrWhiteSpace(trendEntity.TrendNum))
+                throw new ArgumentNullException(nameof(trendEntity));
+            if (axisEntities.Any(ax => ax.TrendNum != trendEntity.TrendNum))
+                throw new ArgumentException($"传入的Axis对象属性TrendNum与传入的TrendNum参数 '{trendEntity.TrendNum}' 不一致！");
+            if (axisEntities == null || !axisEntities.Any())
+                return Enumerable.Empty<SqlCommand>().ToList();
+
+            SqlMapper.SetTypeMap(typeof(AxisEntity), new ColumnAttributeTypeMapper<AxisEntity>());
+            SqlMapper.AddTypeHandler(typeof(bool), new StringToBooleanHandler());
+
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+
+            //获取修改坐标轴前，当前趋势图的坐标轴集合
+            var oldAxisEntities = new List<AxisEntity>();
+            if (trendEntity.AxisYList != null && trendEntity.AxisYList.Any())
+            {
+                oldAxisEntities.AddRange(trendEntity.AxisYList);
+            }
+            if (trendEntity.AxisX != null)
+            {
+                oldAxisEntities.Add(trendEntity.AxisX);
+            }
+
+            foreach (var axisEntity in axisEntities)
+            {
+                List<SqlCommand> tempSqlCommands = new List<SqlCommand>();
+
+                var oldAxisEntity = oldAxisEntities.FirstOrDefault(entity => entity.TrendNum == axisEntity.TrendNum && entity.AxisNum == axisEntity.AxisNum);
+                if (oldAxisEntity != null)
+                {
+                    var oldSections = oldAxisEntity.Sections;
+                    var newSections = axisEntity.Sections;
+                    IList<SectionEntity> delSections = null;
+                    IList<SectionEntity> addOrUpdateSections = null; //包含新增或变更的数据
+                    if (oldSections != null && newSections == null)
+                    {
+                        delSections = oldSections.ToList();
+                    }
+                    else if (oldSections == null && newSections != null)
+                    {
+                        addOrUpdateSections = newSections.ToList();
+                    }
+                    else if (oldSections != null && newSections != null)
+                    {
+                        delSections = oldSections.Except(newSections).ToList();
+                        var addSections = newSections.Except(oldSections).ToList();
+                        var otherSectionNums = newSections.Intersect(oldSections).Select(s => s.SectionNum); //包含变更和未变更的
+                        var newSectionNumDict = newSections.Where(s => otherSectionNums.Contains(s.SectionNum)).ToDictionary(p => p.SectionNum, q => q); //包含变更后的或未变更的
+                        var oldSectionNumDict = oldSections.Where(s => otherSectionNums.Contains(s.SectionNum)).ToDictionary(p => p.SectionNum, q => q); //包含变更前的或未变更的
+                        var modifySections = new List<SectionEntity>();
+                        foreach(var sectionNum in otherSectionNums)
+                        {
+                            if (!newSectionNumDict.TryGetValue(sectionNum, out SectionEntity newSection))
+                                continue;
+                            if (!oldSectionNumDict.TryGetValue(sectionNum, out SectionEntity oldSection))
+                                continue;
+                            //判断section是否有属性变更
+                            if (!oldSection.Equals(newSection))
+                            {
+                                modifySections.Add(newSection);
+                            }
+                        }
+                        addOrUpdateSections = addSections.Union(modifySections).ToList();
+                    }
+
+                    //更新Axis对象时，先检查是否要移除过时的section，再添加新增的section
+                    if (delSections != null && delSections.Any())
+                    {
+                        var sqlCommandsForDelSections = CreateSqlCommandsForDeleteSections(delSections.Select(s => s.SectionNum));
+                        if (sqlCommandsForDelSections != null)
+                        {
+                            tempSqlCommands.AddRange(sqlCommandsForDelSections);
+                        }
+                    }
+                    if (addOrUpdateSections != null && addOrUpdateSections.Any())
+                    {
+                        var sqlCommandsForAddModifySections = CreateSqlCommandsAddOrModifyAxisSections(addOrUpdateSections, axisEntity.AxisNum);
+                        if (sqlCommandsForAddModifySections != null)
+                        {
+                            tempSqlCommands.AddRange(sqlCommandsForAddModifySections);
+                        }
+                    }
+                }
+                sqlCommands.AddRange(tempSqlCommands);
+
+                SqlCommand cmd = new SqlCommand(@"INSERT INTO axis(axis_num, trend_num, axis_type, title, show_title, min, max, show_seperator, label_formatter, position) 
+                                                VALUES (@AxisNum, @TrendNum, @AxisType, @Title, @IsShowTitle, @Min, @Max, @IsShowSeperator, @LabelFormatter, @Position)
+                                                ON CONFLICT(trend_num, axis_num) DO UPDATE
+                                                SET axis_type=@AxisType, title=@Title, show_title=@IsShowTitle, min=@Min, max=@Max, show_seperator=@IsShowSeperator, label_formatter=@LabelFormatter, position=@Position", new Dictionary<string, object>()
+                                                {
+                                                    { "@AxisNum", axisEntity.AxisNum },
+                                                    { "@TrendNum", axisEntity.TrendNum },
+                                                    { "@AxisType", axisEntity.AxisType },
+                                                    { "@Title", axisEntity.Title },
+                                                    { "@IsShowTitle", axisEntity.IsShowTitle },
+                                                    { "@Min", axisEntity.Minimum },
+                                                    { "@Max", axisEntity.Maximum },
+                                                    { "@IsShowSeperator", axisEntity.IsShowSeperator },
+                                                    { "@LabelFormatter", axisEntity.LabelFormatter },
+                                                    { "@Position", axisEntity.Position   }
+                                                });
+                sqlCommands.Add(cmd);
+            }
+            return sqlCommands;
         }
 
-        public void UpdateSectionCollectionForAxis(IEnumerable<SectionEntity> sectionEntities, string axisNum)
+        private IList<SqlCommand> CreateSqlCommandsAddOrModifyTrendSeries(IEnumerable<SeriesEntity> seriesEntities, string trendNum)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(trendNum))
+                throw new ArgumentNullException(nameof(trendNum));
+            if (seriesEntities.Any(ax => ax.TrendNum != trendNum))
+                throw new ArgumentException($"传入的Series对象属性TrendNum与传入的TrendNum参数 '{trendNum}' 不一致！");
+            if (seriesEntities == null || !seriesEntities.Any())
+                return Enumerable.Empty<SqlCommand>().ToList();
+
+            SqlMapper.SetTypeMap(typeof(SeriesEntity), new ColumnAttributeTypeMapper<SeriesEntity>());
+            SqlMapper.AddTypeHandler(typeof(bool), new StringToBooleanHandler());
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            foreach (var seriesEntity in seriesEntities)
+            {
+                SqlCommand cmd = new SqlCommand(@"INSERT INTO series(trend_num, device_num, var_num, title, color, axis_index) 
+                                                VALUES (@TrendNum, @DeviceNum, @VarNum, @Title, @Color, @AxisNum)
+                                                ON CONFLICT(trend_num, device_num, var_num) DO UPDATE
+                                                SET title=@Title, color=@Color, axis_index=@AxisNum", new Dictionary<string, object>()
+                                                {
+                                                    { "@TrendNum", seriesEntity.TrendNum },
+                                                    { "@DeviceNum", seriesEntity.DeviceNum },
+                                                    { "@VarNum", seriesEntity.VarNum },
+                                                    { "@Title", seriesEntity.Title },
+                                                    { "@Color", seriesEntity.Color },
+                                                    { "@AxisNum", seriesEntity.AxisNum }
+                                                });
+                sqlCommands.Add(cmd);
+            }
+            return sqlCommands;
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsAddOrModifyAxisSections(IEnumerable<SectionEntity> sectionEntities, string axisNum)
+        {
+            if (string.IsNullOrWhiteSpace(axisNum))
+                throw new ArgumentNullException(nameof(axisNum));
+            if (sectionEntities.Any(ax => ax.AxisNum != axisNum))
+                throw new ArgumentException($"传入的Axis对象属性AxisNum与传入的AxisNum参数 '{axisNum}' 不一致！");
+            if (sectionEntities == null || !sectionEntities.Any())
+                return Enumerable.Empty<SqlCommand>().ToList();
+
+            SqlMapper.SetTypeMap(typeof(SectionEntity), new ColumnAttributeTypeMapper<SectionEntity>());
+            SqlMapper.AddTypeHandler(typeof(bool), new StringToBooleanHandler());
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            foreach (var sectionEntity in sectionEntities)
+            {
+                SqlCommand cmd = new SqlCommand(@"INSERT INTO section(section_num, axis_num, value, color) 
+                                                VALUES (@SectionNum, @AxisNum, @Value, @Color)
+                                                ON CONFLICT(section_num) DO UPDATE
+                                                SET axis_num=@AxisNum, value=@Value, color=@Color", new Dictionary<string, object>()
+                                                {
+                                                    { "@SectionNum", sectionEntity.SectionNum },
+                                                    { "@AxisNum", sectionEntity.AxisNum },
+                                                    { "@Value", sectionEntity.Value },
+                                                    { "@Color", sectionEntity.Color }
+                                                });
+                sqlCommands.Add(cmd);
+            }
+            return sqlCommands;
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForDeleteTrend(string trendNum)
+        {
+            if (string.IsNullOrEmpty(trendNum))
+                return Enumerable.Empty<SqlCommand>().ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var cmd = new SqlCommand("DELETE FROM trend WHERE trend_num=@TrendNum", new Dictionary<string, object>()
+                {
+                    { "@TrendNum", trendNum }
+                });
+            sqlCommands.Add(cmd);
+            return sqlCommands;
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForDeleteTrends(IEnumerable<string> trendNums)
+        {
+            if (trendNums == null || !trendNums.Any(s=>!string.IsNullOrWhiteSpace(s)))
+                return Enumerable.Empty<SqlCommand>().ToList();
+            var trendNumList = trendNums.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var cmd = new SqlCommand("DELETE FROM trend WHERE trend_num IN @TrendNumList", new Dictionary<string, object>()
+                {
+                    { "@TrendNumList", trendNumList }
+                });
+            sqlCommands.Add(cmd);
+            return sqlCommands;
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForDeleteAxis(AxisEntity axisEntity)
+        {
+            if (axisEntity == null || string.IsNullOrEmpty(axisEntity.AxisNum) || string.IsNullOrEmpty(axisEntity.TrendNum))
+                return Enumerable.Empty<SqlCommand>().ToList();
+            string trendNum = axisEntity.TrendNum;
+            string axisNum = axisEntity.AxisNum;
+
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+
+            //在删除Axis前需先检查是否有与其有关的Section要级联删除
+            if (axisEntity.Sections != null)
+            {
+                IList<SqlCommand> sqlCommandsForDeleteSections = CreateSqlCommandsForDeleteSections(axisEntity.Sections.Select(s => s.SectionNum).Distinct());
+                sqlCommands.AddRange(sqlCommandsForDeleteSections);
+            }
+
+            var cmd = new SqlCommand("DELETE FROM axis WHERE trend_num=@TrendNum AND axis_num=@AxisNum", new Dictionary<string, object>()
+                {
+                    { "@TrendNum", trendNum },
+                    { "@AxisNum", axisNum }
+                });
+            sqlCommands.Add(cmd);
+
+            return sqlCommands;
+        }
+
+        //批量删除趋势图坐标轴
+        private IList<SqlCommand> CreateSqlCommandsForDeleteAxes(IEnumerable<AxisEntity> axisEntities)
+        {
+            if (axisEntities == null || !axisEntities.Any(ax => !string.IsNullOrWhiteSpace(ax.TrendNum) && !string.IsNullOrWhiteSpace(ax.AxisNum)))
+                return Enumerable.Empty<SqlCommand>().ToList();
+            var axisList = axisEntities.Where(ax => !string.IsNullOrWhiteSpace(ax.TrendNum) && !string.IsNullOrWhiteSpace(ax.AxisNum)).ToList();
+
+            List<SqlCommand> sqlCommands = new List<SqlCommand>();
+
+            //删除坐标轴前先要检查是否有与其相关的Section要级联删除
+            List<string> sectionNums = new List<string>();
+            foreach(var axisEntity in axisEntities)
+            {
+                var sectionNum = axisEntity.Sections.Select(s => s.SectionNum).Distinct();
+                sectionNums.AddRange(sectionNum);
+            }
+            sectionNums = sectionNums.Distinct().ToList();
+            IList<SqlCommand> sqlCommandsForDeleteSections = CreateSqlCommandsForDeleteSections(sectionNums);
+            if (sqlCommandsForDeleteSections != null && sqlCommandsForDeleteSections.Any())
+            {
+                sqlCommands.AddRange(sqlCommandsForDeleteSections);
+            }
+
+            var cmd = new SqlCommand("DELETE FROM axis WHERE trend_num || '_' || axis_num IN @TrendAxisNum", new Dictionary<string, object>()
+                {
+                    { "@TrendAxisNum", axisList.Select(p => string.Join('_', new string[]{ p.TrendNum, p.AxisNum})) },
+                });
+            sqlCommands.Add(cmd);
+
+            return sqlCommands;
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForDeleteSection(string sectionNum)
+        {
+            if (string.IsNullOrWhiteSpace(sectionNum))
+                return Enumerable.Empty<SqlCommand>().ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var cmd = new SqlCommand("DELETE FROM section WHERE section_num=@SectionNum", new Dictionary<string, object>()
+                {
+                    { "@SectionNum", sectionNum },
+                });
+            sqlCommands.Add(cmd);
+            return sqlCommands;
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForDeleteSections(IEnumerable<string> sectionNums)
+        {
+            if (sectionNums == null || !sectionNums.Any(s => !string.IsNullOrWhiteSpace(s)))
+                return Enumerable.Empty<SqlCommand>().ToList();
+            var sectionNumList = sectionNums.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var cmd = new SqlCommand("DELETE FROM section WHERE section_num IN @SectionNums", new Dictionary<string, object>()
+                {
+                    { "@SectionNums", sectionNumList },
+                });
+            sqlCommands.Add(cmd);
+            return sqlCommands;
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForDeleteSeries(string trendNum, string deviceNum, string varNum)
+        {
+            if (string.IsNullOrEmpty(trendNum) || string.IsNullOrEmpty(deviceNum) || string.IsNullOrEmpty(varNum))
+                return Enumerable.Empty<SqlCommand>().ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var cmd = new SqlCommand("DELETE FROM series WHERE trend_num=@TrendNum AND device_num=@DeviceNum AND var_num=@VarNum", new Dictionary<string, object>()
+                {
+                    { "@TrendNum", trendNum },
+                    { "@DeviceNum", deviceNum },
+                    { "@VarNum", varNum }
+                });
+            sqlCommands.Add(cmd);
+            return sqlCommands;
+        }
+
+        //批量删除趋势图序列，参数是一个定义序列记录的元组集合，每个元组的Item1是TrendNum，Item2是DeviceNum，Item3是VarNum
+        private IList<SqlCommand> CreateSqlCommandsForDeleteSeries(IEnumerable<(string, string, string)> seriesNums)
+        {
+            if (seriesNums == null || !seriesNums.Any(s => !string.IsNullOrWhiteSpace(s.Item1) && !string.IsNullOrWhiteSpace(s.Item2) && !string.IsNullOrWhiteSpace(s.Item3)))
+                return Enumerable.Empty<SqlCommand>().ToList();
+            var seriesNumList = seriesNums.Where(s => !string.IsNullOrWhiteSpace(s.Item1) && !string.IsNullOrWhiteSpace(s.Item2) && !string.IsNullOrWhiteSpace(s.Item3)).ToList();
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            var cmd = new SqlCommand("DELETE FROM series WHERE trend_num || '_' || device_num || '_' || var_num IN @SeriesNum", new Dictionary<string, object>()
+                {
+                    { "@SeriesNum", seriesNumList.Select(p => string.Join('_', new string[]{ p.Item1, p.Item2, p.Item3})) },
+                });
+            sqlCommands.Add(cmd);
+            return sqlCommands;
+        }
+
+        private Dictionary<SectionEntity, ItemUpdateStates> checkSectionsForUpdating(IEnumerable<SectionEntity> sourceList, IEnumerable<SectionEntity> targetList)
+        {
+            if (sourceList == null || !sourceList.Any())
+                return targetList != null ? targetList.ToDictionary(a => a, a => ItemUpdateStates.Added) : new Dictionary<SectionEntity, ItemUpdateStates>();
+            if (targetList == null || !targetList.Any())
+            {
+                if (sourceList != null && sourceList.Any())
+                    return sourceList.ToDictionary(a => a, a => ItemUpdateStates.Deleted);
+                else
+                    return new Dictionary<SectionEntity, ItemUpdateStates>();
+            }
+            Dictionary<SectionEntity, ItemUpdateStates> itemUpdateStateDict = new Dictionary<SectionEntity, ItemUpdateStates>();
+
+            var sectionsForRemove = sourceList.Except(targetList, new SectionByNumComparer()).ToList();
+            sectionsForRemove.ForEach(s => itemUpdateStateDict.Add(s, ItemUpdateStates.Deleted));
+            var sectionsForAdd = targetList.Except(sourceList, new SectionByNumComparer()).ToList();
+            sectionsForAdd.ForEach(s => itemUpdateStateDict.Add(s, ItemUpdateStates.Added));
+
+            var otherSections = sourceList.Intersect(targetList, new SectionByNumComparer()).ToList(); //包括属性变更或未变更的系统配置信息
+            foreach (var section in otherSections)
+            {
+                var targetInfo = targetList.FirstOrDefault(s => s.SectionNum == section.SectionNum);
+                if (targetInfo == null)
+                    continue;
+                if (!targetInfo.Equals(section))
+                {
+                    itemUpdateStateDict.Add(targetInfo, ItemUpdateStates.Modified);
+                }
+                else
+                {
+                    itemUpdateStateDict.Add(targetInfo, ItemUpdateStates.Unchanged);
+                }
+            }
+
+            return itemUpdateStateDict;
+        }
+
+        private Dictionary<AxisEntity, ItemUpdateStates> checkAxesForUpdating(IEnumerable<AxisEntity> sourceList, IEnumerable<AxisEntity> targetList)
+        {
+            if (sourceList == null || !sourceList.Any())
+                return targetList != null ? targetList.ToDictionary(a => a, a => ItemUpdateStates.Added) : new Dictionary<AxisEntity, ItemUpdateStates>();
+            if (targetList == null || !targetList.Any())
+            {
+                if (sourceList != null && sourceList.Any())
+                    return sourceList.ToDictionary(a => a, a => ItemUpdateStates.Deleted);
+                else
+                    return new Dictionary<AxisEntity, ItemUpdateStates>();
+            }
+            Dictionary<AxisEntity, ItemUpdateStates> itemUpdateStateDict = new Dictionary<AxisEntity, ItemUpdateStates>();
+
+            var axesForRemove = sourceList.Except(targetList, new AxisByNumComparer()).ToList();
+            axesForRemove.ForEach(s => itemUpdateStateDict.Add(s, ItemUpdateStates.Deleted));
+            var axesForAdd = targetList.Except(sourceList, new AxisByNumComparer()).ToList();
+            axesForAdd.ForEach(s => itemUpdateStateDict.Add(s, ItemUpdateStates.Added));
+
+            var otherAxes = sourceList.Intersect(targetList, new AxisByNumComparer()).ToList(); //包括属性变更或未变更的系统配置信息
+            foreach (var axis in otherAxes)
+            {
+                var targetInfo = targetList.FirstOrDefault(s => s.AxisNum == axis.AxisNum && s.TrendNum == axis.TrendNum);
+                if (targetInfo == null)
+                    continue;
+                if (!targetInfo.Equals(axis))
+                {
+                    itemUpdateStateDict.Add(targetInfo, ItemUpdateStates.Modified);
+                }
+                else
+                {
+                    itemUpdateStateDict.Add(targetInfo, ItemUpdateStates.Unchanged);
+                }
+            }
+
+            return itemUpdateStateDict;
+        }
+
+        private Dictionary<SeriesEntity, ItemUpdateStates> checkSeriesForUpdating(IEnumerable<SeriesEntity> sourceList, IEnumerable<SeriesEntity> targetList)
+        {
+            if (sourceList == null || !sourceList.Any())
+                return targetList != null ? targetList.ToDictionary(a => a, a => ItemUpdateStates.Added) : new Dictionary<SeriesEntity, ItemUpdateStates>();
+            if (targetList == null || !targetList.Any())
+            {
+                if (sourceList != null && sourceList.Any())
+                    return sourceList.ToDictionary(a => a, a => ItemUpdateStates.Deleted);
+                else
+                    return new Dictionary<SeriesEntity, ItemUpdateStates>();
+            }
+            Dictionary<SeriesEntity, ItemUpdateStates> itemUpdateStateDict = new Dictionary<SeriesEntity, ItemUpdateStates>();
+
+            var seriesForRemove = sourceList.Except(targetList, new SeriesByNumComparer()).ToList();
+            seriesForRemove.ForEach(s => itemUpdateStateDict.Add(s, ItemUpdateStates.Deleted));
+            var seriesForAdd = targetList.Except(sourceList, new SeriesByNumComparer()).ToList();
+            seriesForAdd.ForEach(s => itemUpdateStateDict.Add(s, ItemUpdateStates.Added));
+
+            var otherSeries = sourceList.Intersect(targetList, new SeriesByNumComparer()).ToList(); //包括属性变更或未变更的系统配置信息
+            foreach (var series in otherSeries)
+            {
+                var targetInfo = targetList.FirstOrDefault(s => s.TrendNum == series.TrendNum && s.DeviceNum == series.DeviceNum && s.VarNum == series.VarNum);
+                if (targetInfo == null)
+                    continue;
+                if (!targetInfo.Equals(series))
+                {
+                    itemUpdateStateDict.Add(targetInfo, ItemUpdateStates.Modified);
+                }
+                else
+                {
+                    itemUpdateStateDict.Add(targetInfo, ItemUpdateStates.Unchanged);
+                }
+            }
+
+            return itemUpdateStateDict;
+        }
+
+        private Dictionary<TrendEntity, ItemUpdateStates> checkTrendsForUpdating(IEnumerable<TrendEntity> sourceList, IEnumerable<TrendEntity> targetList)
+        {
+            if (sourceList == null || !sourceList.Any())
+                return targetList != null ? targetList.ToDictionary(a => a, a => ItemUpdateStates.Added) : new Dictionary<TrendEntity, ItemUpdateStates>();
+            if (targetList == null || !targetList.Any())
+            {
+                if (sourceList != null && sourceList.Any())
+                    return sourceList.ToDictionary(a => a, a => ItemUpdateStates.Deleted);
+                else
+                    return new Dictionary<TrendEntity, ItemUpdateStates>();
+            }
+            Dictionary<TrendEntity, ItemUpdateStates> itemUpdateStateDict = new Dictionary<TrendEntity, ItemUpdateStates>();
+
+            var trendsForRemove = sourceList.Except(targetList, new TrendByNumComparer()).ToList();
+            trendsForRemove.ForEach(s => itemUpdateStateDict.Add(s, ItemUpdateStates.Deleted));
+            var trendsForAdd = targetList.Except(sourceList, new TrendByNumComparer()).ToList();
+            trendsForAdd.ForEach(s => itemUpdateStateDict.Add(s, ItemUpdateStates.Added));
+
+            var otherTrends = sourceList.Intersect(targetList, new TrendByNumComparer()).ToList(); //包括属性变更或未变更的系统配置信息
+            foreach (var axis in otherTrends)
+            {
+                var targetInfo = targetList.FirstOrDefault(s => s.TrendNum == axis.TrendNum);
+                if (targetInfo == null)
+                    continue;
+                if (!targetInfo.Equals(axis))
+                {
+                    itemUpdateStateDict.Add(targetInfo, ItemUpdateStates.Modified);
+                }
+                else
+                {
+                    itemUpdateStateDict.Add(targetInfo, ItemUpdateStates.Unchanged);
+                }
+            }
+
+            return itemUpdateStateDict;
         }
 
         private Dictionary<string, IList<AxisEntity>> getAxisCollection()
@@ -1977,6 +2578,95 @@ namespace Coffee.DigitalPlatform.DataAccess
                 if (obj == null || string.IsNullOrEmpty(obj.InfoNum))
                     return 0;
                 return obj.InfoNum.GetHashCode();
+            }
+        }
+
+        internal class SectionByNumComparer : IEqualityComparer<SectionEntity>
+        {
+            public bool Equals(SectionEntity? x, SectionEntity? y)
+            {
+                if (ReferenceEquals(x, y))
+                    return true;
+                if (x == null || y == null)
+                    return false;
+                return x.SectionNum == y.SectionNum;
+            }
+
+            public int GetHashCode([DisallowNull] SectionEntity obj)
+            {
+                if (obj == null)
+                    return 0;
+                return obj.SectionNum.GetHashCode();
+            }
+        }
+
+        internal class AxisByNumComparer : IEqualityComparer<AxisEntity>
+        {
+            public bool Equals(AxisEntity? x, AxisEntity? y)
+            {
+                if (ReferenceEquals(x, y))
+                    return true;
+                if (x == null || y == null)
+                    return false;
+                return x.AxisNum == y.AxisNum && x.TrendNum == y.TrendNum;
+            }
+
+            public int GetHashCode([DisallowNull] AxisEntity obj)
+            {
+                if (obj == null || string.IsNullOrEmpty(obj.AxisNum))
+                    return 0;
+                unchecked // 允许溢出
+                {
+                    int hash = 17;
+                    hash = hash * 23 + (obj.AxisNum?.GetHashCode() ?? 0);
+                    hash = hash * 23 + (obj.TrendNum?.GetHashCode() ?? 0);
+                    return hash;
+                }
+            }
+        }
+
+        internal class SeriesByNumComparer : IEqualityComparer<SeriesEntity>
+        {
+            public bool Equals(SeriesEntity? x, SeriesEntity? y)
+            {
+                if (ReferenceEquals(x, y))
+                    return true;
+                if (x == null || y == null)
+                    return false;
+                return x.TrendNum == y.TrendNum && x.DeviceNum == y.DeviceNum && x.VarNum == y.VarNum;
+            }
+
+            public int GetHashCode([DisallowNull] SeriesEntity obj)
+            {
+                if (obj == null || string.IsNullOrEmpty(obj.AxisNum))
+                    return 0;
+                unchecked // 允许溢出
+                {
+                    int hash = 17;
+                    hash = hash * 23 + (obj.TrendNum?.GetHashCode() ?? 0);
+                    hash = hash * 23 + (obj.DeviceNum?.GetHashCode() ?? 0);
+                    hash = hash * 23 + (obj.VarNum?.GetHashCode() ?? 0);
+                    return hash;
+                }
+            }
+        }
+
+        internal class TrendByNumComparer : IEqualityComparer<TrendEntity>
+        {
+            public bool Equals(TrendEntity? x, TrendEntity? y)
+            {
+                if (ReferenceEquals(x, y))
+                    return true;
+                if (x == null || y == null)
+                    return false;
+                return x.TrendNum == y.TrendNum;
+            }
+
+            public int GetHashCode([DisallowNull] TrendEntity obj)
+            {
+                if (obj == null || string.IsNullOrEmpty(obj.TrendNum))
+                    return 0;
+                return obj.TrendNum.GetHashCode();
             }
         }
 

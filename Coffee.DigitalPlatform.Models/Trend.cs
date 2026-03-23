@@ -204,18 +204,22 @@ namespace Coffee.DigitalPlatform.Models
                 {
                     if (value)
                     {
-                        _legendLocation = LegendLocation != LegendLocation.None ? LegendLocation : LegendLocation.Top;
+                        LegendLocation = LegendLocation != LegendLocation.None ? LegendLocation : LegendLocation.Top;
                     }
                     else
                     {
-                        _legendLocation = LegendLocation.None;
+                        LegendLocation = LegendLocation.None;
                     }
                 }
             }
         }
 
         private LegendLocation _legendLocation = LegendLocation.None;
-        public LegendLocation LegendLocation { get; set; } = LegendLocation.None;
+        public LegendLocation LegendLocation
+        {
+            get { return _legendLocation; }
+            set { SetProperty(ref _legendLocation, value); }
+        }
 
         private TrendAxisInfo _axisX;
         public TrendAxisInfo AxisX 
@@ -840,8 +844,9 @@ namespace Coffee.DigitalPlatform.Models
     {
         public TrendSectionInfo()
         {
-            BrushNames = typeof(Brushes).GetProperties().Select(p => p.Name).ToList();
+            SectionNum = shortid.ShortId.Generate(new shortid.Configuration.GenerationOptions(true, true, 18));
 
+            BrushNames = typeof(Brushes).GetProperties().Select(p => p.Name).ToList();
             RawSection = new AxisSection()
             {
                 Value = 0,
@@ -850,6 +855,22 @@ namespace Coffee.DigitalPlatform.Models
                 StrokeDashArray = new DoubleCollection { 5, 5 }
             };
         }
+
+        public TrendSectionInfo(string sectionNum)
+        {
+            SectionNum = sectionNum;
+
+            BrushNames = typeof(Brushes).GetProperties().Select(p => p.Name).ToList();
+            RawSection = new AxisSection()
+            {
+                Value = 0,
+                Stroke = Brushes.Red,
+                StrokeThickness = 1,
+                StrokeDashArray = new DoubleCollection { 5, 5 }
+            };
+        }
+
+        public string SectionNum { get; }
 
         private double _value;
         public double Value

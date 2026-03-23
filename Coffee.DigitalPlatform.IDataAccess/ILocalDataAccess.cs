@@ -119,12 +119,6 @@ namespace Coffee.DigitalPlatform.IDataAccess
         IEnumerable<SeriesEntity> GetSeriesCollectionForTrend(string trendNum);
 
         IEnumerable<SectionEntity> GetSectionCollectionForAxis(string axisNum);
-
-        void UpdateAxisCollectionForTrend(IEnumerable<AxisEntity> axisXEntities, string trendNum, AxisTypes? axisType = null);
-
-        void UpdateSeriesCollectionForTrend(IEnumerable<SeriesEntity> seriesEntities, string trendNum);
-
-        void UpdateSectionCollectionForAxis(IEnumerable<SectionEntity> sectionEntities, string axisNum);
         #endregion
     }
 

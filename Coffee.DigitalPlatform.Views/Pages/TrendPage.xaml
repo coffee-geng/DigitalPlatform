@@ -180,6 +180,9 @@
                                      Text="{Binding Header,UpdateSourceTrigger=PropertyChanged}"
                                      Tag="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                                      Style="{x:Null}">
+                                    <i:Interaction.Behaviors>
+                                        <local:SelectListBoxItemWhenGotFocusBehavior />
+                                    </i:Interaction.Behaviors>
                                 </TextBox>
                                 <Button Grid.Column="1" Width="20" Height="20"
                                     FontSize="10" FontFamily="{StaticResource Iconfont}" 

@@ -5,13 +5,19 @@ using Coffee.DigitalPlatform.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using LiveCharts;
 using LiveCharts.Wpf;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
@@ -30,6 +36,9 @@ namespace Coffee.DigitalPlatform.ViewModels
             RemoveTrendCommand = new RelayCommand<TrendChartInfo>(doRemoveTrendCommand, canRemoveTrendCommand);
             ShowConfigTrendDialogCommand = new RelayCommand(doShowConfigTrendDialogCommand, canShowConfigTrendDialogCommand);
             ShowConfigAxisDialogCommand = new RelayCommand(doShowConfigAxisDialogCommand, canShowConfigAxisDialogCommand);
+
+            SaveCommand = new RelayCommand(doSaveCommand);
+            SaveToImageCommand = new RelayCommand<object>(doSaveToImageCommand);
 
             //返回当前趋势图要求使用的设备信息
             WeakReferenceMessenger.Default.Register<Action<Func<IEnumerable<string>, IEnumerable<Device>>>>(this, new MessageHandler<object, Action<Func<IEnumerable<string>, IEnumerable<Device>>>>((obj, action) =>
@@ -56,7 +65,17 @@ namespace Coffee.DigitalPlatform.ViewModels
         public TrendChartInfo CurrentTrend
         {
             get { return _currentTrend; }
-            set { SetProperty(ref _currentTrend, value); }
+            set 
+            { 
+                if (SetProperty(ref _currentTrend, value))
+                {
+                    var otherTrends = Trends.Where(t => t != value);
+                    foreach(var otherTrend in otherTrends)
+                    {
+                        //otherTrend.StopRefreshSeries();
+                    }
+                }
+            }
         }
 
         public RelayCommand AddTrendCommand {  get; set; }
@@ -73,6 +92,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             {
                 IsSelected = true
             };
+            Trends.Add(trendInfo);
             CurrentTrend = trendInfo;
         }
 
@@ -142,6 +162,156 @@ namespace Coffee.DigitalPlatform.ViewModels
             return CurrentTrend != null;
         }
 
+        #region Save
+        public RelayCommand SaveCommand { get; set; }
+
+        public RelayCommand<object> SaveToImageCommand { get; set; }
+
+        private void doSaveCommand()
+        {
+            IList<TrendEntity> trendEntities = new List<TrendEntity>();
+            if (Trends != null)
+            {
+                foreach (var trend in Trends)
+                {
+                    var trendEntity = new TrendEntity()
+                    {
+                        TrendNum = trend.ChartNum,
+                        Header = trend.Header,
+                        IsShowLegend = trend.IsShowLegend
+                    };
+
+                    if (trend.AxisX != null)
+                    {
+                        var axisX = trend.AxisX;
+                        var axisXEntity = new AxisEntity()
+                        {
+                            TrendNum = trendEntity.TrendNum,
+                            AxisNum = axisX.AxisNum,
+                            AxisType = Enum.GetName(typeof(AxisTypes), AxisTypes.AxisX),
+                            Title = axisX.Title,
+                            IsShowTitle = axisX.IsShowTitle,
+                            IsShowSeperator = axisX.IsShowSeperator,
+                            LabelFormatter = axisX.LabelFormatter,
+                            Minimum = axisX.Minimum.ToString(),
+                            Maximum = axisX.Maximum.ToString(),
+                            Position = Enum.GetName(typeof(AxisPosition), axisX.AxisPosition)
+                        };
+                        if (axisX.Sections != null)
+                        {
+                            axisXEntity.Sections = axisX.Sections.Select(s => new SectionEntity
+                            {
+                                SectionNum = s.SectionNum,
+                                AxisNum = axisX.AxisNum,
+                                Value = s.Value.ToString(),
+                                Color = s.Color,
+                            });
+                        }
+                        trendEntity.AxisX = axisXEntity;
+                    }
+                    if (trend.AxisYCollection != null && trend.AxisYCollection.Count > 0)
+                    {
+                        IList<AxisEntity> axisYEntities = new List<AxisEntity>();
+                        foreach (var axisY in trend.AxisYCollection)
+                        {
+                            var axisYEntity = new AxisEntity()
+                            {
+                                TrendNum = trendEntity.TrendNum,
+                                AxisNum = axisY.AxisNum,
+                                AxisType = Enum.GetName(typeof(AxisTypes), AxisTypes.AxisY),
+                                Title = axisY.Title,
+                                IsShowTitle = axisY.IsShowTitle,
+                                IsShowSeperator = axisY.IsShowSeperator,
+                                LabelFormatter = axisY.LabelFormatter,
+                                Minimum = axisY.Minimum.ToString(),
+                                Maximum = axisY.Maximum.ToString(),
+                                Position = Enum.GetName(typeof(AxisPosition), axisY.AxisPosition)
+                            };
+                            if (axisY.Sections != null)
+                            {
+                                axisYEntity.Sections = axisY.Sections.Select(s => new SectionEntity
+                                {
+                                    SectionNum = s.SectionNum,
+                                    AxisNum = axisY.AxisNum,
+                                    Value = s.Value.ToString(),
+                                    Color = s.Color,
+                                });
+                            }
+                            axisYEntities.Add(axisYEntity);
+                        }
+                        trendEntity.AxisYList = axisYEntities;
+                    }
+
+                    if (trend.Series != null)
+                    {
+                        IList<SeriesEntity> seriesEntities = new List<SeriesEntity>();
+                        foreach (var series in trend.Series)
+                        {
+                            var seriesEntity = new SeriesEntity
+                            {
+                                TrendNum = trendEntity.TrendNum,
+                                AxisNum = series.AxisYNum,
+                                DeviceNum = series.TrendDeviceNum,
+                                VarNum = series.TrendVariableNum,
+                                Title = series.Title,
+                                Color = series.Color
+                            };
+                            seriesEntities.Add(seriesEntity);
+                        }
+                        trendEntity.Series = seriesEntities;
+                    }
+
+                    trendEntities.Add(trendEntity);
+                }
+            }
+
+            try
+            {
+                _localDataAccess.SaveTrends(trendEntities);
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+
+        private void doSaveToImageCommand(object obj)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.FileName = "Chart" + DateTime.Now.ToString("yyyyMMddHHmmssFFF") + ".png";
+            saveFileDialog.CheckPathExists = true;
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                CreateBitmapFromVisual((obj as Visual), saveFileDialog.FileName);
+            }
+        }
+
+        private void CreateBitmapFromVisual(Visual target, string fileName)
+        {
+            if (target == null || string.IsNullOrEmpty(fileName)) return;
+
+            Rect bounds = VisualTreeHelper.GetDescendantBounds(target);
+
+            RenderTargetBitmap renderTarget = new RenderTargetBitmap((Int32)bounds.Width, (Int32)bounds.Height, 96, 96, PixelFormats.Pbgra32);
+
+            DrawingVisual visual = new DrawingVisual();
+
+            using (DrawingContext context = visual.RenderOpen())
+            {
+                VisualBrush visualBrush = new VisualBrush(target);
+                context.DrawRectangle(visualBrush, null, new Rect(new Point(), bounds.Size));
+            }
+
+            renderTarget.Render(visual);
+            PngBitmapEncoder bitmapEncoder = new PngBitmapEncoder();
+            bitmapEncoder.Frames.Add(BitmapFrame.Create(renderTarget));
+            using (Stream stm = File.Create(fileName))
+            {
+                bitmapEncoder.Save(stm);
+            }
+        }
+        #endregion
+
         IEnumerable<TrendChartInfo> entityToModel(IEnumerable<TrendEntity> trendEntities)
         {
             if (trendEntities == null || !trendEntities.Any())
@@ -181,7 +351,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                     {
                         foreach (var sectionEntity in axisEntity.Sections)
                         {
-                            var section = new TrendSectionInfo()
+                            var section = new TrendSectionInfo(sectionEntity.SectionNum)
                             {
                                 Value = double.Parse(sectionEntity.Value.ToString()),
                                 Color = sectionEntity.Color
