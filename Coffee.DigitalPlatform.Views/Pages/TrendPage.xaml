@@ -8,7 +8,7 @@
              xmlns:wpf="clr-namespace:Coffee.DigitalPlatform.CommWPF;assembly=Coffee.DigitalPlatform.CommWPF"
              xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
              DataContext="{Binding Source={StaticResource locator}, Path=TrendViewModel}"
-             mc:Ignorable="d" 
+             mc:Ignorable="d" x:Name="trendPage"
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
         <ResourceDictionary>
@@ -44,8 +44,83 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+
+            <Style TargetType="Button" x:Key="ControlButtonStyle">
+                <Setter Property="Foreground" Value="#888"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent" Name="back">
+                                <Border CornerRadius="{Binding Tag,RelativeSource={RelativeSource Mode=TemplatedParent}}" Name="border">
+                                    <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                </Border>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#09000000"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="#11000000"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
+
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup>
+            <VisualState Name="ShowSuccess">
+                <Storyboard>
+                    <!--处理位置-->
+                    <ThicknessAnimationUsingKeyFrames Storyboard.TargetName="msgboxSuccess" Storyboard.TargetProperty="Margin">
+                        <LinearThicknessKeyFrame Value="0,-105,0,0" KeyTime="0:0:0"/>
+                        <LinearThicknessKeyFrame Value="0,0,0,0" KeyTime="0:0:0.3"/>
+                        <LinearThicknessKeyFrame Value="0,0,0,0" KeyTime="0:0:3.3"/>
+                        <LinearThicknessKeyFrame Value="0,-105,0,0" KeyTime="0:0:4"/>
+                    </ThicknessAnimationUsingKeyFrames>
+
+                    <DoubleAnimationUsingKeyFrames Storyboard.TargetName="msgboxSuccess" Storyboard.TargetProperty="Opacity">
+                        <LinearDoubleKeyFrame Value="0" KeyTime="0:0:0"/>
+                        <LinearDoubleKeyFrame Value="1" KeyTime="0:0:0.5"/>
+                        <LinearDoubleKeyFrame Value="1" KeyTime="0:0:3.5"/>
+                        <LinearDoubleKeyFrame Value="0" KeyTime="0:0:4"/>
+                    </DoubleAnimationUsingKeyFrames>
+                </Storyboard>
+            </VisualState>
+            <VisualState x:Name="NormalToSuccess"/>
+        </VisualStateGroup>
+
+        <VisualStateGroup>
+            <VisualState Name="ShowFailure">
+                <Storyboard >
+                    <ThicknessAnimationUsingKeyFrames Storyboard.TargetName="msgboxFailure" Storyboard.TargetProperty="Margin">
+                        <LinearThicknessKeyFrame Value="0,-105,0,0" KeyTime="0:0:0"/>
+                        <LinearThicknessKeyFrame Value="0,0,0,0" KeyTime="0:0:0.3"/>
+                    </ThicknessAnimationUsingKeyFrames>
+                    <DoubleAnimationUsingKeyFrames Storyboard.TargetName="msgboxFailure" Storyboard.TargetProperty="Opacity">
+                        <LinearDoubleKeyFrame Value="0" KeyTime="0:0:0"/>
+                        <LinearDoubleKeyFrame Value="1" KeyTime="0:0:0.5"/>
+                    </DoubleAnimationUsingKeyFrames>
+                </Storyboard>
+            </VisualState>
+            <VisualState Name="HideFailure">
+                <Storyboard >
+                    <ThicknessAnimationUsingKeyFrames Storyboard.TargetName="msgboxFailure" Storyboard.TargetProperty="Margin">
+                        <LinearThicknessKeyFrame Value="0,0,0,0" KeyTime="0:0:0"/>
+                        <LinearThicknessKeyFrame Value="0,-105,0,0" KeyTime="0:0:0.3"/>
+                    </ThicknessAnimationUsingKeyFrames>
+                    <DoubleAnimationUsingKeyFrames Storyboard.TargetName="msgboxFailure" Storyboard.TargetProperty="Opacity">
+                        <LinearDoubleKeyFrame Value="1" KeyTime="0:0:0"/>
+                        <LinearDoubleKeyFrame Value="0" KeyTime="0:0:0.3"/>
+                    </DoubleAnimationUsingKeyFrames>
+                </Storyboard>
+            </VisualState>
+            <VisualState Name="NormalToFailure"/>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
 
     <Grid Margin="80,10,10,10">
         <Grid.RowDefinitions>
@@ -75,7 +150,7 @@
                 CommandParameter="{Binding ElementName=lb_chart,Path=SelectedItem}"/>
             <Button Margin="0,0,5,0" HorizontalAlignment="Right" Height="30" Width="120"
                 Style="{StaticResource ToolButtonStlye}" 
-                Command="{Binding SaveCommand}">
+                Command="{Binding SaveCommand}" CommandParameter="{Binding ., ElementName=trendPage}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xe63c;" FontFamily="{StaticResource Iconfont}" VerticalAlignment="Center" Margin="3,0"/>
                     <TextBlock Text="保存所有配置" VerticalAlignment="Center" Margin="3,0"/>
@@ -196,5 +271,46 @@
                 </ListBox>
             </Border>
         </Grid>
+
+        <!--消息提示-->
+        <!--成功   过一段时间自动消失-->
+        <Border Grid.RowSpan="2"
+                Background="#EEFFFFFF" CornerRadius="10" Width="200" Height="45" VerticalAlignment="Top" Name="msgboxSuccess" Margin="0,-105,0,0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" Color="#DDD" ShadowDepth="0" Opacity="0.3"/>
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
+                <TextBlock Text="&#xe60d;" FontFamily="{StaticResource Iconfont}" Foreground="LightGreen" VerticalAlignment="Center"
+                    FontSize="26" Margin="10,0"/>
+                <TextBlock Text="趋势图配置数据保存完成！" Foreground="ForestGreen" VerticalAlignment="Center" FontSize="12" FontWeight="Normal"/>
+            </StackPanel>
+        </Border>
+        <!--异常   -->
+        <Border Grid.RowSpan="2" VerticalAlignment="Top" HorizontalAlignment="Center" MinWidth="200" MaxWidth="350" Name="msgboxFailure"
+            Background="#EEFFFFFF" CornerRadius="10" MinHeight="45" Margin="0,-105,0,0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" Color="#DDD" ShadowDepth="0" Opacity="0.3"/>
+            </Border.Effect>
+            <Grid Margin="10,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="50"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="30"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="&#xe663;" FontFamily="{StaticResource Iconfont}" 
+                    Foreground="OrangeRed" VerticalAlignment="Top" FontSize="26" Margin="10,13"/>
+                <TextBox Text="{Binding FailureMessageOnSaving,StringFormat=趋势图配置数据保存失败！异常原因：{0}}" 
+                    Grid.Column="1" Background="Transparent" MaxLength="10" Effect="{x:Null}"
+                    Foreground="#555" VerticalAlignment="Stretch" FontSize="12" FontWeight="Normal" 
+                    Style="{x:Null}" Margin="0,10" IsReadOnly="True" TextWrapping="Wrap" 
+                    BorderThickness="0" BorderBrush="Transparent" VerticalContentAlignment="Center"/>
+
+                <Button Grid.Column="2" Height="20" Width="20" Margin="0,15" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                    Content="&#xe653;" FontFamily="{StaticResource Iconfont}" 
+                    Style="{StaticResource ControlButtonStyle}"
+                    Command="{Binding DataContext.CloseErrorMessageBoxCommand}"
+                    CommandParameter="{Binding ElementName=settingsPage}"/>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

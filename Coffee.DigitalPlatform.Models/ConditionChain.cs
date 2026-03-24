@@ -174,25 +174,46 @@ namespace Coffee.DigitalPlatform.Models
 
         private FilterScheme _filterScheme;
 
-        public bool IsMatch()
+        public bool IsMatch(out IEnumerable<Variable> matchedVariables)
         {
-            if (ConditionItems.Count == 0) 
-                return true;
+            if (ConditionItems.Count == 0)
+            {
+                matchedVariables = Enumerable.Empty<Variable>();
+                return false;
+            }
             var firstCondition = ConditionItems.First();
             var otherConditions = ConditionItems.Skip(1);
 
-            bool isMatch = firstCondition.IsMatch();
+            List<Variable> matchedVarList = new List<Variable>();
+
+            bool isMatch = firstCondition.IsMatch(out IEnumerable<Variable> firstMatchedVariable);
+            if (isMatch)
+            {
+                matchedVarList.AddRange(firstMatchedVariable);
+            }
             foreach (var item in otherConditions)
             {
                 if (Operator == ConditionChainOperators.AND)
                 {
-                    isMatch = isMatch && item.IsMatch();
+                    bool isMatch2 = item.IsMatch(out IEnumerable<Variable> matchedItemVariable);
+                    if (isMatch2)
+                    {
+                        matchedVarList.AddRange(matchedItemVariable);
+                    }
+                    isMatch = isMatch && isMatch2;
                 }
                 else if (Operator == ConditionChainOperators.OR)
                 {
-                    isMatch = isMatch || item.IsMatch();
+                    bool isMatch2 = item.IsMatch(out IEnumerable<Variable> matchedItemVariable);
+                    if (isMatch2)
+                    {
+                        matchedVarList.AddRange(matchedItemVariable);
+                    }
+                    isMatch = isMatch || isMatch2;
                 }
             }
+
+            matchedVariables = isMatch ? matchedVarList : Enumerable.Empty<Variable>();
             return isMatch;
         }
 

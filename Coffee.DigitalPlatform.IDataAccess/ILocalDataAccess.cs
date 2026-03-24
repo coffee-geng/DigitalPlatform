@@ -120,6 +120,14 @@ namespace Coffee.DigitalPlatform.IDataAccess
 
         IEnumerable<SectionEntity> GetSectionCollectionForAxis(string axisNum);
         #endregion
+
+        #region 报表数据
+        IEnumerable<ReportItemEntity> ReadReports();
+
+        IEnumerable<RecordEntity> ReadRecentRecords();
+
+        void WriteRecords(IEnumerable<RecordEntity> records);
+        #endregion
     }
 
     public enum AxisTypes

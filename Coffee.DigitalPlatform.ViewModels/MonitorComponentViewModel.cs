@@ -7,6 +7,7 @@ using Coffee.DigitalPlatform.IDataAccess;
 using Coffee.DigitalPlatform.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -16,6 +17,7 @@ using System.IO.Ports;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
 using models = Coffee.DigitalPlatform.Models;
 using serv = Coffee.DeviceAccess;
@@ -29,7 +31,7 @@ namespace Coffee.DigitalPlatform.ViewModels
         ICommunicationService _communicationService;
         ILogger<MonitorComponentViewModel> _logger;
 
-        public MonitorComponentViewModel(MainViewModel mainViewModel, ILocalDataAccess localDataAccess, ICommunicationService communicationService, ILoggerFactory loggerFactory) : base()
+        public MonitorComponentViewModel(MainViewModel mainViewModel, ReportViewModel reportViewModel, ILocalDataAccess localDataAccess, ICommunicationService communicationService, ILoggerFactory loggerFactory) : base()
         {
             _mainViewModel = mainViewModel;
             _localDataAccess = localDataAccess;
@@ -655,7 +657,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                                 //因为设备中的点位信息是实时变化的，所以在每次计算预警状态时，需要将当前设备中的点位信息更新到预警条件中，从而保证调用IsMatch方法时检测的变量值是最新的，保证预警状态监控的准确性
                                 alarm.Condition?.UpdateSourceVariables(device.Variables.ToList());
 
-                                bool isMatching = alarm.Condition.IsMatch();
+                                bool isMatching = alarm.Condition.IsMatch(out IEnumerable<models.Variable> matchedVariables);
                                 if (isMatching)
                                 {
                                     isWarning = true;
@@ -772,11 +774,14 @@ namespace Coffee.DigitalPlatform.ViewModels
                             #endregion
 
                             #region 联动控制
+                            //字典保存当前触发联动的点位信息及有哪些变量满足条件触发了联动
+                            Dictionary<ControlInfoByTrigger, IEnumerable<models.Variable>> triggeredControlInfoDict = new Dictionary<ControlInfoByTrigger, IEnumerable<models.Variable>>();
+
                             foreach(var controlInfo in device.ControlInfosByTrigger)
                             {
                                 //因为设备中的点位信息是实时变化的，所以在每次计算联动控制条件时，需要将当前设备中的点位信息更新到联动控制条件中，从而保证调用IsMatch方法时检测的变量值是最新的，保证联动控制的准确性
                                 controlInfo.Condition?.UpdateSourceVariables(device.Variables.ToList());
-                                bool isMatching = controlInfo.Condition.IsMatch();
+                                bool isMatching = controlInfo.Condition.IsMatch(out IEnumerable<models.Variable> matchedVariables);
                                 if (isMatching)
                                 {
                                     //目前仅支持每个联动控制选项对同一个联动设备的多个点位信息进行控制
@@ -806,6 +811,8 @@ namespace Coffee.DigitalPlatform.ViewModels
                                             }
                                         }
                                     }
+
+                                    triggeredControlInfoDict.Add(controlInfo, matchedVariables);
                                 }
                             }
                             #endregion
@@ -841,6 +848,63 @@ namespace Coffee.DigitalPlatform.ViewModels
                                 }
                                 
                             }
+                            #endregion
+
+                            #region 报表数据
+                            IList<RecordItem> records = new List<RecordItem>();
+                            foreach (var variable in device.Variables)
+                            {
+                                var record = new RecordItem
+                                {
+                                    DeviceNum = device.DeviceNum,
+                                    DeviceName = device.Name,
+                                    VariableNum = variable.VarNum,
+                                    VariableName = variable.VarName,
+                                    RecordValue = ObjectToStringConverter.ConvertToString(variable.FinalValue),
+                                    RecordTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                                    UserName = GlobalUserInfo?.UserName
+                                };
+                                if (device.IsWarning)
+                                {
+                                    //如果当前变量满足报警条件
+                                    var alarm = device.Alarms.FirstOrDefault(a => a.AlarmValues != null && a.AlarmValues.Any(v => v.VarNum == variable.VarNum && v.DeviceNum == variable.DeviceNum));
+                                    if (alarm != null)
+                                    {
+                                        record.AlarmNum = alarm.AlarmNum;
+                                    }
+                                }
+                                if (triggeredControlInfoDict.Any())
+                                {
+                                    //如果当前变量满足联动条件，即如果当前联动条件满足，且当前这个变量是触发这个联动事件的子条件源
+                                    //这时，记录一条与当前变量相关的报表项，例如这个变量是否作为子条件源触发了报警或者联动事件
+                                    ICondition condition = null;
+                                    foreach(var pair in triggeredControlInfoDict)
+                                    {
+                                        var triggerInfo = pair.Key;
+                                        var matchedVariables = pair.Value;
+
+                                        if (matchedVariables != null && matchedVariables.Any(var => var.VarNum == variable.VarNum && var.DeviceNum == variable.DeviceNum))
+                                        {
+                                            condition = triggerInfo.Condition; 
+                                            break;
+                                        }
+                                    }
+                                    record.LinkageNum = condition != null ? condition.ConditionNum : null;
+                                }
+
+                                //根据当前变量是否满足联动条件或报警条件，设置报表记录的状态
+                                if (!string.IsNullOrWhiteSpace(record.AlarmNum) && !string.IsNullOrWhiteSpace(record.LinkageNum))
+                                    record.State = RecordStatus.AlamLinkage;
+                                else if (!string.IsNullOrWhiteSpace(record.AlarmNum))
+                                    record.State = RecordStatus.Alarm;
+                                else if (!string.IsNullOrWhiteSpace(record.LinkageNum))
+                                    record.State = RecordStatus.Linkage;
+                                else
+                                    record.State = RecordStatus.Normal;
+
+                                    records.Add(record);
+                            }
+                            WeakReferenceMessenger.Default.Send<ReportRecordsMessage>(new ReportRecordsMessage(records));
                             #endregion
                         }
                         await Task.Delay(5000);

@@ -37,7 +37,7 @@ namespace Coffee.DigitalPlatform.ViewModels
             ShowConfigTrendDialogCommand = new RelayCommand(doShowConfigTrendDialogCommand, canShowConfigTrendDialogCommand);
             ShowConfigAxisDialogCommand = new RelayCommand(doShowConfigAxisDialogCommand, canShowConfigAxisDialogCommand);
 
-            SaveCommand = new RelayCommand(doSaveCommand);
+            SaveCommand = new RelayCommand<FrameworkElement>(doSaveCommand);
             SaveToImageCommand = new RelayCommand<object>(doSaveToImageCommand);
 
             //返回当前趋势图要求使用的设备信息
@@ -162,13 +162,33 @@ namespace Coffee.DigitalPlatform.ViewModels
             return CurrentTrend != null;
         }
 
+        #region 提示信息
+        private string _failureMessageOnSaving;
+
+        public string FailureMessageOnSaving
+        {
+            get { return _failureMessageOnSaving; }
+            set { SetProperty(ref _failureMessageOnSaving, value); }
+        }
+
+        public RelayCommand<object> CloseErrorMessageBoxCommand { get; set; }
+
+        private void doCloseErrorMessageBox(object owner)
+        {
+            VisualStateManager.GoToElementState(owner as FrameworkElement, "HideFailure", true);
+        }
+        #endregion
+
         #region Save
-        public RelayCommand SaveCommand { get; set; }
+        public RelayCommand<FrameworkElement> SaveCommand { get; set; }
 
         public RelayCommand<object> SaveToImageCommand { get; set; }
 
-        private void doSaveCommand()
+        private void doSaveCommand(FrameworkElement owner)
         {
+            VisualStateManager.GoToElementState(owner, "NormalToSuccess", false);
+            VisualStateManager.GoToElementState(owner, "NormalToFailure", false);
+
             IList<TrendEntity> trendEntities = new List<TrendEntity>();
             if (Trends != null)
             {
@@ -268,10 +288,13 @@ namespace Coffee.DigitalPlatform.ViewModels
             try
             {
                 _localDataAccess.SaveTrends(trendEntities);
+
+                VisualStateManager.GoToElementState(owner, "ShowSuccess", true);
             }
             catch (Exception ex)
             {
-
+                FailureMessageOnSaving = ex.Message;
+                VisualStateManager.GoToElementState(owner, "ShowFailure", true);
             }
         }
 

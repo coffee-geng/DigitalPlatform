@@ -35,6 +35,9 @@
     <Compile Update="Pages\MonitorPage.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Pages\ReportPage.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Pages\SettingsPage.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -74,6 +77,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Pages\MonitorPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Pages\ReportPage.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Pages\SettingsPage.xaml">

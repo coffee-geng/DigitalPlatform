@@ -2469,6 +2469,96 @@ namespace Coffee.DigitalPlatform.DataAccess
         }
         #endregion
 
+        #region 报表数据
+        public IEnumerable<ReportItemEntity> ReadReports()
+        {
+            SqlMapper.SetTypeMap(typeof(ReportItemEntity), new ColumnAttributeTypeMapper<ReportItemEntity>());
+            string sql = @"SELECT var_name, var_num, device_num, device_name,
+                           record_value as last_value,
+                           AVG(record_value) AS avg,
+                           MAX(record_value) AS max,
+                           MIN(record_value) AS min,
+                           SUM(CASE WHEN alarm_num = '' OR alarm_num ISNULL THEN 0 ELSE 1 END) alarm_count,
+                           SUM(CASE WHEN linkage_num = '' OR linkage_num ISNULL THEN 0 ELSE 1 END) linkage_count ,
+                           DATETIME(MAX(STRFTIME('%s',record_time)),'unixepoch') last_time,
+                           COUNT(1) record_count
+                           FROM reports GROUP BY device_num,var_num";
+            try
+            {
+                IEnumerable<ReportItemEntity> seriesEntities = SqlQuery<ReportItemEntity>(sql);
+                return seriesEntities;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public IEnumerable<RecordEntity> ReadRecentRecords()
+        {
+            SqlMapper.SetTypeMap(typeof(RecordEntity), new ColumnAttributeTypeMapper<RecordEntity>());
+            SqlMapper.AddTypeHandler(typeof(DateTime?), new SqliteDateTimeHandler());
+
+            var records = SqlQuery<RecordEntity>(@"WITH ranked_records AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY device_num, var_num ORDER BY statechange_history DESC) AS rn FROM reports WHERE statechange_history > 0) 
+                SELECT device_num, var_num, state, statechange_history FROM ranked_records WHERE rn = 1 ORDER BY device_num DESC, var_num DESC;");
+            if (records != null && records.Any())
+            {
+                return records;
+            }
+            else
+            {
+                return Enumerable.Empty<RecordEntity>();
+            }
+        }
+
+        public void WriteRecords(IEnumerable<RecordEntity> recordEntities)
+        {
+            var sqlCommands = CreateSqlCommandsForAddReportItems(recordEntities);
+
+            SqlExecute(sqlCommands);
+        }
+
+        private IList<SqlCommand> CreateSqlCommandsForAddReportItems(IEnumerable<RecordEntity> recordEntities)
+        {
+            if (recordEntities == null || !recordEntities.Any())
+                return Enumerable.Empty<SqlCommand>().ToList();
+
+            SqlMapper.SetTypeMap(typeof(RecordEntity), new ColumnAttributeTypeMapper<RecordEntity>());
+            SqlMapper.AddTypeHandler(typeof(bool), new StringToBooleanHandler());
+
+            IList<SqlCommand> sqlCommands = new List<SqlCommand>();
+            foreach (var recordEntity in recordEntities)
+            {
+                SqlCommand cmd = new SqlCommand(@"INSERT INTO reports (device_num, var_num, device_name, var_name, record_value, state, alarm_num, linkage_num, record_time, user_name, statechange_history)
+                                                SELECT @DeviceNum, @VarNum, @DeviceName, @VarName, @RecordValue, @State, @AlarmNum, @LinkageNum, @RecordTime, @UserName,
+                                                COALESCE
+                                                (
+                                                    (SELECT statechange_history + 1 FROM reports WHERE device_num = @DeviceNum AND var_num = @VarNum ORDER BY record_time DESC LIMIT 1),
+                                                    1
+                                                )
+                                                WHERE NOT EXISTS (
+                                                    SELECT 1 FROM (
+                                                        SELECT state FROM reports WHERE device_num = @DeviceNum AND var_num = @VarNum ORDER BY record_time DESC LIMIT 1) last
+		                                            WHERE last.state = @State);",  //如果最新记录的状态相同，则不插入
+                                                new Dictionary<string, object>()
+                                                {
+                                                    { "@DeviceNum", recordEntity.DeviceNum },
+                                                    { "@VarNum", recordEntity.VariableNum },
+                                                    { "@DeviceName", recordEntity.DeviceName },
+                                                    { "@VarName", recordEntity.VariableName },
+                                                    { "@RecordValue", recordEntity.RecordValue },
+                                                    { "@State", recordEntity.State },
+                                                    { "@AlarmNum", recordEntity.AlarmNum },
+                                                    { "@LinkageNum", recordEntity.LinkageNum },
+                                                    { "@RecordTime", recordEntity.RecordTime },
+                                                    { "@UserName", recordEntity.UserName }
+                                                });
+                sqlCommands.Add(cmd);
+            }
+            return sqlCommands;
+        }
+        #endregion
+
         internal class DeviceByNumComparer : IEqualityComparer<DeviceEntity>
         {
             public bool Equals(DeviceEntity x, DeviceEntity y)

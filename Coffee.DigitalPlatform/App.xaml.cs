@@ -36,6 +36,7 @@ namespace Coffee.DigitalPlatform
             services.AddSingleton<AlarmViewModel>();
             services.AddSingleton<SettingsViewModel>();
             services.AddSingleton<TrendViewModel>();
+            services.AddSingleton<ReportViewModel>();
 
 
             var serviceProvider = services.BuildServiceProvider();
@@ -62,6 +63,7 @@ namespace Coffee.DigitalPlatform
             if (locator != null)
             {
                 locator.TrendViewModel?.Dispose();
+                locator.ReportViewModel?.Dispose();
             }
                
             base.OnExit(e);

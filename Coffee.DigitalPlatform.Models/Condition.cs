@@ -512,76 +512,76 @@ namespace Coffee.DigitalPlatform.Models
             return genericType == typeof(EnumExpression<>);
         }
 
-        public bool IsMatch()
+        public bool IsMatch(out IEnumerable<Variable> matchedVariables)
         {
+            bool isMatched = false;
             if (Source.VarType == typeof(bool))
             {
-                return calculateBooleanResult();
+                isMatched = calculateBooleanResult();
             }
             else if (Source.VarType.IsEnum)
             {
-                return calculateEnumResult();
+                isMatched = calculateEnumResult();
             }
             else if (Source.VarType == typeof(TimeSpan))
             {
-                return CalculateTimeSpanResult();
+                isMatched = CalculateTimeSpanResult();
             }
             else if (Source.VarType == typeof(string))
             {
-                return calculateStringResult();
+                isMatched = calculateStringResult();
             }
             else if (Source.VarType == typeof(byte))
             {
-                return calculateValueDateResult<byte>();
+                isMatched = calculateValueDateResult<byte>();
             }
             else if (Source.VarType == typeof(short))
             {
-                return calculateValueDateResult<short>();
+                isMatched = calculateValueDateResult<short>();
             }
             else if (Source.VarType == typeof(ushort))
             {
-                return calculateValueDateResult<ushort>();
+                isMatched = calculateValueDateResult<ushort>();
             }
             else if (Source.VarType == typeof(int))
             {
-                return calculateValueDateResult<int>();
+                isMatched = calculateValueDateResult<int>();
             }
             else if (Source.VarType == typeof(uint))
             {
-                return calculateValueDateResult<uint>();
+                isMatched = calculateValueDateResult<uint>();
             }
             else if (Source.VarType == typeof(long))
             {
-                return calculateValueDateResult<long>();
+                isMatched = calculateValueDateResult<long>();
             }
             else if (Source.VarType == typeof(ulong))
             {
-                return calculateValueDateResult<ulong>();
+                isMatched = calculateValueDateResult<ulong>();
             }
             else if (Source.VarType == typeof(float))
             {
-                return calculateValueDateResult<float>();
+                isMatched = calculateValueDateResult<float>();
             }
             else if (Source.VarType == typeof(double))
             {
-                return calculateValueDateResult<double>();
+                isMatched = calculateValueDateResult<double>();
             }
             else if (Source.VarType == typeof(decimal))
             {
-                return calculateValueDateResult<decimal>();
+                isMatched = calculateValueDateResult<decimal>();
             }
             else if (Source.VarType == typeof(sbyte))
             {
-                return calculateValueDateResult<sbyte>();
+                isMatched = calculateValueDateResult<sbyte>();
             }
             else if (Source.VarType == typeof(DateTime))
             {
-                return calculateValueDateResult<DateTime>();
+                isMatched = calculateValueDateResult<DateTime>();
             }
-            else
-            {
-                return false;
-            }
+
+            matchedVariables = isMatched ? new List<Variable>() { Source } : Enumerable.Empty<Variable>();
+            return isMatched;
         }
 
         private bool calculateValueDateResult<TValue>() where TValue : struct, IComparable, IFormattable, IComparable<TValue>, IEquatable<TValue>
@@ -754,7 +754,7 @@ namespace Coffee.DigitalPlatform.Models
                 StringBuilder styleBuilder = new StringBuilder();
                 double fontSize = formater.GetFontSize(key);
                 styleBuilder.Append($"font-size:{fontSize}px;");
-                if (IsMatch())
+                if (IsMatch(out IEnumerable<Variable> matchedVariables))
                 {
                     Color color = formater.GetFontForeground(key);
                     styleBuilder.Append($"color:{string.Format("#{0:X2}{1:X2}{2:X2}", color.R, color.G, color.B)};");
@@ -825,7 +825,7 @@ namespace Coffee.DigitalPlatform.Models
 
     public interface ICondition
     {
-        bool IsMatch();
+        bool IsMatch(out IEnumerable<Variable> matchedVariables);
 
         ConditionChain Parent { get; }
 

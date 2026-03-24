@@ -31,5 +31,7 @@ namespace Coffee.DigitalPlatform.ViewModels
         public SettingsViewModel SettingsViewModel => Provider.GetService<SettingsViewModel>();
 
         public TrendViewModel TrendViewModel => Provider.GetService<TrendViewModel>();
+
+        public ReportViewModel ReportViewModel => Provider.GetService<ReportViewModel>();
     }
 }
