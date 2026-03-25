@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO.Ports;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using socket = System.Net.Sockets;
@@ -16,7 +17,7 @@ namespace Coffee.DeviceAdapter
             _protocolType = protocolType;
         }
 
-        public string IP { get; set; }
+        public IPAddress IP { get; set; }
 
         public int Port { get; set; }
 
@@ -60,15 +61,15 @@ namespace Coffee.DeviceAdapter
 
     public class ModbusTCP_Options : ModbusSocketOptions
     {
-        public ModbusTCP_Options() : this("127.0.0.1")
+        public ModbusTCP_Options() : this(IPAddress.Parse("127.0.0.1"))
         {
         }
 
-        public ModbusTCP_Options(string ip) : this(ip, 502)
+        public ModbusTCP_Options(IPAddress ip) : this(ip, 502)
         {
         }
 
-        public ModbusTCP_Options(string ip, int port) : base(socket.ProtocolType.Tcp)
+        public ModbusTCP_Options(IPAddress ip, int port) : base(socket.ProtocolType.Tcp)
         {
             this.IP = ip;
             this.Port = port;
@@ -77,15 +78,15 @@ namespace Coffee.DeviceAdapter
 
     public class ModbusUDP_Options : ModbusSocketOptions
     {
-        public ModbusUDP_Options() : this("127.0.0.1")
+        public ModbusUDP_Options() : this(IPAddress.Parse("127.0.0.1"))
         {
         }
 
-        public ModbusUDP_Options(string ip) : this(ip, 502)
+        public ModbusUDP_Options(IPAddress ip) : this(ip, 502)
         {
         }
 
-        public ModbusUDP_Options(string ip, int port) : base(socket.ProtocolType.Udp)
+        public ModbusUDP_Options(IPAddress ip, int port) : base(socket.ProtocolType.Udp)
         {
             this.IP = ip;
             this.Port = port;

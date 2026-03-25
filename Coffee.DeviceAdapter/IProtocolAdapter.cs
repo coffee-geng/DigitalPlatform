@@ -1,6 +1,7 @@
 
 using Coffee.ModbusLib;
 using System.IO.Ports;
+using System.Net;
 
 namespace Coffee.DeviceAdapter
 {
@@ -34,7 +35,7 @@ namespace Coffee.DeviceAdapter
 
     public interface ISocketOptions : IProtocolOptions
     {
-        string IP { get; set; }
+        IPAddress IP { get; set; }
 
         int Port { get; set; }
 

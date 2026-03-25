@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,15 +10,15 @@ namespace Coffee.ModbusLib
 {
     public class ModbusUDP : ModbusSocket
     {
-        public ModbusUDP() : this("127.0.0.1")
+        public ModbusUDP() : this(IPAddress.Parse("127.0.0.1"))
         {
         }
 
-        public ModbusUDP(string ip) : this(ip, 502)
+        public ModbusUDP(IPAddress ip) : this(ip, 502)
         {
         }
 
-        public ModbusUDP(string ip, int port) : base(ProtocolType.Udp)
+        public ModbusUDP(IPAddress ip, int port) : base(ProtocolType.Udp)
         {
             this.IP = ip;
             this.Port = port;
@@ -78,7 +79,7 @@ namespace Coffee.ModbusLib
 
                 callback.Invoke(new ReadWriteModbusCallbackResult()
                 {
-                    IsCompleted = t.IsCompletedSuccessfully && error != null,
+                    IsCompleted = t.IsCompletedSuccessfully && error == null,
                     Error = error,
                     ResultData = result
                 });
@@ -125,7 +126,7 @@ namespace Coffee.ModbusLib
 
                 callback.Invoke(new ReadWriteModbusCallbackResult()
                 {
-                    IsCompleted = t.IsCompletedSuccessfully && error != null,
+                    IsCompleted = t.IsCompletedSuccessfully && error == null,
                     Error = error,
                     ResultData = result
                 });

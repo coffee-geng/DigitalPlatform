@@ -609,11 +609,14 @@ namespace Coffee.DigitalPlatform.ViewModels
             var monitorInfoList = settingViewModel.MonitorList;
 
             cts = new CancellationTokenSource();
-            foreach(var device in DeviceList)
+            var token = cts.Token;
+            foreach(var deviceItem in DeviceList)
             {
+                var device = deviceItem;
                 Task task = Task.Run(async () =>
                 {
-                    while (!cts.IsCancellationRequested)
+                    var device = deviceItem;
+                    while (!token.IsCancellationRequested)
                     {
                         var propDict = new Dictionary<string, ProtocolParameter>();
                         foreach (var parameter in device.CommunicationParameters)
@@ -663,7 +666,6 @@ namespace Coffee.DigitalPlatform.ViewModels
                                     isWarning = true;
                                     alarm.AlarmState = new AlarmState(AlarmStatus.Unsolved);
                                     alarm.AlarmTime = DateTime.Now;
-                                    
                                 }
                                 else
                                 {
@@ -777,7 +779,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                             //字典保存当前触发联动的点位信息及有哪些变量满足条件触发了联动
                             Dictionary<ControlInfoByTrigger, IEnumerable<models.Variable>> triggeredControlInfoDict = new Dictionary<ControlInfoByTrigger, IEnumerable<models.Variable>>();
 
-                            foreach(var controlInfo in device.ControlInfosByTrigger)
+                            foreach (var controlInfo in device.ControlInfosByTrigger)
                             {
                                 //因为设备中的点位信息是实时变化的，所以在每次计算联动控制条件时，需要将当前设备中的点位信息更新到联动控制条件中，从而保证调用IsMatch方法时检测的变量值是最新的，保证联动控制的准确性
                                 controlInfo.Condition?.UpdateSourceVariables(device.Variables.ToList());
@@ -820,7 +822,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                             #region Dashboard 设备监控
                             if (monitorInfoList != null)
                             {
-                                foreach(var variable in device.Variables)
+                                foreach (var variable in device.Variables)
                                 {
                                     var monitorInfo = monitorInfoList.Where(p => p.DeviceNum == device.DeviceNum && p.VariableNum == variable.VarNum).FirstOrDefault();
                                     if (monitorInfo == null)
@@ -846,7 +848,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                                         FlowRate = variable;
                                     }
                                 }
-                                
+
                             }
                             #endregion
 
@@ -878,14 +880,14 @@ namespace Coffee.DigitalPlatform.ViewModels
                                     //如果当前变量满足联动条件，即如果当前联动条件满足，且当前这个变量是触发这个联动事件的子条件源
                                     //这时，记录一条与当前变量相关的报表项，例如这个变量是否作为子条件源触发了报警或者联动事件
                                     ICondition condition = null;
-                                    foreach(var pair in triggeredControlInfoDict)
+                                    foreach (var pair in triggeredControlInfoDict)
                                     {
                                         var triggerInfo = pair.Key;
                                         var matchedVariables = pair.Value;
 
                                         if (matchedVariables != null && matchedVariables.Any(var => var.VarNum == variable.VarNum && var.DeviceNum == variable.DeviceNum))
                                         {
-                                            condition = triggerInfo.Condition; 
+                                            condition = triggerInfo.Condition;
                                             break;
                                         }
                                     }
@@ -902,14 +904,14 @@ namespace Coffee.DigitalPlatform.ViewModels
                                 else
                                     record.State = RecordStatus.Normal;
 
-                                    records.Add(record);
+                                records.Add(record);
                             }
                             WeakReferenceMessenger.Default.Send<ReportRecordsMessage>(new ReportRecordsMessage(records));
                             #endregion
                         }
                         await Task.Delay(5000);
                     }
-                });
+                }, token);
                 task.ContinueWith(t =>
                 {
                     if (t.Exception != null)

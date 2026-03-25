@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -37,6 +38,10 @@ namespace Coffee.DeviceAdapter
                     if (paramType.IsEnum)
                     {
                         propInfo.SetValue(this, Enum.Parse(paramType, paramValue));
+                    }
+                    else if (paramType == typeof(IPAddress))
+                    {
+                        propInfo.SetValue(this, IPAddress.Parse(paramValue));
                     }
                     else
                     {
