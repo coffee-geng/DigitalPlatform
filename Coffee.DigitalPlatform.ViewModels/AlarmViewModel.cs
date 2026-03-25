@@ -239,7 +239,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                 }
             });
 
-            PageSize = 5;
+            PageSize = 10;
             Alarms = new ObservableCollection<Alarm>(alarms);
             AlarmCollectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(Alarms);
         }

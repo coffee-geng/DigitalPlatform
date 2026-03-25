@@ -110,12 +110,19 @@
             <!--1、动态组建Sql-->
             <!--2、初始化创建所有列，动态控制列的呈现-->
             <!--3、默认没有列，动态创建列：所有数据准备好-->
-            <DataGrid ItemsSource="{Binding AllDatas}" AutoGenerateColumns="False" 
-                  CanUserReorderColumns="False" Grid.Column="1" Grid.Row="1" 
-                  CanUserDeleteRows="False" CanUserAddRows="False" CanUserResizeRows="False"
-                  Background="#CCFFFFFF" BorderThickness="0" 
-              wpf:DataGridExtension.Columns="{Binding Columns}">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition Height="25"/>
+            </Grid.RowDefinitions>
+            <DataGrid x:Name="reportDataGrid" Background="#CCFFFFFF" BorderThickness="0"
+                  ItemsSource="{Binding ReportCollectionView}" AutoGenerateColumns="False" 
+                  CanUserReorderColumns="False" CanUserDeleteRows="False" CanUserAddRows="False" CanUserResizeRows="False"
+                  wpf:DataGridExtension.Columns="{Binding Columns}">
             </DataGrid>
+
+            <!-- 分页控件 -->
+            <local:DataPager Grid.Row="1"
+                Source="{Binding ItemsSource, ElementName=reportDataGrid}" CurrentPage="{Binding CurrentPage, Mode=TwoWay}" PageSize="{Binding PageSize, Mode=TwoWay}"/>
         </Grid>
 
         <Popup StaysOpen="False" IsOpen="{Binding ElementName=btnChooseColumn,Path=IsChecked}"

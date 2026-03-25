@@ -21,7 +21,7 @@ using System.Windows.Data;
 
 namespace Coffee.DigitalPlatform.ViewModels
 {
-    public class ReportViewModel : ObservableObject, INavigationService, IDisposable
+    public class ReportViewModel : ObservableObject, IDataPager, INavigationService, IDisposable
     {
         ILocalDataAccess _localDataAccess;
 
@@ -68,12 +68,6 @@ namespace Coffee.DigitalPlatform.ViewModels
                     _reportRecordQueue.Enqueue(record);
                 }
             }));
-
-            // 添加默认列
-            foreach (var item in AllColumms)
-            {
-                doChooseColumnCommand(item);
-            }
         }
 
         #region Write records
@@ -144,6 +138,61 @@ namespace Coffee.DigitalPlatform.ViewModels
         }
         #endregion
 
+        #region 分页显示
+        private int _pageSize = 1;
+        public int PageSize
+        {
+            get { return _pageSize; }
+            set
+            {
+                if (SetProperty(ref _pageSize, value))
+                {
+                    if (ReportCollectionView != null)
+                    {
+                        ReportCollectionView.Refresh();
+                    }
+                }
+            }
+        }
+
+        private int _currentPage = 1;
+        public int CurrentPage
+        {
+            get { return _currentPage; }
+            set
+            {
+                if (SetProperty(ref _currentPage, value))
+                {
+                    if (ReportCollectionView != null)
+                    {
+                        ReportCollectionView.Refresh();
+                    }
+                }
+            }
+        }
+
+        private ListCollectionView _reportCollectionView;
+        public ListCollectionView ReportCollectionView
+        {
+            get { return _reportCollectionView; }
+            set
+            {
+                if (SetProperty(ref _reportCollectionView, value))
+                {
+                    if (value != null)
+                    {
+                        value.Filter = item =>
+                        {
+                            var index = _reportCollectionView.SourceCollection.Cast<ReportItem>().ToList().IndexOf(item as ReportItem);
+                            var page = index / PageSize + 1; //页码从1开始
+                            return page == CurrentPage;
+                        };
+                    }
+                }
+            }
+        }
+        #endregion
+
         private ObservableCollection<ReportItem> _allDatas = new ObservableCollection<ReportItem>();
         public ObservableCollection<ReportItem> AllDatas
         {
@@ -155,7 +204,7 @@ namespace Coffee.DigitalPlatform.ViewModels
         public ObservableCollection<ReportColumn> AllColumms { get; set; } =
             new ObservableCollection<ReportColumn>();
 
-        public ObservableCollection<DataGridColumn> Columns { get; set; } =
+        public ObservableCollection<DataGridColumn> Columns { get; set;} =
             new ObservableCollection<DataGridColumn>();
 
         public RelayCommand<ReportColumn> ChooseColumnCommand { get; set; }
@@ -207,6 +256,9 @@ namespace Coffee.DigitalPlatform.ViewModels
                     LinkageCount = d.LinkageCount,
                     LastTime = d.LastTime
                 }));
+
+                PageSize = 5;
+                ReportCollectionView = (ListCollectionView)CollectionViewSource.GetDefaultView(AllDatas);
             }
         }
 
@@ -245,6 +297,11 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         public void OnNavigateTo(NavigationContext context = null)
         {
+            // 添加默认列
+            foreach (var item in AllColumms)
+            {
+                doChooseColumnCommand(item);
+            }
             if (this.RefreshCommand != null)
             {
                 RefreshCommand.Execute(context);
@@ -253,7 +310,10 @@ namespace Coffee.DigitalPlatform.ViewModels
 
         public void OnNavigateFrom(NavigationContext context = null)
         {
-            
+            if (this.Columns != null)
+            {
+                Columns.Clear();
+            }
         }
 
         public void Dispose()
