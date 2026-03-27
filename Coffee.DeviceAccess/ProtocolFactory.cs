@@ -34,6 +34,10 @@ namespace Coffee.DeviceAccess
             {
                 return new ModbusAdapter(modbusSocketOption, _loggerFactory);
             }
+            else if (option is SiemensS7_Options siemensS7_Option)
+            {
+                return new SiemensS7Adapter(siemensS7_Option, _loggerFactory);
+            }
             return null;
         }
     }

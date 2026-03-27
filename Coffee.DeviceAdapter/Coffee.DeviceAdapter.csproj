@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Coffee.DigitalPlatform.Common\Coffee.DigitalPlatform.Common.csproj" />
     <ProjectReference Include="..\CommunicationLib\Modbus\Coffee.ModbusLib\Coffee.ModbusLib.csproj" />
+    <ProjectReference Include="..\CommunicationLib\Siemens\Coffee.Siemens.Communication\Coffee.Siemens.Communication.csproj" />
   </ItemGroup>
 
 </Project>

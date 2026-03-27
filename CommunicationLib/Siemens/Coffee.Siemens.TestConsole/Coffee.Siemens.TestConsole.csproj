@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Coffee.Siemens.Communication\Coffee.Siemens.Communication.csproj" />
+    <ProjectReference Include="..\Coffee.Siemens.Communication\Coffee.Siemens.Communication.csproj" />
   </ItemGroup>
 
 </Project>

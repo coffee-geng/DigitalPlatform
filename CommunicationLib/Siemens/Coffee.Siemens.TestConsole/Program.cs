@@ -11,11 +11,11 @@ namespace Coffee.SiemensCommunication
         {
             Console.WriteLine("Hello, World!");
 
-            var aa = ResponseStatus.ErrorClasses;
-            var bb = ResponseStatus.DataReturnCodes;
+            //var aa = ResponseStatus.ErrorClasses;
+            //var bb = ResponseStatus.DataReturnCodes;
 
             //Sharp7LibTest();
-            var socket = S7Connect();
+            //var socket = S7Connect();
             //S7Read(socket);
             //S7Write(socket);
             //S7GetDateTime(socket);
@@ -26,11 +26,11 @@ namespace Coffee.SiemensCommunication
         static void Sharp7LibTest()
         {
             var client = new Sharp7.S7Client();
-            int result = client.ConnectTo("192.168.2.4", 0, 2);
+            int result = client.ConnectTo("192.168.2.7", 0, 1);
             byte[] buffer = new byte[2];
-            result = client.DBRead(100, 0, 2, buffer);
+            //result = client.DBRead(1, 0, 2, buffer);
 
-            result = client.DBWrite(100, 0, 2, new byte[] { 0x01, 0x01 });
+            result = client.DBWrite(1, 0, 2, new byte[] { 0x02, 0x01 });
         }
 
         static Socket S7Connect()
@@ -324,13 +324,13 @@ namespace Coffee.SiemensCommunication
         static void ReadS7Lib()
         {
             s7.S7Client client = new s7.S7Client();
-            client.Connect("192.168.2.4", 0, 1);
-            var p1 = new DataParameter(S7_Functions.ReadVariable)
+            client.Connect("192.168.2.7", 0, 1);
+            var p1 = new DataParameter(S7_Functions.WriteVariable)
             {
                 Area = S7_Areas.DB,
-                DBNumber = 100,
+                DBNumber = 1,
                 ByteAddress = 0,
-                Count = 2,
+                Count = 1,
                 ParameterVarType = S7_ParameterVarType.WORD,
                 DataBytes = new byte[] { 0x00, 0xbb }
             };
@@ -343,7 +343,12 @@ namespace Coffee.SiemensCommunication
             //    Count = 3,
             //    ParameterVarType = S7_ParameterVarType.BIT
             //};
-            client.Write(p1);
+            client.Read(p1);
+            //var s= client.Read<short>("DB1.DBW0", 1);
+
+            //client.Write(p1);
+            //client.Write<short>("DB1.DBW0", new short[] { 123 });
+            //client.Write("DB1.DBW0", new short[] { 124 });
         }
     }
 }

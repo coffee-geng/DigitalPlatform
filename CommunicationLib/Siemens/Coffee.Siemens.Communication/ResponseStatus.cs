@@ -11,12 +11,12 @@ namespace Coffee.Siemens.Communication
         public static Dictionary<byte, string> ErrorClasses = new Dictionary<byte, string>()
         {
             { 0x00, "无错误" },
-            { 0x00, "应用程序关系错误" },
-            { 0x00, "对象定义错误" },
-            { 0x00, "无资源可用错误" },
-            { 0x00, "服务处理错误" },
-            { 0x00, "请求错误（如果有错，此码较多）" },
-            { 0x00, "访问错误" }
+            { 0x81, "应用程序关系错误" },
+            { 0x82, "对象定义错误" },
+            { 0x83, "无资源可用错误" },
+            { 0x84, "服务处理错误" },
+            { 0x85, "请求错误（如果有错，此码较多）" },
+            { 0x87, "访问错误" }
         };
 
         public static Dictionary<ushort, string> ErrorCodes = new Dictionary<ushort, string>()
@@ -52,7 +52,7 @@ namespace Coffee.Siemens.Communication
             { 0x03,"对象不允许访问"},
             { 0x05,"地址越界，所需的地址超出此PLC的极限"},
             { 0x06,"请求的数据类型与存储类型不一致"},
-            { 0x07,"日期类型不一致"},
+            { 0x07,"日期类型不一致或值超出目标类型范围"},
             { 0x0a,"对象不存在"}
         };
     }

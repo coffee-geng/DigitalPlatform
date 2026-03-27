@@ -307,7 +307,6 @@ namespace Coffee.Siemens.Communication
             {
                 if (bytesToResponse[offset] != 0xff) //如果响应数据状态不正确。Return code: Success (0xff)
                 {
-                    var aa = ResponseStatus.DataReturnCodes;
                     if (ResponseStatus.DataReturnCodes.ContainsKey(bytesToResponse[offset]))
                     {
                         throw new Exception(ResponseStatus.DataReturnCodes[bytesToResponse[offset]]);
@@ -682,7 +681,7 @@ namespace Coffee.Siemens.Communication
             }
         }
 
-        private DataParameter ParseRequestAddress(string requestAddress, int count, S7_Functions function)
+        public DataParameter ParseRequestAddress(string requestAddress, int count, S7_Functions function)
         {
             if (string.IsNullOrWhiteSpace(requestAddress) || requestAddress.Length < 2)
             {
@@ -742,10 +741,6 @@ namespace Coffee.Siemens.Communication
                         throw new ArgumentException("请求地址格式错误，无法解析！");
                     }
                     reqParameter.BitAddress = bitAddr;
-                }
-                else
-                {
-                    throw new ArgumentException("请求地址格式错误，无法解析！");
                 }
             }
             else if ("IQMV".Contains(requestAddress[0], StringComparison.OrdinalIgnoreCase))
@@ -902,7 +897,7 @@ namespace Coffee.Siemens.Communication
         /// <param name="bytes">数据转换源</param>
         /// <param name="count">指定转换数据的个数。如果转换布尔类型，必须指定Count。其他类型可以不指定。</param>
         /// <returns>返回转换的数据值</returns>
-        private List<T> BytesToData<T>(byte[] bytes, int count = 0)
+        public List<T> BytesToData<T>(byte[] bytes, int count = 0)
         {
             List<T> data = new List<T>();
             if (typeof(T) == typeof(bool))
@@ -981,7 +976,7 @@ namespace Coffee.Siemens.Communication
         /// <typeparam name="T">泛型指定要转换的数据类型</typeparam>
         /// <param name="values">数据转换源</param>
         /// <returns>返回转换后的字节数组</returns>
-        private byte[] DataToBytes<T>(params T[] values)
+        public byte[] DataToBytes<T>(params T[] values)
         {
             List<byte> bytes = new List<byte>();
             if (typeof(T) == typeof(bool))

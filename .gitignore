@@ -57,3 +57,7 @@
 /CommunicationLib/Mitsubishi/Coffee.Mitsubishi.Communication/.vs
 /CommunicationLib/Omron/Coffee.OmronCommunication/.vs
 /CommunicationLib/Siemens/Coffee.SiemensCommunication/.vs
+/CommunicationLib/Siemens/Coffee.Siemens.TestConsole/bin
+/CommunicationLib/Siemens/Coffee.Siemens.TestConsole/obj
+/CommunicationLib/Siemens/Coffee.Siemens.Communication/obj
+/CommunicationLib/Siemens/Coffee.Siemens.Communication/bin

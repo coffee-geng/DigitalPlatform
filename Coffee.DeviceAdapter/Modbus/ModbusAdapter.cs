@@ -81,6 +81,7 @@ namespace Coffee.DeviceAdapter
             get 
             {
                 //尝试一次连接设备的操作，如果有异常，则返回不能连接
+                //工业通信中推荐使用主动的心跳机制来确保通信链路真正健康，在 PLC 和上位机之间建立一个定期变化的信号（默认使用保持寄存器40001）
                 try
                 {
                     var result = _modbusClient.Read(1, FunctionAreas.HoldingRegister, 1, 1);
@@ -151,7 +152,6 @@ namespace Coffee.DeviceAdapter
             };
             try
             {
-
                 byte[] result = _modbusClient.Read(slaveId, address, length);
                 modbusData.Bytes = result;
 
@@ -196,7 +196,6 @@ namespace Coffee.DeviceAdapter
                 var genericType1 = DataTypeHelper.GetTypeFromDataType(dataType);
                 try
                 {
-
                     //反射调用泛型方法：public static T[] ConvertToDataArray<T>(object value)
                     var method1 = typeof(DataTypeHelper).GetMethod("ConvertToDataArray");
                     var genericMethod1 = method1.MakeGenericMethod(genericType1);
