@@ -5,8 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
+using Xceed.Wpf.Toolkit.Core.Utilities;
+using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 namespace Coffee.DigitalPlatform.Views
 {
@@ -117,6 +121,24 @@ namespace Coffee.DigitalPlatform.Views
             if (popupElement == null)
                 return false;
 
+            //如果当前鼠标点击的源是某个下拉框组件，且其在当前的Popup中，则默认命中状态
+            //因为下拉框的弹窗部分可能已经跨越当前的Popup，但是如果不是默认命中状态，则点击某个下拉选项，可能会导致当前的Popup关闭，从而不会触发这个下拉框的选中事件
+            if (args.OriginalSource != null && args.Source is DependencyObject)
+            {
+                //沿着视觉树从下拉选项向上查找不能直接找到ComboBox，只能找到ComboBoxItem，因为它在数据控件模板中
+                var comboBoxItem = VisualTreeHelperEx.FindAncestorByType<ComboBoxItem>(args.OriginalSource as DependencyObject);
+                if (comboBoxItem != null)
+                {
+                    ComboBox comboBox = ItemsControl.ItemsControlFromItemContainer(comboBoxItem) as ComboBox;
+
+                    var rootElementInPopup = AssociatedObject.Child;
+                    if (IsTargetAsAncestorOfElement(comboBox, rootElementInPopup)) //在某个位于当前Popup下的下拉框进行鼠标点击操作
+                    {
+                        return true;
+                    }
+                }
+            }
+
             //存放所有在鼠标命中处理中被当作Popup内的元素，即将依赖属性AdditionalHitTestElements指定的元素集添加到这个集合中，即使其可能位于当前Popup之外
             IList<UIElement> hitTestInclusions = new List<UIElement>();
             hitTestInclusions.Add(popupElement);
@@ -134,6 +156,28 @@ namespace Coffee.DigitalPlatform.Views
                 bool isHitTest = mousePosition.X >= 0 && mousePosition.X <= popupElement.RenderSize.Width && mousePosition.Y >= 0 && mousePosition.Y <= popupElement.RenderSize.Height;
                 if (isHitTest)
                     return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 判断指定组件是否在目标组件的视觉链上。即判断目标组件是否是这个组件本身或其父级组件。
+        /// </summary>
+        /// <param name="element">指定组件</param>
+        /// <param name="targetElement">目标组件</param>
+        private bool IsTargetAsAncestorOfElement(DependencyObject element, DependencyObject targetElement)
+        {
+            if (element == null || targetElement == null)
+                return false;
+            if (element == targetElement)
+                return true;
+
+            var parentElement = VisualTreeHelper.GetParent(element);
+            while (parentElement != null)
+            {
+                if (parentElement == targetElement) 
+                    return true;
+                parentElement = VisualTreeHelper.GetParent(parentElement);
             }
             return false;
         }

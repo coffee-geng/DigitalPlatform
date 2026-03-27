@@ -124,7 +124,7 @@ namespace Coffee.DeviceAdapter
                     var method = typeof(S7Client).GetMethod("BytesToData");
                     var genericType1 = DataTypeHelper.GetTypeFromDataType(dataType);
                     var genericMethod = method.MakeGenericMethod(genericType1);
-                    s7Data.Value = genericMethod.Invoke(null, new object[] { result, length });
+                    s7Data.Value = genericMethod.Invoke(_s7Client, new object[] { result, length });
                 }
                 catch (Exception ex1)
                 {

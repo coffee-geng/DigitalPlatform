@@ -629,28 +629,44 @@ namespace Coffee.DigitalPlatform.ViewModels
                             });
                         }
                         device.ConnectionState = DeviceConnectionStates.Connecting;
-                        if (!await _communicationService.ConnectDeviceAsync(device.DeviceNum, propDict))
+                        try
                         {
-                            device.ConnectionState = DeviceConnectionStates.Disconnected;
-                            _logger.LogInformation($"The device {device.Name} is not connected");
+                            if (!await _communicationService.ConnectDeviceAsync(device.DeviceNum, propDict))
+                            {
+                                device.ConnectionState = DeviceConnectionStates.Disconnected;
+                                _logger.LogInformation($"The device {device.Name} is not connected");
+                            }
+                            else
+                            {
+                                device.ConnectionState = DeviceConnectionStates.Connected;
+                            }
                         }
-                        else
+                        catch(Exception ex)
                         {
-                            device.ConnectionState = DeviceConnectionStates.Connected;
+                            _logger.LogInformation($"The device {device.Name} is failed to connect. Error: {ex.Message}");
+                            device.ConnectionState = DeviceConnectionStates.Disconnected;
                         }
 
                         if (device.ConnectionState == DeviceConnectionStates.Connected)
                         {
-                            foreach (var variable in device.Variables)
+                            try
                             {
-                                var @var = new serv.Variable()
+                                foreach (var variable in device.Variables)
                                 {
-                                    VarNum = variable.VarNum,
-                                    VarAddress = variable.VarAddress,
-                                    VarType = variable.VarType
-                                };
-                                var val = await _communicationService.ReadAsync(device.DeviceNum, @var);
-                                variable.Value = val;
+                                    var @var = new serv.Variable()
+                                    {
+                                        VarNum = variable.VarNum,
+                                        VarAddress = variable.VarAddress,
+                                        VarType = variable.VarType
+                                    };
+                                    var val = await _communicationService.ReadAsync(device.DeviceNum, @var);
+                                    variable.Value = val;
+                                }
+                            }
+                            catch(Exception ex)
+                            {
+                                _logger.LogInformation($"The device {device.Name} is failed to read variables. Error: {ex.Message}");
+                                continue;
                             }
 
                             #region 预警条件

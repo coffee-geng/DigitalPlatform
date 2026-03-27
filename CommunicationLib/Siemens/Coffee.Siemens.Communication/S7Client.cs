@@ -921,7 +921,7 @@ namespace Coffee.Siemens.Communication
                     dynamic b = byteVal == 0x01 ? true : false;
                     data.Add(b);
                 }
-                throw new Exception($"字节转换数据类{typeof(T).Name}失败");
+                return data;
             }
             // 字符串在S7设备中按如下格式存储： __XXXXXXXXXXX
             // 其中第一个字节表示字符串的有效空间，即一个报文最多可以存储多少个字符
