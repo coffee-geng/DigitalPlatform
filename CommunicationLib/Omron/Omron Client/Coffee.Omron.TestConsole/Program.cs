@@ -13,8 +13,10 @@ namespace Coffee.OmronCommunication
             Console.WriteLine("Hello, World!");
 
             //FINS_Serial_TestLib();
+            FINS_TCPLIB_Test();
             //var b = Convert.FromHexString("006F");
-            CIP_Test();
+            //CIP_Test();
+            //doCIPLibTest();
         }
 
         static void FINS_Serial_Test()
@@ -29,7 +31,7 @@ namespace Coffee.OmronCommunication
             var fcs = FCS(cmd);
             cmd += fcs;
             cmd += "*\r";
-           byte[] req =  Encoding.ASCII.GetBytes(cmd);
+            byte[] req = Encoding.ASCII.GetBytes(cmd);
             serialPort.Write(req, 0, req.Length);
             byte[] resp = new byte[serialPort.BytesToRead];
             serialPort.Read(resp, 0, resp.Length);
@@ -44,24 +46,46 @@ namespace Coffee.OmronCommunication
                 Area = Area.DM,
                 WordAddr = 100,
                 BitAddr = 0,
-                Count = 1,
+                Count = 2,
                 DataType = DataTypes.WORD,
-                Data = new byte[] { 0x00, 0x7B, 0X00, 0X7C }
+                Data = new byte[] { 0x02, 0x6B, 0X03, 0X6C }
             };
-            //var resp = fins.Read(10, param1);
+            //var resp = fins.Read(23, param1);
 
-            fins.Write(10, param1);
+            fins.Write(23, param1);
         }
 
         static void FINS_TCPLIB_Test()
         {
-            
+            FINSTCP finstcp = new FINSTCP("127.0.0.1", 9600);
+            finstcp.Open(30000000);
+
+            FINS_Parameter param1 = new FINS_Parameter()
+            {
+                Area = Area.DM,
+                WordAddr = 100,
+                BitAddr = 0,
+                Count = 1,
+                DataType = DataTypes.WORD,
+                Data = new byte[] { 0x01, 0x9B, 0X01, 0X9C }
+            };
+            var resp = finstcp.Read(param1);
+        }
+
+        static void doCIPLibTest()
+        {
+            CIP cip = new CIP("192.168.2.7", 44818);
+            cip.Open();
+
+            cip.Write("ServerOut", CIP_DataTypes.WORD, new byte[] { 0x65, 0x95 });
+
+            //byte[] bytes = cip.Read("ServerOut");
         }
 
         static void CIP_Test()
         {
             Socket socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            socket.Connect("192.168.2.4", 44818);
+            socket.Connect("192.168.2.7", 44818);
 
             //创建CIP Session
             //CIP所有报文按小端处理

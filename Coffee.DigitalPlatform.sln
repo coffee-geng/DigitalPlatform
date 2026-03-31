@@ -67,6 +67,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.Siemens.Communicatio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.Siemens.TestConsole", "CommunicationLib\Siemens\Coffee.Siemens.TestConsole\Coffee.Siemens.TestConsole.csproj", "{6895B353-3CB6-4CFB-8B30-8E6B5F5BB06A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.Omron.Communication", "CommunicationLib\Omron\Omron Client\Coffee.Omron.Communication\Coffee.Omron.Communication.csproj", "{4705B2F8-D10A-45C6-8526-D13A4FC257BF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.Omron.TestConsole", "CommunicationLib\Omron\Omron Client\Coffee.Omron.TestConsole\Coffee.Omron.TestConsole.csproj", "{E698A5B7-E8DB-4498-96E7-02AB0E1CCD34}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.FinsTCP.Server", "CommunicationLib\Omron\Omron FinsTCP Server\Coffee.FinsTCP.Server\Coffee.FinsTCP.Server.csproj", "{2C430718-EEC5-4D1B-8F14-FA94167572E6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -149,6 +155,18 @@ Global
 		{6895B353-3CB6-4CFB-8B30-8E6B5F5BB06A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6895B353-3CB6-4CFB-8B30-8E6B5F5BB06A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6895B353-3CB6-4CFB-8B30-8E6B5F5BB06A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4705B2F8-D10A-45C6-8526-D13A4FC257BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4705B2F8-D10A-45C6-8526-D13A4FC257BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4705B2F8-D10A-45C6-8526-D13A4FC257BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4705B2F8-D10A-45C6-8526-D13A4FC257BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E698A5B7-E8DB-4498-96E7-02AB0E1CCD34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E698A5B7-E8DB-4498-96E7-02AB0E1CCD34}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E698A5B7-E8DB-4498-96E7-02AB0E1CCD34}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E698A5B7-E8DB-4498-96E7-02AB0E1CCD34}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C430718-EEC5-4D1B-8F14-FA94167572E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C430718-EEC5-4D1B-8F14-FA94167572E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C430718-EEC5-4D1B-8F14-FA94167572E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C430718-EEC5-4D1B-8F14-FA94167572E6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -178,5 +196,8 @@ Global
 		{B8602242-2724-4C80-A0DF-9ACDD7C0E8DE} = {F85C8CEF-954F-4688-86CA-63AF26FD36CD}
 		{3D457BAD-7286-42E1-8FB4-A91F98EE38A0} = {CF7C7AAF-085A-4B62-AF19-151F93A952A8}
 		{6895B353-3CB6-4CFB-8B30-8E6B5F5BB06A} = {CF7C7AAF-085A-4B62-AF19-151F93A952A8}
+		{4705B2F8-D10A-45C6-8526-D13A4FC257BF} = {4159CC69-9869-4F18-8EBB-E353D7D46B14}
+		{E698A5B7-E8DB-4498-96E7-02AB0E1CCD34} = {4159CC69-9869-4F18-8EBB-E353D7D46B14}
+		{2C430718-EEC5-4D1B-8F14-FA94167572E6} = {4159CC69-9869-4F18-8EBB-E353D7D46B14}
 	EndGlobalSection
 EndGlobal

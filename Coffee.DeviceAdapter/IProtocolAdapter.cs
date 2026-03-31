@@ -196,7 +196,9 @@ namespace Coffee.DeviceAdapter
         ModbusUDP,
         ModbusASCII,
         SiemensS7,
-        OmronFinsTCP
+        OmronFins,
+        OmronFinsTCP,
+        OmronCIP,
     }
 
     /// <summary>

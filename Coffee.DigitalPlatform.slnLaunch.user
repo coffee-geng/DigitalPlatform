@@ -1,0 +1,16 @@
+[
+  {
+    "Name": "新建配置文件",
+    "Projects": [
+      {
+        "Path": "CommunicationLib\\Omron\\Omron FinsTCP Server\\Coffee.FinsTCP.Server\\Coffee.FinsTCP.Server.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "CommunicationLib\\Omron\\Omron Client\\Coffee.Omron.TestConsole\\Coffee.Omron.TestConsole.csproj",
+        "Action": "Start",
+        "DebugTarget": "Coffee.Omron.TestConsole"
+      }
+    ]
+  }
+]

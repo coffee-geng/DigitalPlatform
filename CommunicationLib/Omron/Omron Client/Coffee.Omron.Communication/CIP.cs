@@ -257,7 +257,7 @@ namespace Coffee.Omron.Communication
             if (dataType == CIP_DataTypes.BOOL ||
             dataType == CIP_DataTypes.SINT ||
                 dataType == CIP_DataTypes.USINT ||
-                dataType == CIP_DataTypes.WORD)
+                dataType == CIP_DataTypes.BYTE)
                 tag_bytes.Add(0x00);
 
 
@@ -421,6 +421,24 @@ namespace Coffee.Omron.Communication
                 tag.Data = data_bytes;
 
                 temp += 2; //定位到下一个标签（每个标签起始地址占2个字节）
+            }
+        }
+
+        // 该方法用于测试当前的CIP对象是否能够正常进行读操作
+        // 目前只是简单的读取任意一个标签。如果抛出的异常是标签不存在的异常（0005），则说明CIP对象能够正常进行读操作，返回true；其他异常，返回false
+        public bool CanRead()
+        {
+            try
+            {
+                this.Read("");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (string.Equals(ex.Message, CIP_Errors.RespErrors["0005"]))
+                    return true;
+                else
+                    return false;
             }
         }
     }

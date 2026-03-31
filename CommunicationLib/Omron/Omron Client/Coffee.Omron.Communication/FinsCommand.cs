@@ -18,7 +18,7 @@ namespace Coffee.Omron.Communication
         // H0.5       H10
         // W0.5       W10
         // A0.5       A10
-        protected FINS_Parameter GetAddress(string variable)
+        public FINS_Parameter GetAddress(string variable)
         {
             Area area = Area.DM;
             ushort word_addr = 0;

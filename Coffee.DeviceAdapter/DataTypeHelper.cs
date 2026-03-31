@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Coffee.Omron.Communication.Base;
+using System;
 using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
@@ -92,6 +93,98 @@ namespace Coffee.DeviceAdapter
                 return DataType.String;
             }
             else if (type == typeof(byte[]))
+            {
+                return DataType.ByteArray;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public static CIP_DataTypes GetCipTypeFromDataType(DataType dataType)
+        {
+            CIP_DataTypes cipType = CIP_DataTypes.BYTE;
+            switch (dataType)
+            {
+                case DataType.Bit:
+                    cipType = CIP_DataTypes.BOOL;
+                    break;
+                case DataType.Byte:
+                    cipType = CIP_DataTypes.BYTE;
+                    break;
+                case DataType.Int16:
+                    cipType = CIP_DataTypes.INT;
+                    break;
+                case DataType.UInt16:
+                    cipType = CIP_DataTypes.UINT;
+                    break;
+                case DataType.Int32:
+                    cipType = CIP_DataTypes.DINT;
+                    break;
+                case DataType.UInt32:
+                    cipType = CIP_DataTypes.UDINT;
+                    break;
+                case DataType.Float:
+                    cipType = CIP_DataTypes.REAL;
+                    break;
+                case DataType.Double:
+                    cipType = CIP_DataTypes.LREAL;
+                    break;
+                case DataType.String:
+                    cipType = CIP_DataTypes.STRINGN;
+                    break;
+                case DataType.ByteArray:
+                    cipType = CIP_DataTypes.STRING;
+                    break;
+            }
+            return cipType;
+        }
+
+        public static DataType? GetDataTypeFromType(CIP_DataTypes cipType)
+        {
+            if (cipType == null)
+            {
+                return null;
+            }
+
+            if (cipType == CIP_DataTypes.BOOL)
+            {
+                return DataType.Bit;
+            }
+            else if (cipType == CIP_DataTypes.BYTE)
+            {
+                return DataType.Byte;
+            }
+            else if (cipType == CIP_DataTypes.INT)
+            {
+                return DataType.Int16;
+            }
+            else if (cipType == CIP_DataTypes.UINT)
+            {
+                return DataType.UInt16;
+            }
+            else if (cipType == CIP_DataTypes.DINT)
+            {
+                return DataType.Int32;
+            }
+            else if (cipType == CIP_DataTypes.UDINT)
+            {
+                return DataType.UInt32;
+            }
+            else if (cipType == CIP_DataTypes.REAL)
+            {
+                return DataType.Float;
+            }
+            else if (cipType == CIP_DataTypes.LREAL)
+            {
+                return DataType.Double;
+            }
+            else if (cipType == CIP_DataTypes.STRINGN)
+            {
+                return DataType.String;
+            }
+            else if (cipType == CIP_DataTypes.STRING)
             {
                 return DataType.ByteArray;
             }

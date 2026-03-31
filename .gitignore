@@ -61,3 +61,10 @@
 /CommunicationLib/Siemens/Coffee.Siemens.TestConsole/obj
 /CommunicationLib/Siemens/Coffee.Siemens.Communication/obj
 /CommunicationLib/Siemens/Coffee.Siemens.Communication/bin
+/CommunicationLib/Omron/Omron Client/Coffee.Omron.Communication/obj
+/CommunicationLib/Omron/Omron Client/Coffee.Omron.Communication/bin
+/CommunicationLib/Omron/Omron Client/Coffee.Omron.TestConsole/bin
+/CommunicationLib/Omron/Omron Client/Coffee.Omron.TestConsole/obj
+/CommunicationLib/Omron/Omron FinsTCP Server/Coffee.FinsTCP.Server/bin
+/CommunicationLib/Omron/Omron FinsTCP Server/Coffee.FinsTCP.Server/obj
+/CommunicationLib/Omron/Omron Client/.vs

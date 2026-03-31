@@ -366,7 +366,7 @@ namespace Coffee.DeviceAdapter
                 }
                 await Task.Run(() =>
                 {
-                    _modbusClient.Connect();
+                    _modbusClient.Disconnect();
                 });
             }
             catch (Exception ex)
