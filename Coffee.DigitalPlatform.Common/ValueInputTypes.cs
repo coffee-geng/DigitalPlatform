@@ -11,6 +11,7 @@ namespace Coffee.DigitalPlatform.Common
         Text,
         Numeric,
         Selector,
-        ColorPicker
+        ColorPicker,
+        HiddenField = 100
     }
 }

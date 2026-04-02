@@ -11,12 +11,16 @@ namespace Coffee.DeviceAdapter
 {
     public class OmronCIP_Options : ProtocolOptions, ISocketOptions
     {
-        protected OmronCIP_Options(socket.ProtocolType protocolType)
+        public OmronCIP_Options() : this("127.0.0.1", 44818)
+        {
+        }
+
+        protected OmronCIP_Options(socket.ProtocolType protocolType = socket.ProtocolType.Tcp)
         {
             _protocolType = protocolType;
         }
 
-        protected OmronCIP_Options(socket.ProtocolType protocolType, string ipAddr, int port)
+        protected OmronCIP_Options(string ipAddr, int port, socket.ProtocolType protocolType = socket.ProtocolType.Tcp)
         {
             _protocolType = protocolType;
             IP = IPAddress.Parse(ipAddr);

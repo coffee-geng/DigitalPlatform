@@ -54,11 +54,13 @@ namespace Coffee.DeviceAdapter
         public int WriteBufferSize { get; set; } = 4096;
     }
 
+    [EndianMode(EndianMode.ABCD)]
     public class ModbusRTU_Options : ModbusSerialOptions
     {
 
     }
 
+    [EndianMode(EndianMode.ABCD)]
     public class ModbusTCP_Options : ModbusSocketOptions
     {
         public ModbusTCP_Options() : this(IPAddress.Parse("127.0.0.1"))
@@ -76,6 +78,7 @@ namespace Coffee.DeviceAdapter
         }
     }
 
+    [EndianMode(EndianMode.ABCD)]
     public class ModbusUDP_Options : ModbusSocketOptions
     {
         public ModbusUDP_Options() : this(IPAddress.Parse("127.0.0.1"))

@@ -539,7 +539,8 @@
                         </Button>
 
                         <ScrollViewer Grid.Row="1" MaxHeight="200" VerticalScrollBarVisibility="Hidden" Margin="10,0,0,5" >
-                            <ItemsControl ItemsSource="{Binding CurrentDevice.CommunicationParameters}" Margin="0,0,10,0" AlternationCount="1000">
+                            <ItemsControl ItemsSource="{Binding CurrentDevice.CommunicationParameters}" Margin="0,0,10,0" AlternationCount="1000"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Height="26" Margin="0,1">
@@ -566,6 +567,12 @@
                                                         <Binding Path="ItemsSource" ElementName="cb_p_name" />
                                                     </MultiBinding>
                                                 </ComboBox.SelectedIndex>
+                                                <i:Interaction.Triggers>
+                                                    <i:EventTrigger EventName="SelectionChanged">
+                                                        <i:InvokeCommandAction Command="{Binding DataContext.CurrentDevice.SelectCommunicationParameterCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ItemsControl},AncestorLevel=2}}"
+                                                                               PassEventArgsToCommand="True"/>
+                                                    </i:EventTrigger>
+                                                </i:Interaction.Triggers>
                                             </ComboBox>
 
                                             <ComboBox Grid.Column="1" Name="cb" Visibility="Collapsed"
@@ -592,7 +599,7 @@
                                                     </i:EventTrigger>
                                                 </i:Interaction.Triggers>
                                             </ComboBox>
-                                            <TextBox Grid.Column="1" Name="tb" Text="{Binding PropValue}"/>
+                                            <TextBox Grid.Column="1" Name="tb" Text="{Binding PropValue, UpdateSourceTrigger=PropertyChanged}"/>
 
                                             <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
                                                 <Hyperlink FontFamily="{StaticResource Iconfont}" TextDecorations="None"

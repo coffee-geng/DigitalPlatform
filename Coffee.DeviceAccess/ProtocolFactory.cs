@@ -38,6 +38,18 @@ namespace Coffee.DeviceAccess
             {
                 return new SiemensS7Adapter(siemensS7_Option, _loggerFactory);
             }
+            else if (option is OmronFins_Options fins_Option)
+            {
+                return new OmronFinsAdapter(fins_Option, _loggerFactory);
+            }
+            else if (option is OmronFinsTcp_Options finstcp_Option)
+            {
+                return new OmronFinsAdapter(finstcp_Option, _loggerFactory);
+            }
+            else if (option is OmronCIP_Options cip_Option)
+            {
+                return new OmronCIPAdapter(cip_Option, _loggerFactory);
+            }
             return null;
         }
     }

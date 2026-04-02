@@ -1,7 +1,9 @@
 
 using Coffee.ModbusLib;
+using System.ComponentModel.DataAnnotations;
 using System.IO.Ports;
 using System.Net;
+using System.Reflection;
 
 namespace Coffee.DeviceAdapter
 {
@@ -223,14 +225,54 @@ namespace Coffee.DeviceAdapter
     /// </summary>
     public enum EndianTypes
     {
+        [EndianMode(EndianMode.ABCD)]
         ABCD,
+        [EndianMode(EndianMode.ABCD)]
         CDAB,
+        [EndianMode(EndianMode.ABCD)]
         BADC,
+        [EndianMode(EndianMode.ABCD)]
         DCBA,
+        [EndianMode(EndianMode.ABCD)]
         ABCDEFGH,
+        [EndianMode(EndianMode.ABCD)]
         GHEFCDAB,
+        [EndianMode(EndianMode.ABCD)]
         BADCFEHG,
-        HGFEDCBA
+        [EndianMode(EndianMode.ABCD)]
+        HGFEDCBA,
+        [EndianMode(EndianMode.BigLittleEndian)]
+        BigEndian,
+        [EndianMode(EndianMode.BigLittleEndian)]
+        LittleEndian
+    }
+
+    public enum EndianMode
+    {
+        BigLittleEndian,
+        ABCD
+    }
+
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    public class EndianModeAttribute : Attribute
+    {
+        public EndianModeAttribute(EndianMode mode)
+        {
+            Mode = mode;
+        }
+        public EndianMode Mode { get; }
+    }
+
+    public static class EndianTypesEnumExtensions
+    {
+        public static EndianMode GetEndianMode(this Enum value)
+        {
+            FieldInfo field = value.GetType().GetField(value.ToString());
+            if (field == null) return EndianMode.BigLittleEndian;
+
+            EndianModeAttribute attribute = field.GetCustomAttribute<EndianModeAttribute>();
+            return attribute?.Mode ?? EndianMode.BigLittleEndian; ;
+        }
     }
 
     /// <summary>

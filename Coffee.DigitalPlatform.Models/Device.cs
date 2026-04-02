@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows;
 using Coffee.DigitalPlatform.Common;
+using Coffee.DeviceAdapter;
 
 namespace Coffee.DigitalPlatform.Models
 {
@@ -27,6 +28,7 @@ namespace Coffee.DigitalPlatform.Models
             AddCommunicationParameter = new RelayCommand<CommunicationParameter>(doAddCommunicationParameter);
             RemoveCommunicationParameter = new RelayCommand<CommunicationParameter>(doRemoveCommunicationParameter, canRemoveCommunicationParameter);
             RecommandCommunicationParameter = new RelayCommand(doRecommandCommunicationParameter);
+            SelectCommunicationParameterCommand = new RelayCommand<SelectionChangedEventArgs>(doSelectCommunicationParameter);
             SelectCommunicationParameterValueCommand = new RelayCommand<SelectCommunicationParameterValueCommandParameter>(doSelectCommunicationParameterValue);
 
             AddVariableCommand = new RelayCommand<Variable>(doAddVariable);
@@ -358,14 +360,50 @@ namespace Coffee.DigitalPlatform.Models
         //仅推荐符号当前通信协议的参数，用户已经添加的将不再重复推荐
         public RelayCommand RecommandCommunicationParameter { get; set; }
 
+        //选择使用某个通信参数
+        public RelayCommand<SelectionChangedEventArgs> SelectCommunicationParameterCommand { get; set; }
+
+        //当通信参数的值输入方式是下拉选择时，用户选择一个选项后作为这个通信参数的值
         public RelayCommand<SelectCommunicationParameterValueCommandParameter> SelectCommunicationParameterValueCommand { get; set; }
 
         private void CommunicationParameters_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             CommunicationParameterCollectionRefreshing = !CommunicationParameterCollectionRefreshing;
 
+            if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add)
+            {
+                string newProtocolName = e.NewItems.Cast<CommunicationParameter>().ToList().FirstOrDefault(p => p.PropName == "Protocol")?.PropValue;
+                if (!string.IsNullOrEmpty(newProtocolName))
+                {
+                    _endianMode = EndianModeExtension.GetEndianModeByProtocol(newProtocolName);
+                }
+            }
+            else if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Remove)
+            {
+                string oldProtocolName = e.OldItems.Cast<CommunicationParameter>().ToList().FirstOrDefault(p => p.PropName == "Protocol")?.PropValue;
+                if (!string.IsNullOrEmpty(oldProtocolName))
+                {
+                    _endianMode = EndianMode.BigLittleEndian;
+                }
+            }
+            else if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Reset)
+            {
+                _endianMode = EndianMode.BigLittleEndian;
+            }
+            else if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Replace)
+            {
+                string oldProtocolName = e.OldItems.Cast<CommunicationParameter>().ToList().FirstOrDefault(p => p.PropName == "Protocol")?.PropValue;
+                string newProtocolName = e.NewItems.Cast<CommunicationParameter>().ToList().FirstOrDefault(p => p.PropName == "Protocol")?.PropValue;
+                if (!string.IsNullOrEmpty(newProtocolName) && !string.IsNullOrEmpty(oldProtocolName))
+                {
+                    _endianMode = EndianModeExtension.GetEndianModeByProtocol(newProtocolName);
+                }
+            }
+
             _isDirty = true;
         }
+
+        private EndianMode _endianMode = EndianMode.BigLittleEndian;
 
         private void doAddCommunicationParameter(CommunicationParameter commParam)
         {
@@ -436,6 +474,7 @@ namespace Coffee.DigitalPlatform.Models
                 var protocolName = CommunicationParameters.Where(param => param.PropName == "Protocol").Select(param => param.PropValue).FirstOrDefault();
                 if (protocolName == null)
                     return;
+                var endianModeDef = _localDataAccess.GetHiddenParamDefinitions(protocolName).FirstOrDefault(p => string.Equals(p.ParameterName, "EndianMode"));
                 var commParamDefs = _localDataAccess.GetCommunicationParamDefinitions(protocolName);
                 if (commParamDefs == null || !commParamDefs.Any())
                     return;
@@ -446,7 +485,14 @@ namespace Coffee.DigitalPlatform.Models
                     {
                         continue;
                     }
-                    CommunicationParameterDefinitions.Add(new CommunicationParameterDefinition
+                    if (endianModeDef != null)
+                    {
+                        if (string.Equals( paramDefEntity.ParameterName, endianModeDef.ParameterName)) //过滤掉输入类型为隐藏域的通信参数定义
+                        {
+                            continue;
+                        }
+                    }
+                    var paramDefition = new CommunicationParameterDefinition
                     {
                         ParameterName = paramDefEntity.ParameterName,
                         Label = paramDefEntity.Label,
@@ -460,7 +506,24 @@ namespace Coffee.DigitalPlatform.Models
                             PropOptionValue = o.PropOptionValue,
                             PropOptionLabel = o.PropOptionLabel
                         }).ToList()
-                    });
+                    };
+                    //如果通信属性是字节序，则需根据当前设备支持的字节序模式来过滤掉通信参数定义中的字节序选项，确保用户只能选择当前设备支持的字节序选项
+                    if (endianModeDef != null && endianModeDef.ValueDataType == typeof(EndianMode) && paramDefition.ValueInputType == ValueInputTypes.Selector && paramDefition.ValueDataType == typeof(EndianTypes))
+                    {
+                        var endianMode = EndianModeExtension.GetEndianModeByProtocol(protocolName);
+                        List<CommunicationParameterOption> filteredOptions = new List<CommunicationParameterOption>();
+                        foreach (var valOption in paramDefition.ValueOptions)
+                        {
+                            if (!Enum.TryParse<EndianTypes>(valOption.PropOptionValue, false, out EndianTypes endianType))
+                                continue;
+                            if (EndianTypesEnumExtensions.GetEndianMode(endianType) == endianMode)
+                            {
+                                filteredOptions.Add(valOption);
+                            }
+                        }
+                        paramDefition.ValueOptions = filteredOptions;
+                    }
+                    CommunicationParameterDefinitions.Add(paramDefition);
                 }
 
                 //从通信参数下拉框中找第一个未添加到设备的参数选项，并将其添加到设备的通信参数列表中
@@ -476,6 +539,62 @@ namespace Coffee.DigitalPlatform.Models
                     CommunicationParameters.Add(commParam);
                 }
             }
+        }
+
+        //是否由SelectCommunicationParameterCommand命令引起的SelectionChanged事件，默认为true
+        //此变量用于暂时解决如下Bug：当在SelectionChanged事件中从CommunicationParameters中移除元素时，会再次触发SelectionChanged事件，导致无法正常移除元素。
+        //所以不得不暂时通过这个变量来判断是否在SelectionChanged事件中执行通信参数下拉框及CommunicationParameters集合的更新逻辑
+        private bool isSelectionChangedRaisedBySelectCommunicationCommand = true;
+
+        private void doSelectCommunicationParameter(SelectionChangedEventArgs args)
+        {
+            if (!isSelectionChangedRaisedBySelectCommunicationCommand)
+                return;
+
+            var oldParamDefition = args.RemovedItems?.Cast<CommunicationParameterDefinition>().FirstOrDefault();
+            var newParamDefition = args.AddedItems?.Cast<CommunicationParameterDefinition>().FirstOrDefault();
+            int oldParamDefIndex = -1;
+            int oldParamIndex = -1;
+            if (oldParamDefition != null)
+            {
+                var commParamDef = CommunicationParameterDefinitions.FirstOrDefault(param => param.ParameterName == oldParamDefition.ParameterName);
+                if (commParamDef != null)
+                {
+                    oldParamDefIndex = CommunicationParameterDefinitions.IndexOf(commParamDef);
+                    CommunicationParameterDefinitions.Remove(commParamDef);
+
+                    var oldParam = CommunicationParameters.FirstOrDefault(para => para.PropName == commParamDef.ParameterName);
+                    if (oldParam != null)
+                    {
+                        oldParamIndex = CommunicationParameters.IndexOf(oldParam);
+                        isSelectionChangedRaisedBySelectCommunicationCommand = false; //防止在SelectionChanged事件中执行重复的逻辑
+                        CommunicationParameters.Remove(oldParam);
+                    }
+                }
+            }
+            if (newParamDefition != null)
+            {
+                var commParam = new CommunicationParameter
+                {
+                    PropName = newParamDefition.ParameterName,
+                    PropValue = newParamDefition.DefaultValueOption,
+                    PropValueType = newParamDefition.ValueDataType
+                };
+                
+                if (oldParamDefIndex >= 0)
+                {
+                    CommunicationParameterDefinitions.Insert(oldParamDefIndex, newParamDefition);
+                    CommunicationParameters.Insert(oldParamIndex, commParam);
+                }
+                else
+                {
+                    CommunicationParameterDefinitions.Add(newParamDefition);
+                    isSelectionChangedRaisedBySelectCommunicationCommand = false; //防止在SelectionChanged事件中执行重复的逻辑
+                    CommunicationParameters.Add(commParam);
+                }
+            }
+
+            isSelectionChangedRaisedBySelectCommunicationCommand = true; //恢复SelectionChanged事件的正常执行
         }
 
         private void doSelectCommunicationParameterValue(SelectCommunicationParameterValueCommandParameter cmdParam)

@@ -508,6 +508,23 @@ namespace Coffee.DigitalPlatform.DataAccess
                 return null;
         }
 
+        //得到某种协议相关的，其输入类型为隐藏域类型的通信协议参数定义
+        public IEnumerable<CommunicationParameterDefinitionEntity> GetHiddenParamDefinitions(string protocol)
+        {
+            SqlMapper.SetTypeMap(typeof(CommunicationParameterDefinitionEntity), new ColumnAttributeTypeMapper<CommunicationParameterDefinitionEntity>());
+            SqlMapper.AddTypeHandler(typeof(Type), new StringToTypeHandler());
+
+            string sql = "SELECT p.* FROM properties p LEFT JOIN properties_protocols pp ON p.p_name = pp.prop_name WHERE pp.protocol=@Protocol AND p_input_type=100";
+            if (string.IsNullOrWhiteSpace(protocol))
+            {
+                sql = "SELECT p.* FROM properties p LEFT JOIN properties_protocols pp ON p.p_name = pp.prop_name WHERE p_input_type=100";
+            }
+            Dictionary<string, object> paramDict = new Dictionary<string, object>();
+            paramDict.Add("@Protocol", protocol);
+            var results = SqlQuery<CommunicationParameterDefinitionEntity>(sql, paramDict);
+            return results;
+        }
+
         //得到某种协议的通信参数定义集合
         public IList<CommunicationParameterDefinitionEntity> GetCommunicationParamDefinitions(string protocol)
         {

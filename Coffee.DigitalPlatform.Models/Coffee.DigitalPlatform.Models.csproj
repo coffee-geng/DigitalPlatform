@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Coffee.DeviceAdapter\Coffee.DeviceAdapter.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.Common\Coffee.DigitalPlatform.Common.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.CommWPF\Coffee.DigitalPlatform.CommWPF.csproj" />
     <ProjectReference Include="..\Coffee.DigitalPlatform.Controls\Coffee.DigitalPlatform.Controls.csproj" />

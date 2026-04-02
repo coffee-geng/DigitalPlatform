@@ -9,6 +9,7 @@ using socket = System.Net.Sockets;
 
 namespace Coffee.DeviceAdapter
 {
+    [EndianMode(EndianMode.BigLittleEndian)]
     public class SiemensS7_Options : ProtocolOptions, ISocketOptions
     {
         public IPAddress IP { get; set; }

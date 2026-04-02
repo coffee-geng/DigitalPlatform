@@ -31,16 +31,16 @@ namespace Coffee.DeviceAdapter
             _logger = loggerFactory.CreateLogger<OmronFinsAdapter>();
 
             _finsOptions = finsOptions ?? throw new ArgumentNullException(nameof(finsOptions));
-            if (!(_finsOptions is ModbusSerialOptions || _finsOptions is ModbusSocketOptions))
+            if (!(_finsOptions is OmronFins_Options || _finsOptions is OmronFinsTcp_Options))
             {
                 throw new ArgumentException("Invalid Omron Fins options provided.", nameof(finsOptions));
             }
 
-            if (finsOptions is FinsOptions finsOption)
+            if (finsOptions is OmronFins_Options finsOption)
             {
                 _finsClient = new FINS(finsOption.PortName, finsOption.BaudRate, finsOption.DataBits, finsOption.Parity, finsOption.StopBits);
             }
-            else if (finsOptions is FinsTcpOptions finstcpOption)
+            else if (finsOptions is OmronFinsTcp_Options finstcpOption)
             {
                 if (finstcpOption.ReceiveTimeout > 0)
                     _finsClient = new FINSTCP(finstcpOption.IP.ToString(), finstcpOption.Port, finstcpOption.ReceiveTimeout);
@@ -65,9 +65,9 @@ namespace Coffee.DeviceAdapter
             {
                 if (_finsOptions is null)
                     return Coffee.DeviceAdapter.ProtocolType.Unknown;
-                if (_finsOptions is FinsOptions)
+                if (_finsOptions is OmronFins_Options)
                     return Coffee.DeviceAdapter.ProtocolType.OmronFins;
-                else if (_finsOptions is FinsTcpOptions)
+                else if (_finsOptions is OmronFinsTcp_Options)
                     return Coffee.DeviceAdapter.ProtocolType.OmronFinsTCP;
                 else
                     return Coffee.DeviceAdapter.ProtocolType.Unknown;
@@ -116,11 +116,11 @@ namespace Coffee.DeviceAdapter
         {
             try
             {
-                if (_finsOptions is FinsOptions finsOptions)
+                if (_finsOptions is OmronFins_Options finsOptions)
                 {
                     _logger.LogInformation($"Connecting to Omron Fins device at SerialPort: {finsOptions.PortName}");
                 }
-                else if (_finsOptions is FinsTcpOptions finstcpOptions)
+                else if (_finsOptions is OmronFinsTcp_Options finstcpOptions)
                 {
                     _logger.LogInformation($"Connecting to Omron Fins device at Socket: {finstcpOptions.IP} : {finstcpOptions.Port}");
                 }
@@ -129,11 +129,11 @@ namespace Coffee.DeviceAdapter
             }
             catch (Exception ex)
             {
-                if (_finsOptions is FinsOptions finsOptions)
+                if (_finsOptions is OmronFins_Options finsOptions)
                 {
                     _logger.LogInformation($"Failed to connect to Omron Fins device at SerialPort: {finsOptions.PortName}");
                 }
-                else if (_finsOptions is FinsTcpOptions finstcpOptions)
+                else if (_finsOptions is OmronFinsTcp_Options finstcpOptions)
                 {
                     _logger.LogInformation($"Failed to connect to Omron Fins device at Socket: {finstcpOptions.IP} : {finstcpOptions.Port}");
                 }
@@ -149,11 +149,11 @@ namespace Coffee.DeviceAdapter
             }
             catch (Exception ex)
             {
-                if (_finsOptions is FinsOptions finsOptions)
+                if (_finsOptions is OmronFins_Options finsOptions)
                 {
                     _logger.LogError($"Failed to disconnect to Omron Fins device at SerialPort: {finsOptions.PortName}");
                 }
-                else if (_finsOptions is FinsTcpOptions finstcpOptions)
+                else if (_finsOptions is OmronFinsTcp_Options finstcpOptions)
                 {
                     _logger.LogError($"Failed to disconnect to Omron Fins device at Socket: {finstcpOptions.IP} : {finstcpOptions.Port}");
                 }
@@ -435,11 +435,11 @@ namespace Coffee.DeviceAdapter
         {
             try
             {
-                if (_finsOptions is FinsOptions finsOptions)
+                if (_finsOptions is OmronFins_Options finsOptions)
                 {
                     _logger.LogInformation($"Connecting to Omron fins device at SerialPort: {finsOptions.PortName}");
                 }
-                else if (_finsOptions is FinsTcpOptions finstcpOptions)
+                else if (_finsOptions is OmronFinsTcp_Options finstcpOptions)
                 {
                     _logger.LogInformation($"Connecting to Omron fins device at Socket: {finstcpOptions.IP} : {finstcpOptions.Port}");
                 }
@@ -451,11 +451,11 @@ namespace Coffee.DeviceAdapter
             }
             catch (Exception ex)
             {
-                if (_finsOptions is FinsOptions finsOptions)
+                if (_finsOptions is OmronFins_Options finsOptions)
                 {
                     _logger.LogError($"Failed to connect to Omron fins device at SerialPort: {finsOptions.PortName}");
                 }
-                else if (_finsOptions is FinsTcpOptions finstcpOptions)
+                else if (_finsOptions is OmronFinsTcp_Options finstcpOptions)
                 {
                     _logger.LogError($"Failed to connect to Omron fins device at Socket: {finstcpOptions.IP} : {finstcpOptions.Port}");
                 }
@@ -467,11 +467,11 @@ namespace Coffee.DeviceAdapter
         {
             try
             {
-                if (_finsOptions is FinsOptions finsOptions)
+                if (_finsOptions is OmronFins_Options finsOptions)
                 {
                     _logger.LogInformation($"Connecting to Omron fins device at SerialPort: {finsOptions.PortName}");
                 }
-                else if (_finsOptions is FinsTcpOptions finstcpOptions)
+                else if (_finsOptions is OmronFinsTcp_Options finstcpOptions)
                 {
                     _logger.LogInformation($"Connecting to Omron fins device at Socket: {finstcpOptions.IP} : {finstcpOptions.Port}");
                 }
@@ -482,11 +482,11 @@ namespace Coffee.DeviceAdapter
             }
             catch (Exception ex)
             {
-                if (_finsOptions is FinsOptions finsOptions)
+                if (_finsOptions is OmronFins_Options finsOptions)
                 {
                     _logger.LogError($"Failed to connect to Omron fins device at SerialPort: {finsOptions.PortName}");
                 }
-                else if (_finsOptions is FinsTcpOptions finstcpOptions)
+                else if (_finsOptions is OmronFinsTcp_Options finstcpOptions)
                 {
                     _logger.LogError($"Failed to connect to Omron fins device at Socket: {finstcpOptions.IP} : {finstcpOptions.Port}");
                 }

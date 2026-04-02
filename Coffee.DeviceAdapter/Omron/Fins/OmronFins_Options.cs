@@ -21,7 +21,8 @@ namespace Coffee.DeviceAdapter
         public byte UnitAddress { get; set; } = 0x00;
     }
 
-    public class FinsOptions : FinsBaseOptions, ISerialPortOptions
+    [EndianMode(EndianMode.BigLittleEndian)]
+    public class OmronFins_Options : FinsBaseOptions, ISerialPortOptions
     {
         public string PortName { get; set; } = "COM1";
 
@@ -42,14 +43,19 @@ namespace Coffee.DeviceAdapter
         public int WriteBufferSize { get; set; } = 4096;
     }
 
-    public class FinsTcpOptions : FinsBaseOptions, ISocketOptions
+    [EndianMode(EndianMode.BigLittleEndian)]
+    public class OmronFinsTcp_Options : FinsBaseOptions, ISocketOptions
     {
-        protected FinsTcpOptions(socket.ProtocolType protocolType)
+        public OmronFinsTcp_Options() : this("127.0.0.1", 502)
+        {
+        }
+
+        protected OmronFinsTcp_Options(socket.ProtocolType protocolType = socket.ProtocolType.Tcp)
         {
             _protocolType = protocolType;
         }
 
-        protected FinsTcpOptions(socket.ProtocolType protocolType, string ipAddr, int port)
+        protected OmronFinsTcp_Options(string ipAddr, int port, socket.ProtocolType protocolType = socket.ProtocolType.Tcp)
         {
             _protocolType = protocolType;
             IP = IPAddress.Parse(ipAddr);

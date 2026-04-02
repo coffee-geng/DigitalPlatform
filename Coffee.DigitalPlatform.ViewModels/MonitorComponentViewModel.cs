@@ -5,6 +5,7 @@ using Coffee.DigitalPlatform.CommWPF;
 using Coffee.DigitalPlatform.Entities;
 using Coffee.DigitalPlatform.IDataAccess;
 using Coffee.DigitalPlatform.Models;
+using Coffee.ModbusLib;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;

@@ -67,10 +67,18 @@ namespace Coffee.DeviceAccess
 
             //创建新连接
             var adapter = _protocolFactory.CreateAdapter(protocolOption);
-            if (!await adapter.ConnectAsync())
+            try
+            {
+                if (!await adapter.ConnectAsync())
+                {
+                    throw new InvalidOperationException($"Failed to connect using protocol options: {protocolOption}");
+                }
+            }
+            catch(Exception ex)
             {
                 throw new InvalidOperationException($"Failed to connect using protocol options: {protocolOption}");
             }
+
             var newConnection = new PooledConnection()
             {
                 Adapter = adapter,

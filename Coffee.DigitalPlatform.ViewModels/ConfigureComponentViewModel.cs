@@ -1,4 +1,5 @@
-﻿using Coffee.DigitalPlatform.Common;
+﻿using Coffee.DeviceAdapter;
+using Coffee.DigitalPlatform.Common;
 using Coffee.DigitalPlatform.CommWPF;
 using Coffee.DigitalPlatform.Entities;
 using Coffee.DigitalPlatform.IDataAccess;
@@ -149,7 +150,8 @@ namespace Coffee.DigitalPlatform.ViewModels
             // 必须确定通信协议后，才可添加其他相关通信参数
             if (device != null)
             {
-                var commParamsByDevice = _localDataAccess.GetCommunicationParametersByDevice(device.DeviceNum);
+                
+                var commParamsByDevice = device.CommunicationParameters?.ToList();
                 if (commParamsByDevice == null || !commParamsByDevice.Any())
                 {
                     //var protocolParamDef = _localDataAccess.GetProtocolParamDefinition();
@@ -169,6 +171,7 @@ namespace Coffee.DigitalPlatform.ViewModels
                 else
                 {
                     string protocolName = commParamsByDevice.Where(p => p.PropName == "Protocol").Select(p => p.PropValue).FirstOrDefault();
+                    var endianModeDef = _localDataAccess.GetHiddenParamDefinitions(protocolName).FirstOrDefault(p => string.Equals(p.ParameterName, "EndianMode"));
                     if (!string.IsNullOrWhiteSpace(protocolName))
                     {
                         IList<CommunicationParameterDefinitionEntity> paramDefEntities = _localDataAccess.GetCommunicationParamDefinitions(protocolName);
@@ -182,7 +185,15 @@ namespace Coffee.DigitalPlatform.ViewModels
                                 {
                                     continue;
                                 }
-                                device.CommunicationParameterDefinitions.Add(new CommunicationParameterDefinition()
+                                if (endianModeDef != null)
+                                {
+                                    if (string.Equals(paramDefEntity.ParameterName, endianModeDef.ParameterName)) //过滤掉输入类型为隐藏域的通信参数定义
+                                    {
+                                        continue;
+                                    }
+                                }
+
+                                var paramDefition = new CommunicationParameterDefinition()
                                 {
                                     Label = paramDefEntity.Label,
                                     ParameterName = paramDefEntity.ParameterName,
@@ -196,17 +207,34 @@ namespace Coffee.DigitalPlatform.ViewModels
                                         PropOptionValue = o.PropOptionValue,
                                         PropOptionLabel = o.PropOptionLabel
                                     }).ToList()
-                                });
+                                };
+                                //如果通信属性是字节序，则需根据当前设备支持的字节序模式来过滤掉通信参数定义中的字节序选项，确保用户只能选择当前设备支持的字节序选项
+                                if (endianModeDef != null && endianModeDef.ValueDataType == typeof(EndianMode) && paramDefition.ValueInputType == ValueInputTypes.Selector && paramDefition.ValueDataType == typeof(EndianTypes))
+                                {
+                                    var endianMode = EndianModeExtension.GetEndianModeByProtocol(protocolName);
+                                    List<CommunicationParameterOption> filteredOptions = new List<CommunicationParameterOption>();
+                                    foreach (var valOption in paramDefition.ValueOptions)
+                                    {
+                                        if (!Enum.TryParse<EndianTypes>(valOption.PropOptionValue, false, out EndianTypes endianType))
+                                            continue;
+                                        if (EndianTypesEnumExtensions.GetEndianMode(endianType) == endianMode)
+                                        {
+                                            filteredOptions.Add(valOption);
+                                        }
+                                    }
+                                    paramDefition.ValueOptions = filteredOptions;
+                                }
+                                device.CommunicationParameterDefinitions.Add(paramDefition);
                             }
                         }
                     }
 
                     device.CommunicationParameters.Clear();
-                    commParamsByDevice.OrderBy(entity => entity.PropName == "Protocol" ? 0 : 1).Select(paramEntity => new CommunicationParameter()
+                    commParamsByDevice.OrderBy(entity => entity.PropName == "Protocol" ? 0 : 1).Select(param => new CommunicationParameter()
                     {
-                        PropName = paramEntity.PropName,
-                        PropValue = paramEntity.PropValue,
-                        PropValueType = TypeUtils.GetTypeFromAssemblyQualifiedName(paramEntity.PropValueType)
+                        PropName = param.PropName,
+                        PropValue = param.PropValue,
+                        PropValueType = param.PropValueType
                     }).ToList().ForEach(param => device.CommunicationParameters.Add(param));
                 }
             }

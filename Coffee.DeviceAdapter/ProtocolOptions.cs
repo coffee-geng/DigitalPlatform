@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -53,6 +55,21 @@ namespace Coffee.DeviceAdapter
                     throw new Exception($"配置通信协议属性{paramName}出错！");
                 }
             }
+        }
+    }
+
+    public class EndianModeExtension
+    {
+        public static EndianMode GetEndianModeByProtocol(string protocol)
+        {
+            var options = Assembly.GetAssembly(typeof(EndianModeExtension)).GetTypes().Where(t => t.IsSubclassOf(typeof(ProtocolOptions)));
+            if (options == null) return EndianMode.BigLittleEndian;
+
+            var option = options.Where(opt => string.Equals(opt.FullName, $"Coffee.DeviceAdapter.{protocol}_Options")).FirstOrDefault();
+            if (option == null) return EndianMode.BigLittleEndian;
+
+            EndianModeAttribute attribute = option.GetCustomAttribute<EndianModeAttribute>();
+            return attribute?.Mode ?? EndianMode.BigLittleEndian;
         }
     }
 }

@@ -24,6 +24,8 @@ namespace Coffee.DigitalPlatform.IDataAccess
         #region 通信参数
         CommunicationParameterDefinitionEntity GetProtocolParamDefinition();
 
+        IEnumerable<CommunicationParameterDefinitionEntity> GetHiddenParamDefinitions(string protocol);
+
         IList<CommunicationParameterDefinitionEntity> GetCommunicationParamDefinitions(string protocol);
 
         IList<CommunicationParameterDefinitionEntity> GetCommunicationParamDefinitions();
