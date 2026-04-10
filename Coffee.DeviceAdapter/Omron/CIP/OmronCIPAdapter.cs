@@ -126,7 +126,7 @@ namespace Coffee.DeviceAdapter
             if (requestParam == null)
                 throw new ArgumentNullException("读取点位信息的请求参数不能为空！");
             var result = Read(requestParam.Address, requestParam.DataType, requestParam.Length, slaveId, endianTypes);
-            var response = new ReadResponseParameter(result);
+            var response = new ReadResponseParameter(result, requestParam);
             return response;
         }
 
@@ -169,7 +169,7 @@ namespace Coffee.DeviceAdapter
         {
             if (requestParam == null)
                 throw new ArgumentNullException("写入点位信息的请求参数不能为空！");
-            var response = new WriteResponseParameter()
+            var response = new WriteResponseParameter(requestParam)
             {
                 ProtocolType = ProtocolType,
                 DataType = requestParam.DataType,
@@ -257,7 +257,7 @@ namespace Coffee.DeviceAdapter
                         {
                             varAddrWithErrorList.Add(requestPara.Address, ex1);
                         }
-                        var responseParam = new ReadResponseParameter(cipData);
+                        var responseParam = new ReadResponseParameter(cipData, requestPara);
                         response.Results.Add(responseParam);
                     }
                     if (varAddrWithErrorList.Any())
@@ -396,7 +396,7 @@ namespace Coffee.DeviceAdapter
                 DataLength = requestParam.Length,
                 ProtocolType = ProtocolType
             };
-            var response = new ReadResponseParameter(cipData);
+            var response = new ReadResponseParameter(cipData, requestParam);
 
             try
             {
@@ -440,7 +440,7 @@ namespace Coffee.DeviceAdapter
 
         public async Task<WriteResponseParameter> WriteAsync(WriteRequestParameter requestParam, byte slaveId = 1, EndianTypes endianTypes = EndianTypes.ABCD)
         {
-            var response = new WriteResponseParameter()
+            var response = new WriteResponseParameter(requestParam)
             {
                 ProtocolType = ProtocolType,
                 DataType = requestParam.DataType,

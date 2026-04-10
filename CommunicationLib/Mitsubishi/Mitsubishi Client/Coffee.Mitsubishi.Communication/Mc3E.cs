@@ -19,7 +19,7 @@ namespace Coffee.Mitsubishi
             socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
         }
 
-        public void Open(int timeout = 3000)
+        public void Open(int timeout = 30000000)
         {
             socket.ReceiveTimeout = timeout;
             socket.Connect(_host, _port);
@@ -102,22 +102,28 @@ namespace Coffee.Mitsubishi
             }
             else if (RequestType.BIT == type)
             {
-                // 0x11  0x01
-                // 0x01 0x01 0x00 0x01
-                byte[] state_bytes = resp.Skip(11).Take(count / 2 + (count % 2)).ToArray(); //要读取多少个字节
                 byte[] state_value = new byte[count];
-                int index = 0;
-                for (int i = 0; i < count; i++) //三菱PLC采用小端字节序，而客户端一般使用大端字节序，所以需要颠倒字节序
+                if (new Areas[] { Areas.X, Areas.Y, Areas.M }.Contains(area))
                 {
-                    if (i % 2 == 0)
-                        state_value[i] = (byte)((state_bytes[index] & (1 << 4)) > 0 ? 0x01 : 0x00);
-                    else
+                    byte[] state_bytes = resp.Skip(11).Take(count).ToArray(); //要读取多少个字节
+
+                    for (int i = 0; i < count; i++) //三菱PLC采用小端字节序，而客户端一般使用大端字节序，所以需要颠倒字节序
                     {
-                        state_value[i] = (byte)((state_bytes[index] & 1) > 0 ? 0x01 : 0x00);
-                        index++;
+                        state_value[i] = (byte)(state_bytes[i] > 0 ? 0x01 : 0x00);
                     }
                 }
+                else
+                {
+                    byte[] state_bytes = resp.Skip(11).Take((int)Math.Ceiling((double)count / 8)).ToArray(); //要读取多少个字节
+                    for (int i = 0; i < count; i++) //三菱PLC采用小端字节序，而客户端一般使用大端字节序，所以需要颠倒字节序
+                    {
+                        //从返回的字节中读取每一个位的状态值，存储在state_value中，每个字节表示一个状态值，0x01表示true，0x00表示false
+                        int byteIndex = i / 8;
+                        var bit = (state_bytes[byteIndex] & (0x01 << (i % 8))) >> (i % 8);
 
+                        state_value[i] = (byte)(bit > 0 ? 0x01 : 0x00);
+                    }
+                }
                 return state_value;
             }
             else
@@ -142,10 +148,9 @@ namespace Coffee.Mitsubishi
             List<byte> data_bytes = new List<byte>();
             if (type == RequestType.WORD)
             {
-                // 这里只是部分位软元件，其他自行添加
                 if (new Areas[] { Areas.X, Areas.Y, Areas.M }.Contains(area))
                 {
-                    count = (int)Math.Ceiling(datas.Length * 1.0 / 16); //当写入位数据时，参数data传入的每个字节可表示一个布尔值。count表示写入多少个字
+                    count = (int)Math.Ceiling(datas.Length * 1.0 / 16); //当写入位数据时，参数data传入的每个字节可表示一个布尔值。count表示写入多少个字（1个字可存储16个布尔值）
 
                     //因为按字处理，即使只传入4个布尔值，占半个字节，实际上也要用一个字（即2个字节）存储
                     int byte_count = (int)(count * 2); //总共用多少个字节存储数据。例如：如果传入18个布尔值，则byte_count为4，其中前3个字节存储数据，最后一个字节空着
@@ -166,6 +171,8 @@ namespace Coffee.Mitsubishi
                 }
                 else
                 {
+                    if (datas.Length % 2 != 0)
+                        throw new ArgumentException("写入字软元件区的数据必须是双字节！");
                     count = datas.Length / 2; //写入多少个字
                     for (int i = 0; i < datas.Length; i += 2)
                     {
@@ -175,31 +182,43 @@ namespace Coffee.Mitsubishi
                     }
                 }
             }
-            else if (type == RequestType.BIT) //只支持按位写布尔值数据，而不能写整数等
+            else if (type == RequestType.BIT)
             {
                 count = datas.Length; //写入多少个布尔值
-
-                byte[] temp = new byte[datas.Length / 2 + (datas.Length % 2)]; //一个字节可以存储2个布尔值，必须保证是偶数，即如果9个布尔值存5个字节
-                int index = 0;
-                for (int i = 0; i < datas.Length; i++)
+                if (new Areas[] { Areas.X, Areas.Y, Areas.M }.Contains(area))
                 {
-                    //传入的布尔值数据两两一组，为了使布尔值数据在内存中顺序存放，所以规定第一个数据放在字节的高位，第二个放地位
-                    //例如：传入数据 [true, false, true, true, false, true, false, false, true]，则数据存储格式二进制为 0001 0000 0001 0001 0000 0001 0000 0000 0001
-                    //转换为16进制为 0x10 0x11 0x01 0x00 0x10 （其中最后一个16进制数据因为只占半个字节，所以要补0）
-                    byte d = 0x00;
-                    if (i % 2 == 0 && datas[i] == 0x01)
+                    List<byte> temp = new List<byte>();
+                    for (int i = 0; i < count; i++)
                     {
-                        d = (byte)(d | (1 << 4));
-                        temp[index] |= d;
+                        var bit = datas[i] == 0x00 ? 0x00 : 0x01;
+                        temp.Add((byte)bit);
                     }
-                    if (i % 2 != 0 && datas[i] == 0x01)
-                    {
-                        d = (byte)(d | 1);
-                        temp[index] |= d;
-                        index++;
-                    }
+                    data_bytes = new List<byte>(temp);
                 }
-                data_bytes = new List<byte>(temp);
+                else
+                {
+                    List<byte> temp = new List<byte>();
+                    for (int i = 0; i < count; i++)
+                    {
+                        var bit = datas[i] == 0x00 ? 0x00 : 0x01;
+                        int byteIndex = i / 8;
+                        int wordIndex = i / 16;
+
+                        if (byteIndex >= temp.Count)
+                        {
+                            temp.Add(0x00);
+                        }
+                        if (bit == 0x01)
+                        {
+                            temp[byteIndex] |= (byte)(0x01 << (i % 8));
+                        }
+                    }
+                    if (temp.Count % 2 != 0) //如果按字处理，写入位数据时，字节数必须是偶数
+                    {
+                        temp.Add(0x00);
+                    }
+                    data_bytes = new List<byte>(temp);
+                }
             }
 
             //  地址处理
@@ -386,7 +405,6 @@ namespace Coffee.Mitsubishi
             bytes[8] = (byte)(len / 256 % 256);
 
             byte[] resp = this.SendAndReceive(bytes.ToArray());
-
             this.CheckResponse(resp);
         }
 
@@ -437,6 +455,8 @@ namespace Coffee.Mitsubishi
                 {
                     if (address.Datas == null || address.Datas.Count != 2)
                         throw new Exception("需要写入的数据有异常，无法写入");
+                    //参数传入的大端处理的数据必须转换位小端处理
+                    address.Datas.Reverse();
                     bytes.AddRange(address.Datas);
                 }
             }
@@ -467,7 +487,14 @@ namespace Coffee.Mitsubishi
                 {
                     if (address.Datas == null || address.Datas.Count != 4)
                         throw new Exception("需要写入的数据有异常，无法写入");
-                    bytes.AddRange(address.Datas);
+                    //参数传入的大端处理的数据必须转换位小端处理
+                    List<byte> datas2 = new List<byte>();
+                    for (int i = 0; i < address.Datas.Count; i += 2)
+                    {
+                        datas2.Add(address.Datas[i + 1]);
+                        datas2.Add(address.Datas[i]);
+                    }
+                    bytes.AddRange(datas2);
                 }
             }
 
@@ -562,13 +589,13 @@ namespace Coffee.Mitsubishi
                 }
                 index += byte_count;
             }
-            
+
             foreach (var address in b_address)
             {
                 if (address.Datas == null)
                     address.Datas = new List<byte>();
 
-                //address.Count 表示从指定地址读取多少个字的位数据，也就是 16 * N 个位数据，每个位结果占用一个字节
+                //address.Count 表示从指定地址读取多少个位数据，返回的时候是按字节存储的
                 int byte_count = address.Count * 2;
                 byte[] values_bytes = resp.Skip(index).Take(byte_count).ToArray();
 
@@ -615,13 +642,13 @@ namespace Coffee.Mitsubishi
                 // 拼接请求的地址，软元件区域和当前地址读取的字数
                 bytes.AddRange(addr_bytes);
                 bytes.Add((byte)address.Area);
-                bytes.Add((byte)(address.Count)); //写入多少个字的数据
+                //写入多少个字的数据
+                var wCount = BitConverter.GetBytes((short)address.Count);
+                bytes.AddRange(wCount);
 
                 if (address.Datas == null || address.Datas.Count == 0 || address.Datas.Count % 2 > 0) //因为是以字操作，写入数据的字节数必须是字的倍数
                     throw new Exception("数据准备有误，不符合字操作的格式");
-                int byteSize = Marshal.SizeOf(address.Datas.First());
-                if (byteSize != 2) //只支持2个字节的数据类型
-                    throw new Exception("数据准备有误，不符合字操作的格式");
+                int byteSize = 2;
 
                 //参数传入的大端处理的数据必须转换位小端处理
                 List<byte> datas2 = new List<byte>();
@@ -639,15 +666,21 @@ namespace Coffee.Mitsubishi
                 {
                     throw new Exception("参数b_address只能从指定位地址软元件区域写入数据！");
                 }
-                byte[] addr_bytes = this.GetAddress(address.Address, address.Area);
+                byte[] addr_bytes = this.GetAddress(address.Address, address.Area, false);
                 // 拼接请求的地址，软元件区域和当前地址读取的位数
                 bytes.AddRange(addr_bytes);
                 bytes.Add((byte)address.Area);
-                bytes.Add((byte)(address.Count)); //写入多少个字的位数据，16位为一个字
 
-                if (address.Datas == null || address.Datas.Count % 16 != 0)
-                    throw new Exception("需要写入的数据有异常，无法写入！（提示：写入位状态的个数要符号字操作的格式，必须是16的整数倍。）");
-                byte[] data_bytes = new byte[address.Datas.Count / 8];
+                //写入多少个字节的位数据，一个字节可以保持8个位，一般为1（现在的问题是：当写入的位数大于8，即写入2个以上字节时，最终设备也仅写入1个字节的位数据）
+                short byteSize = (short)Math.Ceiling((double)address.Datas.Count / 8);
+                var bCount = BitConverter.GetBytes((short)address.Datas.Count);
+                bytes.AddRange(bCount);
+
+                if (address.Datas.Count != address.Count)
+                    throw new Exception("需要写入的数据有异常，无法写入！（提示：写入位状态的个数必须和写入位数据的字节数一致。）");
+                //if (address.Datas == null || address.Datas.Count % 16 != 0)
+                //    throw new Exception("需要写入的数据有异常，无法写入！（提示：写入位状态的个数要符号字操作的格式，必须是16的整数倍。）");
+                byte[] data_bytes = new byte[byteSize];
                 int index = 0;
                 // 将16个位状态转换成两个字节
                 for (int i = 0; i < address.Datas.Count; i++)
@@ -659,11 +692,12 @@ namespace Coffee.Mitsubishi
                 bytes.AddRange(data_bytes);
             }
 
-            int len = w_address.Union(b_address).Sum(a => a.Datas.Count / 2 + 5) + 8;
+            int len = w_address.Union(b_address).Sum(a => a.Datas.Count / 2 + 6) + 15;
             bytes[7] = (byte)(len % 256);
             bytes[8] = (byte)(len / 256 % 256);
 
             byte[] resp = this.SendAndReceive(bytes.ToArray());
+
             // 检查响应状态
             this.CheckResponse(resp);
         }
@@ -756,7 +790,7 @@ namespace Coffee.Mitsubishi
             {
                 //多个字符串拼接成一个字符串，然后再转换成字节数组
                 StringBuilder sb = new StringBuilder();
-                foreach(var v in values)
+                foreach (var v in values)
                 {
                     sb.Append(v as string);
                 }
@@ -871,7 +905,7 @@ namespace Coffee.Mitsubishi
                 throw new Exception("地址超出范围");
             else if (addr_bytes.Count < 3)
             {
-                while(addr_bytes.Count < 3)
+                while (addr_bytes.Count < 3)
                 {
                     addr_bytes.Add((byte)0x00);
                 }
@@ -883,7 +917,8 @@ namespace Coffee.Mitsubishi
         private void CheckResponse(byte[] resp)
         {
             // 检查状态码，小端字节序
-            string state = resp[10].ToString("X2") + resp[9].ToString("X2"); //结束代码，状态码
+            //string state = resp[10].ToString("X2") + resp[9].ToString("X2"); //结束代码，状态码
+            string state = resp[9].ToString("X2") + resp[10].ToString("X2");
             if (state != "0000")
             {
                 if (Status.Errors.ContainsKey(state))

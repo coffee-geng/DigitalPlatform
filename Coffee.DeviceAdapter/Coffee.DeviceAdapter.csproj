@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Coffee.DigitalPlatform.Common\Coffee.DigitalPlatform.Common.csproj" />
+    <ProjectReference Include="..\CommunicationLib\Mitsubishi\Mitsubishi Client\Coffee.Mitsubishi.Communication\Coffee.Mitsubishi.Communication.csproj" />
     <ProjectReference Include="..\CommunicationLib\Modbus\Coffee.ModbusLib\Coffee.ModbusLib.csproj" />
     <ProjectReference Include="..\CommunicationLib\Omron\Omron Client\Coffee.Omron.Communication\Coffee.Omron.Communication.csproj" />
     <ProjectReference Include="..\CommunicationLib\Siemens\Coffee.Siemens.Communication\Coffee.Siemens.Communication.csproj" />

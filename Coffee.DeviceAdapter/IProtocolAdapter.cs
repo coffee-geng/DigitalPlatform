@@ -113,16 +113,23 @@ namespace Coffee.DeviceAdapter
 
     public class ReadResponseParameter
     {
-        public ReadResponseParameter(ProtocolData result)
+        public ReadResponseParameter(ProtocolData result, ReadRequestParameter requestParameter)
         {
             if (result == null)
             {
                 throw new ArgumentNullException(nameof(result));
             }
+            if (requestParameter == null)
+            {
+                throw new ArgumentNullException(nameof(requestParameter));
+            }
             _result = result;
+            RequestParameter = requestParameter;
         }
 
         private ProtocolData _result;
+
+        public ReadRequestParameter RequestParameter { get; private set; }
 
         public bool Success
         {
@@ -156,6 +163,17 @@ namespace Coffee.DeviceAdapter
 
     public class WriteResponseParameter
     {
+        public WriteResponseParameter(WriteRequestParameter requestParameter)
+        {
+            if (requestParameter == null)
+            {
+                throw new ArgumentNullException(nameof(requestParameter));
+            }
+            RequestParameter = requestParameter;
+        }
+
+        public WriteRequestParameter RequestParameter { get; private set; }
+
         public bool Success { get; set; }
 
         public string ErrorMessage { get; set; }
@@ -201,6 +219,7 @@ namespace Coffee.DeviceAdapter
         OmronFins,
         OmronFinsTCP,
         OmronCIP,
+        Mitsubishi_MC3E,
     }
 
     /// <summary>

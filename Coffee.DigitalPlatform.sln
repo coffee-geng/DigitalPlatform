@@ -73,6 +73,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.Omron.TestConsole", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.FinsTCP.Server", "CommunicationLib\Omron\Omron FinsTCP Server\Coffee.FinsTCP.Server\Coffee.FinsTCP.Server.csproj", "{2C430718-EEC5-4D1B-8F14-FA94167572E6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.Mitsubishi.Communication", "CommunicationLib\Mitsubishi\Mitsubishi Client\Coffee.Mitsubishi.Communication\Coffee.Mitsubishi.Communication.csproj", "{7E3A491B-93AD-4BA7-BEA6-52E5D08BF25C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.Mitsubishi.TestConsole", "CommunicationLib\Mitsubishi\Mitsubishi Client\Coffee.Mitsubishi.TestConsole\Coffee.Mitsubishi.TestConsole.csproj", "{226A52BB-0E8E-4163-8BD3-3EFB04722A4E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.MCProtocol.Server", "CommunicationLib\Mitsubishi\MCProtocol Server\Coffee.MCProtocol.Server\Coffee.MCProtocol.Server.csproj", "{AAC7E598-AE82-4FF9-8510-B5E1EE7430CA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -167,6 +173,18 @@ Global
 		{2C430718-EEC5-4D1B-8F14-FA94167572E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C430718-EEC5-4D1B-8F14-FA94167572E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2C430718-EEC5-4D1B-8F14-FA94167572E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E3A491B-93AD-4BA7-BEA6-52E5D08BF25C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E3A491B-93AD-4BA7-BEA6-52E5D08BF25C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E3A491B-93AD-4BA7-BEA6-52E5D08BF25C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E3A491B-93AD-4BA7-BEA6-52E5D08BF25C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{226A52BB-0E8E-4163-8BD3-3EFB04722A4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{226A52BB-0E8E-4163-8BD3-3EFB04722A4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{226A52BB-0E8E-4163-8BD3-3EFB04722A4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{226A52BB-0E8E-4163-8BD3-3EFB04722A4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAC7E598-AE82-4FF9-8510-B5E1EE7430CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAC7E598-AE82-4FF9-8510-B5E1EE7430CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAC7E598-AE82-4FF9-8510-B5E1EE7430CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAC7E598-AE82-4FF9-8510-B5E1EE7430CA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -199,5 +217,8 @@ Global
 		{4705B2F8-D10A-45C6-8526-D13A4FC257BF} = {4159CC69-9869-4F18-8EBB-E353D7D46B14}
 		{E698A5B7-E8DB-4498-96E7-02AB0E1CCD34} = {4159CC69-9869-4F18-8EBB-E353D7D46B14}
 		{2C430718-EEC5-4D1B-8F14-FA94167572E6} = {4159CC69-9869-4F18-8EBB-E353D7D46B14}
+		{7E3A491B-93AD-4BA7-BEA6-52E5D08BF25C} = {F66DB1CE-B05B-4EFB-9908-067340E0239C}
+		{226A52BB-0E8E-4163-8BD3-3EFB04722A4E} = {F66DB1CE-B05B-4EFB-9908-067340E0239C}
+		{AAC7E598-AE82-4FF9-8510-B5E1EE7430CA} = {F66DB1CE-B05B-4EFB-9908-067340E0239C}
 	EndGlobalSection
 EndGlobal

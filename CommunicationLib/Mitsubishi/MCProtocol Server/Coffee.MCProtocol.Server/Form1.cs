@@ -240,6 +240,10 @@ namespace Coffee.MCProtocol.Server
 
             Console.WriteLine($">> [{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] 请求:" + string.Join(" ", reqBytes.Select(b => b.ToString("X2"))));
             // 成批读取
+            // 按字从D区读取N个字，1个字1个字地址
+            // 按字从Y区读取N个字，1个字16个位地址
+            // 按位从Y区读取N个位，1个位1个位地址
+            // 按位从D区读取N个位，16个位1个字地址
             if (reqBytes[11] == 0x01 && reqBytes[12] == 0x04)
             {
                 // 软元件编号
@@ -249,14 +253,24 @@ namespace Coffee.MCProtocol.Server
                 string area_str = Area.FirstOrDefault(a => a.Item1 == code).Item2;
                 // 读取点数
                 ushort count = BitConverter.ToUInt16(new byte[] { reqBytes[19], reqBytes[20] }, 0);
-                // 如果是按字请求位软元件，则按一个字16个地址算
-                if (reqBytes[13] == 0x00 && new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code))
-                    count *= 16;
+
+                ushort countByAddr = count; //从当前区域读取的地址数
+                if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code))
+                {
+                    if (reqBytes[13] == 0x00) //如果是在位区域按字读取
+                    {
+                        countByAddr *= 16;
+                    }
+                }
+                else if (reqBytes[13] == 0x01) //如果是在字区域按位读取
+                {
+                    countByAddr = countByAddr % 16 == 0 ? (ushort)(countByAddr / 16) : (ushort)(countByAddr / 16 + 1);
+                }
 
                 short[] values = new short[count];
+                string[] addrs = new string[countByAddr];
 
-                string[] addrs = new string[count];
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < countByAddr; i++)
                 {
                     if (new byte[] { 0x9C, 0x9D }.Contains(code))
                     {
@@ -266,36 +280,52 @@ namespace Coffee.MCProtocol.Server
                             addrs[i] = area_str + (addr + i).ToString("X");
                         }
                         else if (radix == 8)
-                            addrs[i] = area_str + (((addr + i) % 8) + ((addr + i) / 8 * 10)).ToString();
+                        {
+                            addrs[i] = area_str + Convert.ToString(addr + i, 8); //10进制转8进制
+                        }
                     }
                     else
+                    {
                         addrs[i] = area_str + (addr + i).ToString();
+                    }
                 }
                 Console.WriteLine(">> 请求地址:" + string.Join(" ", addrs));
-                int result = axActProgType1.ReadDeviceRandom2(string.Join("\n", addrs), count, out values[0]);
-                //int result = axActProgType1.ReadDeviceBlock2(string.Join("\n", addrs), count, out values[0]);
+                //注意：按字从位软元件区域读，只能读到第一个位的状态值，不知道是否是MXComponent的问题，暂时无解
+                int result = axActProgType1.ReadDeviceRandom2(string.Join("\n", addrs), countByAddr, out values[0]);
 
                 // 组装响应报文
                 List<byte> respBytes = reqBytes.GetRange(0, 7);
                 respBytes[0] += 0x80;
 
                 // 数据部分
-                if (reqBytes[13] == 0x01)//按位
+                if (reqBytes[13] == 0x01)//按位读取
                 {
-                    int index = 0;
                     List<byte> datas = new List<byte>();
                     for (int i = 0; i < count; i++)
                     {
-                        if (i % 2 == 0)
+                        if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code)) //按位从位软元件区域读
                         {
-                            byte b = 0x00;
-                            datas.Add(b);
-                            datas[index] |= (byte)(values[i] << 4);
+                            datas.Add((byte)(values[i] > 0 ? 0x01 : 0x00));
                         }
-                        else
+                        else //按位从字软元件区域读
                         {
-                            datas[index] |= (byte)values[i];
-                            index++;
+                            //对块存储区按位读取，每个字有16个位，计算当前读取到字的第几个位。每个字的低位和高位分别存储在不同的字节中
+                            int byteIndex = i / 8;
+                            int wordIndex = i / 16;
+                            if (byteIndex >= datas.Count)
+                            {
+                                datas.Add(0x00);
+                            }
+                            if (byteIndex % 2 == 0) //低位
+                            {
+                                byte bit = (byte)(values[wordIndex] & (0x01 << (i % 16)));
+                                datas[byteIndex] |= bit;
+                            }
+                            else //高位
+                            {
+                                byte bit = (byte)((values[wordIndex] & (0x01 << (i % 16))) >> 8);
+                                datas[byteIndex] |= bit;
+                            }
                         }
                     }
                     // 响应数据长度+状态
@@ -305,9 +335,9 @@ namespace Coffee.MCProtocol.Server
                     respBytes.Add(0x00);
                     respBytes.AddRange(datas);
                 }
-                else if (reqBytes[13] == 0x00)//按字
+                else if (reqBytes[13] == 0x00) //按字读取
                 {
-                    if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code))
+                    if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code)) //按字从位软元件区域读
                     {
                         List<byte> datas = new List<byte>();
                         byte states = 0x00;
@@ -327,7 +357,7 @@ namespace Coffee.MCProtocol.Server
                         respBytes.Add(0x00);
                         respBytes.AddRange(datas);
                     }
-                    else
+                    else //按字从字软元件区域读
                     {
                         // 响应数据长度+状态
                         respBytes.Add((byte)((count * 2 + 2) % 256));
@@ -354,6 +384,11 @@ namespace Coffee.MCProtocol.Server
                 clientSocket.Send(respBytes.ToArray());
             }
             // 成批写入
+            // 按字从D区写入N个字，1个字1个字地址，datas字节数组存储N个字的数据
+            // 按字从Y区写入N个字，1个字16个位地址，datas字节数组存储N*16个状态数据（客户端可以传入任意数量的状态位，服务端自动补0）
+            // 注意：目前按字从Y区读有问题，但是按字从Y区写没有问题，可能是MXComponent的限制，暂时无解
+            // 按位从Y区写入N个位，1个位1个位地址，datas字节数组存储N个状态位的数据
+            // 按位从D区写入N个位，16个位1个字地址，datas字节数组存储N个表示状态位的的字节数据
             else if (reqBytes[11] == 0x01 && reqBytes[12] == 0x14)
             {
                 // 软元件编号
@@ -361,53 +396,119 @@ namespace Coffee.MCProtocol.Server
                 // 软元件代码
                 byte code = reqBytes[18];
                 string area_str = Area.FirstOrDefault(a => a.Item1 == code).Item2;
-                // 读取点数
+                // 写入点数
                 ushort count = BitConverter.ToUInt16(new byte[] { reqBytes[19], reqBytes[20] }, 0);
 
-                // 字  D0  
-                // 如果是按字请求位软元件，则按一个字16个地址算
-                //if (reqBytes[13] == 0x01 && new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code))
-                //    count = (ushort)(count / 2 + count % 2);
-                if (reqBytes[13] == 0x00 && new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code))
-                    count *= 16;
-
-                string[] addrs = new string[count];
-                for (int i = 0; i < count; i++)
-                {
-                    if (new byte[] { 0x9C, 0x9D }.Contains(code))
-                    {
-                        if (radix == 16)
-                        {
-                            addr = Convert.ToUInt32(reqBytes[17].ToString("X2") + reqBytes[16].ToString("X2") + reqBytes[15].ToString("X2"), 16);
-                            addrs[i] = area_str + (addr + i).ToString("X");
-                        }
-                        else if (radix == 8)
-                            addrs[i] = area_str + (((addr + i) % 8) + ((addr + i) / 8 * 10)).ToString();
-                    }
-                    else
-                        addrs[i] = area_str + (addr + i).ToString();
-                }
-                Console.WriteLine(">> 请求地址:" + string.Join(" ", addrs));
-
-                // 写入数据
-                int index = 21, bit_offset = 0;
-                short[] datas = new short[count];
-                int result = 0;
+                List<string> addrList = new List<string>();
                 for (int i = 0; i < count; i++)
                 {
                     if (reqBytes[13] == 0x01)//位
                     {
-                        if (i % 2 == 0)
-                            datas[i] = (short)(((reqBytes[index] & (1 << 4)) != 0x00) ? 0x01 : 0x00);
-                        else
+                        if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code)) //按位从位软元件区域写
                         {
-                            datas[i] = (short)(((reqBytes[index] & 1) != 0x00) ? 0x01 : 0x00);
-                            index++;
+                            if (new byte[] { 0x9C, 0x9D }.Contains(code))
+                            {
+                                if (radix == 16)
+                                {
+                                    addr = Convert.ToUInt32(reqBytes[17].ToString("X2") + reqBytes[16].ToString("X2") + reqBytes[15].ToString("X2"), 16);
+                                    addrList.Add(area_str + (addr + i).ToString("X"));
+                                }
+                                else if (radix == 8)
+                                    addrList.Add(area_str + Convert.ToString(addr + i, 8)); //10进制转8进制
+                            }
+                            else
+                            {
+                                addrList.Add(area_str + (addr + i).ToString("X"));
+                            }
+                        }
+                        else //按位从字软元件区域写
+                        {
+                            if (i % 16 == 0)
+                            {
+                                addrList.Add(area_str + (addr + i / 16).ToString());
+                            }
                         }
                     }
                     else if (reqBytes[13] == 0x00)// 字
                     {
-                        if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code))// 位存储
+                        if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code)) //按字从位软元件区域写
+                        {
+                            if (new byte[] { 0x9C, 0x9D }.Contains(code))
+                            {
+                                if (radix == 16)
+                                {
+                                    addr = Convert.ToUInt32(reqBytes[17].ToString("X2") + reqBytes[16].ToString("X2") + reqBytes[15].ToString("X2"), 16);
+                                    for (int j = 0; j < 16; j++)
+                                    {
+                                        addrList.Add(area_str + (addr + i * 16 + j).ToString("X"));
+                                    }
+                                }
+                                else if (radix == 8)
+                                {
+                                    for (int j = 0; j < 16; j++)
+                                    {
+                                        addrList.Add(area_str + Convert.ToString(addr + i * 16 + j, 8)); //10进制转8进制
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                for (int j = 0; j < 16; j++)
+                                {
+                                    addrList.Add(area_str + (addr + i * 16 + j).ToString("X"));
+                                }
+                            }
+                        }
+                        else //按字从字软元件区域写
+                        {
+                            addrList.Add(area_str + (addr + i).ToString());
+                        }
+                    }
+                }
+                string[] addrs = addrList.ToArray();
+                Console.WriteLine(">> 请求地址:" + string.Join(" ", addrs));
+
+                // 写入数据
+                short[] datas = new short[addrs.Length];
+                int result = 0;
+
+                int countByAddress = count; //从当前区域写入的地址数
+                if (reqBytes[13] == 0x01)//按位写
+                {
+                    if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code) == false) //按位从字软元件区域写
+                    {
+                        countByAddress = (count % 16 == 0) ? count / 16 : count / 16 + 1;
+                    }
+                }
+                else if (reqBytes[13] == 0x00)// 按字写
+                {
+                    if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code)) //按字从位软元件区域写
+                    {
+                        countByAddress = count * 16;
+                    }
+                }
+                //位软元件区域的一个字就是一个状态位
+                int index = 21, bit_offset = 0;
+                for (int i = 0; i < countByAddress; i++)
+                {
+                    if (reqBytes[13] == 0x01)//位
+                    {
+                        if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code)) //按位从位软元件区域写
+                        {
+                            byte bit = reqBytes[21 + i];
+                            datas[i] = (short)(bit > 0 ? 0x01 : 0x00);
+                        }
+                        else //按位从字软元件区域写
+                        {
+                            byte byte1 = reqBytes[21 + i * 2];
+                            byte byte2 = reqBytes[21 + i * 2 + 1];
+                            short word = (short)(byte1 + (byte2 << 8));
+                            datas[i] = word;
+                        }
+                    }
+                    else if (reqBytes[13] == 0x00)// 字
+                    {
+                        if (new byte[] { 0x9C, 0x9D, 0x90 }.Contains(code)) //按字从位软元件区域写
                         {
                             datas[i] = (short)((reqBytes[index] & (1 << bit_offset)) > 0 ? 0x01 : 0x00);
                             bit_offset++;
@@ -417,7 +518,7 @@ namespace Coffee.MCProtocol.Server
                                 index++;
                             }
                         }
-                        else//字存储
+                        else //按字从字软元件区域写
                         {
                             List<byte> wordBytes = reqBytes.GetRange(index, 2);
                             datas[i] = (BitConverter.ToInt16(wordBytes.ToArray(), 0));
@@ -473,7 +574,8 @@ namespace Coffee.MCProtocol.Server
                             addrs.Add(area_str + addr.ToString("X"));
                         }
                         else if (radix == 8)
-                            addrs.Add(area_str + ((addr % 8) + (addr / 8 * 10)).ToString());
+                            //addrs.Add(area_str + ((addr % 8) + (addr / 8 * 10)).ToString());
+                            addrs.Add(area_str + Convert.ToString(addr, 8)); //10进制转8进制
                     }
                     else
                     {
@@ -525,7 +627,7 @@ namespace Coffee.MCProtocol.Server
                 List<byte> respBytes = reqBytes.GetRange(0, 7);
                 respBytes[0] += 0x80;
 
-                ushort len = (ushort)(count*2 + 2);
+                ushort len = (ushort)(count * 2 + 2);
                 if (result == 0)
                 {
                     respBytes.AddRange(BitConverter.GetBytes(len));
@@ -576,7 +678,8 @@ namespace Coffee.MCProtocol.Server
                                 area_str += addr.ToString("X");
                             }
                             else if (radix == 8)
-                                area_str += ((addr % 8) + (addr / 8 * 10)).ToString();
+                                //area_str += ((addr % 8) + (addr / 8 * 10)).ToString();
+                                area_str += Convert.ToString(addr, 8); //10进制转8进制
                         }
                         else
                         {
@@ -608,7 +711,8 @@ namespace Coffee.MCProtocol.Server
                                 area_str += addr.ToString("X");
                             }
                             else if (radix == 8)
-                                area_str += ((addr % 8) + (addr / 8 * 10)).ToString();
+                                //area_str += ((addr % 8) + (addr / 8 * 10)).ToString();
+                                area_str += Convert.ToString(addr, 8); //10进制转8进制
                         }
                         else
                         {
@@ -737,13 +841,18 @@ namespace Coffee.MCProtocol.Server
                     string aStr = Area.FirstOrDefault(a => a.Item1 == code).Item2;
                     ushort count = BitConverter.ToUInt16(new byte[] { reqBytes[index++], reqBytes[index++] }, 0);
 
-                    short[] values = new short[count * 16];
+                    short[] values = new short[count];
 
-                    string[] addrs = new string[count * 16];
-                    for (int i = 0; i < count * 16; i++)
+                    string[] addrs = new string[count];
+                    for (int i = 0; i < count; i++)
                     {
                         if (new byte[] { 0x9C, 0x9D }.Contains(code))
-                            addrs[i] = aStr + (addr + i).ToString("X");
+                        {
+                            if (radix == 16)
+                                addrs[i] = aStr + (addr + i).ToString("X");
+                            else if (radix == 8)
+                                addrs[i] = aStr + Convert.ToString(addr + i, 8); //10进制转8进制
+                        }
                         else
                             addrs[i] = aStr + (addr + i).ToString();
                     }
@@ -753,7 +862,7 @@ namespace Coffee.MCProtocol.Server
 
                     if (result == 0)
                     {
-                        for (int i = 0; i < count * 16; i++)
+                        for (int i = 0; i < count; i++)
                         {
                             if (i % 8 == 0)
                             {
@@ -819,7 +928,6 @@ namespace Coffee.MCProtocol.Server
                     string aStr = Area.FirstOrDefault(a => a.Item1 == code).Item2;
                     string area_temp = "";
                     ushort count = BitConverter.ToUInt16(new byte[] { reqBytes[index + 4], reqBytes[index + 5] }, 0);
-                    count *= 16;
                     int bit_offset = 0, byte_offset = 0;
                     for (int j = 0; j < count; j++)
                     {
@@ -833,7 +941,8 @@ namespace Coffee.MCProtocol.Server
                                 area_temp = aStr + (addr + j).ToString("X");
                             }
                             else if (radix == 8)
-                                area_temp = aStr + (((addr + j) % 8) + ((addr + j) / 8 * 10)).ToString();
+                                //area_temp = aStr + (((addr + j) % 8) + ((addr + j) / 8 * 10)).ToString();
+                                area_temp = aStr + Convert.ToString(addr + j, 8); //10进制转8进制
                         }
                         else
                             area_temp = aStr + (addr + j).ToString();

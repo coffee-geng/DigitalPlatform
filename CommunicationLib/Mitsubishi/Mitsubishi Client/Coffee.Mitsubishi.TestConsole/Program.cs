@@ -19,7 +19,7 @@ namespace Coffee.Mitsubishi.Communication
         {
             MCProtocol.Mitsubishi.McProtocolTcp mc
                 = new MCProtocol.Mitsubishi.McProtocolTcp(
-                    "192.168.174.128",
+                    "192.168.2.7",
                     6000,
                     MCProtocol.Mitsubishi.McFrame.MC3E);
             mc.Open().GetAwaiter().GetResult();
@@ -37,7 +37,7 @@ namespace Coffee.Mitsubishi.Communication
 
         static void CustomLibTest()
         {
-            Mc3E mc3E = new Mc3E("192.168.174.128", 6000);
+            Mc3E mc3E = new Mc3E("192.168.2.7", 6000);
             mc3E.Open();
 
             // 批量读取测试--------------------------------------------

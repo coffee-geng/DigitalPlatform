@@ -68,3 +68,16 @@
 /CommunicationLib/Omron/Omron FinsTCP Server/Coffee.FinsTCP.Server/bin
 /CommunicationLib/Omron/Omron FinsTCP Server/Coffee.FinsTCP.Server/obj
 /CommunicationLib/Omron/Omron Client/.vs
+/CommunicationLib/Mitsubishi/Mitsubishi Client/.vs
+/CommunicationLib/Mitsubishi/Mitsubishi Client/Coffee.Mc3E/bin
+/CommunicationLib/Mitsubishi/Mitsubishi Client/Coffee.Mc3E/obj
+/CommunicationLib/Mitsubishi/Mitsubishi Client/Coffee.Mitsubishi/bin
+/CommunicationLib/Mitsubishi/Mitsubishi Client/Coffee.Mitsubishi/obj
+/CommunicationLib/Mitsubishi/Mitsubishi Client/Coffee.Mitsubishi.Communication/bin
+/CommunicationLib/Mitsubishi/Mitsubishi Client/Coffee.Mitsubishi.Communication/obj
+/CommunicationLib/Mitsubishi/MCProtocol Server/.vs
+/CommunicationLib/Mitsubishi/MCProtocol Server/Coffee.MCProtocol.Server/obj
+/CommunicationLib/Mitsubishi/MCProtocol Server/Coffee.MCProtocol.Server/bin
+/CommunicationLib/Mitsubishi/Mitsubishi Client/Coffee.Mitsubishi.TestConsole/obj
+/CommunicationLib/Mitsubishi/Mitsubishi Client/Coffee.Mitsubishi.TestConsole/bin
+/CommunicationLib/Omron/Omron FinsTCP Server/.vs

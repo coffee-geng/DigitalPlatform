@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.35122.118
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Coffee.Mitsubishi.Communication", "Coffee.Mitsubishi.Communication\Coffee.Mitsubishi.Communication.csproj", "{9CEF6DED-E41C-4333-A5CD-F427AA298429}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Coffee.Mitsubishi.TestConsole", "Coffee.Mitsubishi.TestConsole\Coffee.Mitsubishi.TestConsole.csproj", "{9CEF6DED-E41C-4333-A5CD-F427AA298429}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.Mitsubishi", "Coffee.Mitsubishi\Coffee.Mitsubishi.csproj", "{BABDD6D5-4BA5-4C05-AFE5-B09F7ABB2224}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coffee.Mitsubishi.Communication", "Coffee.Mitsubishi.Communication\Coffee.Mitsubishi.Communication.csproj", "{BABDD6D5-4BA5-4C05-AFE5-B09F7ABB2224}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

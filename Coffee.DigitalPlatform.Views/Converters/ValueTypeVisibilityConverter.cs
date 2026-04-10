@@ -296,8 +296,19 @@ namespace Coffee.DigitalPlatform.Views
                 }
                 else
                 {
-                    var v2 = controlInfo.NewLinkageActions.Where(a => a.Variable.VarNum == var.VarNum && a.Variable.DeviceNum == var.DeviceNum).Select(a => a.Value).FirstOrDefault();
-                    newAction.Value = v2;
+                    var v2 = controlInfo.NewLinkageActions.Where(a => a.Variable != null && a.Variable.VarNum == var.VarNum && a.Variable.DeviceNum == var.DeviceNum).Select(a => a.Value).FirstOrDefault();
+                    if (v2 != null)
+                    {
+                        newAction.Value = v2;
+                    }
+                    else //当第一次从联控信息的变量下拉框中选择变量时，NewLinkageActions中只是添加了空的LinkageAction对象，还没有指定变量，需要在选择后指定
+                    {
+                        var action = controlInfo.NewLinkageActions.Where(a => a.Variable == null).FirstOrDefault();
+                        if (action != null)
+                        {
+                            action.Variable = @var;
+                        }
+                    }
                 }
                 if (values.Length >2 && values[2] != null && values[2] != DependencyProperty.UnsetValue && values[2] is LinkageAction oldAction)
                 {

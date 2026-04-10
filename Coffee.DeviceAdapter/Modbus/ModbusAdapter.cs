@@ -183,7 +183,7 @@ namespace Coffee.DeviceAdapter
             if (requestParam == null)
                 throw new ArgumentNullException("读取点位信息的请求参数不能为空！");
             var result = Read(requestParam.Address, requestParam.DataType, requestParam.Length, slaveId, endianTypes);
-            var response = new ReadResponseParameter(result);
+            var response = new ReadResponseParameter(result, requestParam);
             return response;
         }
 
@@ -225,7 +225,7 @@ namespace Coffee.DeviceAdapter
         {
             if (requestParam == null)
                 throw new ArgumentNullException("写入点位信息的请求参数不能为空！");
-            var response = new WriteResponseParameter()
+            var response = new WriteResponseParameter(requestParam)
             {
                 ProtocolType = ProtocolType,
                 DataType = requestParam.DataType,
@@ -440,7 +440,7 @@ namespace Coffee.DeviceAdapter
             if (requestParam == null)
                 throw new ArgumentNullException("读取点位信息的请求参数不能为空！");
             var result = await ReadAsync(requestParam.Address, requestParam.DataType, requestParam.Length, slaveId, endianTypes);
-            var response = new ReadResponseParameter(result);
+            var response = new ReadResponseParameter(result, requestParam);
             return response;
         }
 
@@ -496,7 +496,7 @@ namespace Coffee.DeviceAdapter
         {
             if (requestParam == null)
                 throw new ArgumentNullException("写入点位信息的请求参数不能为空！");
-            var response = new WriteResponseParameter()
+            var response = new WriteResponseParameter(requestParam)
             {
                 ProtocolType = ProtocolType,
                 DataType = requestParam.DataType,
