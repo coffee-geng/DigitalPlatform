@@ -103,6 +103,51 @@ namespace Coffee.DeviceAdapter
             }
         }
 
+        public ProtocolData TestRead(string address, DataType dataType, ushort length = 1, byte slaveId = 1, EndianTypes endianTypes = EndianTypes.ABCD)
+        {
+            //List<ReadRequestParameter> w_addr = new List<ReadRequestParameter>()
+            //{
+            //    new ReadRequestParameter()
+            //    {
+            //        Address = "D100",
+            //        DataType = DataType.Int16,
+            //        Length = 2
+            //    }
+            //};
+            //List<ReadRequestParameter> bit_addr = new List<ReadRequestParameter>()
+            //{
+            //    new ReadRequestParameter()
+            //    {
+            //        Address = "Y100",
+            //        DataType = DataType.Bit,
+            //        Length = 4
+            //    }
+            //};
+            //var response = MultiBlockRead(w_addr, bit_addr);
+            //return null;
+
+            List<WriteRequestParameter> w_addr = new List<WriteRequestParameter>
+            {
+                new WriteRequestParameter()
+                {
+                    Address = "D120",
+                    DataType = DataType.Int32,
+                    Value = new int[]{555,666,777}
+                }
+            };
+            List<WriteRequestParameter> bit_addr = new List<WriteRequestParameter>
+            {
+                new WriteRequestParameter()
+                {
+                    Address = "Y120",
+                    DataType = DataType.Bit,
+                    Value = new bool[]{ true, false, true, true }
+                }
+            };
+            var res = MultiBlockWrite(w_addr, bit_addr);
+            return null;
+        }
+
         public ProtocolData Read(string address, DataType dataType, ushort length = 1, byte slaveId = 1, EndianTypes endianTypes = EndianTypes.ABCD)
         {
             var mc3eData = new MC3E_Data()
@@ -676,28 +721,7 @@ namespace Coffee.DeviceAdapter
 
             try
             {
-                var w_addr = new List<Mitsubishi.Base.DataParameter>()
-                {
-                    new mitsubishi.DataParameter()
-                    {
-                        Address = "100",
-                        Area = Areas.D,
-                        Count = 1,
-                        Datas = new List<byte>() { 0x01, 0x00 }
-                    }
-                };
-                var b_addr = new List<Mitsubishi.Base.DataParameter>()
-                {
-                    new mitsubishi.DataParameter()
-                    {
-                        Address = "100",
-                        Area = Areas.X,
-                        Count = 1,
-                        Datas = new List<byte>() { 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01}
-                    }
-                };
-                _mc3eClient.MultiBlockWrite(w_addr, b_addr);
-                //_mc3eClient.RandomWrite(datasByWord.Select(d => d.Item1).ToList(), datasByDWord.Select(d => d.Item1).ToList(), _mc3eOptions.IsOctal);
+                _mc3eClient.RandomWrite(datasByWord.Select(d => d.Item1).ToList(), datasByDWord.Select(d => d.Item1).ToList(), _mc3eOptions.IsOctal);
 
                 if (datasByWord.Any())
                 {
@@ -982,12 +1006,19 @@ namespace Coffee.DeviceAdapter
                 var method1 = typeof(DataTypeHelper).GetMethod("ConvertToDataArray");
                 var genericMethod1 = method1.MakeGenericMethod(genericType1);
                 dynamic dataArray = genericMethod1.Invoke(null, new object[] { value });
-                count = (ushort)dataArray.Length;
-
+                
                 //反射调用泛型方法：public byte[] GetBytes<T>(params T[] values)
                 var method2 = typeof(Mc3E).GetMethod("GetBytes");
                 var genericMethod2 = method2.MakeGenericMethod(genericType1);
                 bytesToWrite = (byte[])genericMethod2.Invoke(_mc3eClient, new object[] { dataArray });
+
+                //当写入布尔值时，输出参数count表示写入的状态位数
+                //当写入其他类型时，输出参数count表示写入的字数
+                if (dataType == DataType.Bit)
+                    count = (ushort)dataArray.Length;
+                else
+                    count = bytesToWrite.Length % 2 == 0 ? (ushort)(bytesToWrite.Length / 2) : (ushort)(bytesToWrite.Length / 2 + 1);
+
                 return bytesToWrite;
             }
             catch (Exception ex1)

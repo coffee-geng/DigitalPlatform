@@ -19,7 +19,7 @@ namespace Coffee.Mitsubishi
             socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
         }
 
-        public void Open(int timeout = 30000000)
+        public void Open(int timeout = 3000)
         {
             socket.ReceiveTimeout = timeout;
             socket.Connect(_host, _port);
@@ -512,7 +512,7 @@ namespace Coffee.Mitsubishi
         // 多块批量读写   字、位
         // 只能按字读取数据，而不管读取的软元件区域是字地址还是位地址。
         // [暂时未测试，自行测试]
-        public void MultiBlockRead(List<DataParameter> w_address, List<DataParameter> b_address)
+        public void MultiBlockRead(List<DataParameter> w_address, List<DataParameter> b_address, bool isOctal = true)
         {
             List<byte> bytes = new List<byte>{
                 0x50,0x00, //请求副头部，固定50 00
@@ -538,7 +538,7 @@ namespace Coffee.Mitsubishi
                 {
                     throw new Exception("参数w_address只能从指定字地址软元件区域读取数据！");
                 }
-                byte[] addr_bytes = this.GetAddress(address.Address, address.Area);
+                byte[] addr_bytes = this.GetAddress(address.Address, address.Area, isOctal);
                 // 拼接请求的地址，软元件区域和当前地址读取的字数
                 bytes.AddRange(addr_bytes);
                 bytes.Add((byte)address.Area);
@@ -553,7 +553,7 @@ namespace Coffee.Mitsubishi
                 {
                     throw new Exception("参数b_address只能从指定位地址软元件区域读取数据！");
                 }
-                byte[] addr_bytes = this.GetAddress(address.Address, address.Area);
+                byte[] addr_bytes = this.GetAddress(address.Address, address.Area, isOctal);
                 // 拼接请求的地址，软元件区域和当前地址读取的位数
                 bytes.AddRange(addr_bytes);
                 bytes.Add((byte)address.Area);
@@ -596,15 +596,24 @@ namespace Coffee.Mitsubishi
                     address.Datas = new List<byte>();
 
                 //address.Count 表示从指定地址读取多少个位数据，返回的时候是按字节存储的
-                int byte_count = address.Count * 2;
+                int byte_count = address.Count % 8 == 0 ? address.Count / 8 : address.Count / 8 + 1;
                 byte[] values_bytes = resp.Skip(index).Take(byte_count).ToArray();
-
-                foreach (byte value in values_bytes) //从X、Y、M位区域读取时，读取的
+                int tempCount = 0;
+                bool isBreak = false;
+                foreach (byte value in values_bytes)
                 {
                     for (int i = 0; i < 8; i++)
                     {
+                        if (tempCount >= address.Count)
+                        {
+                            isBreak = true;
+                            break; //当读取的位数超过实际需要读取的位数时，停止读取
+                        }
                         address.Datas.Add((byte)((value & (1 << i)) > 0 ? 0x01 : 0x00));
+                        tempCount++;
                     }
+                    if (isBreak)
+                        break;
                 }
                 index += byte_count;
             }
@@ -612,7 +621,7 @@ namespace Coffee.Mitsubishi
 
         // [暂时未测试，自行测试]
         // 只能按字写入数据，而不管写入的软元件区域是字地址还是位地址。
-        public void MultiBlockWrite(List<DataParameter> w_address, List<DataParameter> b_address)
+        public void MultiBlockWrite(List<DataParameter> w_address, List<DataParameter> b_address, bool isOctal = true)
         {
             List<byte> bytes = new List<byte> {
                 // 头部信息
@@ -666,7 +675,7 @@ namespace Coffee.Mitsubishi
                 {
                     throw new Exception("参数b_address只能从指定位地址软元件区域写入数据！");
                 }
-                byte[] addr_bytes = this.GetAddress(address.Address, address.Area, false);
+                byte[] addr_bytes = this.GetAddress(address.Address, address.Area, isOctal);
                 // 拼接请求的地址，软元件区域和当前地址读取的位数
                 bytes.AddRange(addr_bytes);
                 bytes.Add((byte)address.Area);
@@ -688,6 +697,10 @@ namespace Coffee.Mitsubishi
                     if (i > 0 && i % 8 == 0) index++;
                     byte bit = (byte)(address.Datas[i] == 0x01 ? 0x01 : 0x00);
                     data_bytes[index] |= (byte)(bit << (i % 8));
+                }
+                if (data_bytes.Length % 2 != 0) //如果按字处理，写入位数据时，字节数必须是偶数
+                {
+                    data_bytes = data_bytes.Concat(new byte[] { 0x00 }).ToArray();
                 }
                 bytes.AddRange(data_bytes);
             }
